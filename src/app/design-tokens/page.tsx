@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,8 +10,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CouponChip } from "@/components/ui/coupon-chip";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Mascot, type MascotName } from "@/components/ui/mascot";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Container } from "@/components/layouts/container";
+import { NoiseLayer } from "@/components/layouts/noise-layer";
+import { Row, Stack } from "@/components/layouts/stack";
+import { Section } from "@/components/layouts/section";
 
 const FEATURED: readonly MascotName[] = ["student", "teacher"] as const;
 const DECORATIVE: readonly MascotName[] = ["bookworm", "star"] as const;
@@ -21,10 +39,6 @@ const BLURBS: Record<MascotName, string> = {
   bookworm: "Tall vertical capsule, violet-shifted gradient. Decorative.",
   star: "Wide asymmetric pebble, warm amber→emerald. Decorative.",
 };
-import { Container } from "@/components/layouts/container";
-import { NoiseLayer } from "@/components/layouts/noise-layer";
-import { Row, Stack } from "@/components/layouts/stack";
-import { Section } from "@/components/layouts/section";
 
 export const metadata: Metadata = {
   title: "Design Tokens",
@@ -273,6 +287,144 @@ export default function DesignTokensPage() {
                         <Button variant="outline">
                           <Sparkles /> Explore community
                         </Button>
+                      </Row>
+                    </Stack>
+                  </Stack>
+                </Card>
+              </Stack>
+
+              {/* ---- Forms ---- */}
+              <Stack gap={6}>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">Input</span>
+                  <h2 className="text-title">Form primitives</h2>
+                  <p className="text-body text-muted-foreground max-w-2xl">
+                    Same control set works on the cinematic storefront and the
+                    operational admin. Always-visible labels, 44px touch
+                    targets on default size, brand-colored focus rings.
+                  </p>
+                </Stack>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <Card variant="surface" padding="lg">
+                    <Stack gap={4}>
+                      <span className="text-eyebrow">Text fields</span>
+                      <FormField
+                        label="Email"
+                        description="Where order receipts and digital access links go."
+                        required
+                      >
+                        <Input type="email" placeholder="you@school.edu" />
+                      </FormField>
+                      <FormField label="Coupon code" error="That code is invalid or expired.">
+                        <Input placeholder="STUDENT10" />
+                      </FormField>
+                      <FormField
+                        label="Notes"
+                        description="Optional — anything special about this order."
+                      >
+                        <Textarea placeholder="Wrap as a gift, deliver after 5pm…" />
+                      </FormField>
+                    </Stack>
+                  </Card>
+
+                  <Card variant="surface" padding="lg">
+                    <Stack gap={4}>
+                      <span className="text-eyebrow">Choice fields</span>
+                      <FormField label="Curriculum" description="Used to filter the catalog.">
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select one" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ibdp">IB Diploma Programme</SelectItem>
+                            <SelectItem value="igcse">IGCSE</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormField>
+
+                      <FormField label="Format" showLabel>
+                        <RadioGroup defaultValue="physical">
+                          <Row gap={3} align="center" className="cursor-pointer">
+                            <RadioGroupItem value="physical" id="fmt-physical" />
+                            <Label htmlFor="fmt-physical" className="font-normal">
+                              Physical book
+                            </Label>
+                          </Row>
+                          <Row gap={3} align="center">
+                            <RadioGroupItem value="digital" id="fmt-digital" />
+                            <Label htmlFor="fmt-digital" className="font-normal">
+                              Digital PDF + audio
+                            </Label>
+                          </Row>
+                          <Row gap={3} align="center">
+                            <RadioGroupItem value="bundle" id="fmt-bundle" />
+                            <Label htmlFor="fmt-bundle" className="font-normal">
+                              Bundle (10% off)
+                            </Label>
+                          </Row>
+                        </RadioGroup>
+                      </FormField>
+
+                      <Stack gap={2}>
+                        <Row gap={3} align="center">
+                          <Checkbox id="cb-tos" defaultChecked />
+                          <Label htmlFor="cb-tos" className="font-normal">
+                            I&rsquo;ve read the no-returns policy
+                          </Label>
+                        </Row>
+                        <Row gap={3} align="center">
+                          <Checkbox id="cb-news" />
+                          <Label htmlFor="cb-news" className="font-normal">
+                            Send me new release announcements
+                          </Label>
+                        </Row>
+                      </Stack>
+                    </Stack>
+                  </Card>
+                </div>
+              </Stack>
+
+              {/* ---- Badges ---- */}
+              <Stack gap={6}>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">Tag</span>
+                  <h2 className="text-title">Badges</h2>
+                  <p className="text-body text-muted-foreground max-w-2xl">
+                    Mode B order-state colors flow straight from the
+                    semantic status tokens. Variants share the same mono
+                    type rhythm.
+                  </p>
+                </Stack>
+                <Card variant="surface" padding="lg">
+                  <Stack gap={6}>
+                    <Stack gap={2}>
+                      <span className="text-eyebrow">Status (admin)</span>
+                      <Row gap={2} wrap>
+                        <Badge variant="destructive">New</Badge>
+                        <Badge variant="warning">Packed</Badge>
+                        <Badge variant="success">Shipped</Badge>
+                        <Badge variant="pending">Pending payment</Badge>
+                      </Row>
+                    </Stack>
+                    <Stack gap={2}>
+                      <span className="text-eyebrow">Generic</span>
+                      <Row gap={2} wrap>
+                        <Badge>Default</Badge>
+                        <Badge variant="secondary">Secondary</Badge>
+                        <Badge variant="outline">Outline</Badge>
+                        <Badge variant="brand">Brand</Badge>
+                      </Row>
+                    </Stack>
+                    <Stack gap={2}>
+                      <span className="text-eyebrow">In context</span>
+                      <Row gap={2} align="center" wrap>
+                        <span className="text-mono text-sm">ORD-2026-05-26-0001</span>
+                        <Badge variant="warning">Packed</Badge>
+                        <span className="text-caption">·</span>
+                        <span className="text-mono text-sm">student10</span>
+                        <Badge variant="success" size="sm">Applied</Badge>
                       </Row>
                     </Stack>
                   </Stack>
