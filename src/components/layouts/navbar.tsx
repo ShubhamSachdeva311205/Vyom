@@ -26,9 +26,9 @@ function LogoLockup() {
   return (
     <Link
       href="/"
-      className="inline-flex items-center gap-2 -ml-1 px-1 py-1 rounded-md hover:bg-accent/50 transition-colors"
+      className="inline-flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-accent/50 transition-colors"
     >
-      <Mascot name="star" size="sm" hideCoupon className="!h-9 !w-9" />
+      <Mascot name="star" size="xs" hideCoupon />
       <span className="font-display text-base font-semibold tracking-[-0.02em]">Advaita</span>
     </Link>
   );

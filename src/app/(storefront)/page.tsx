@@ -8,11 +8,11 @@ import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Row, Stack } from "@/components/layouts/stack";
 
+// Homepage companions are decorative only — coupons live with the
+// scattered floating-companion treatment that lands in a later phase.
 const COMPANIONS: { name: MascotName; label: string }[] = [
-  { name: "student", label: "Student" },
-  { name: "teacher", label: "Teacher" },
   { name: "bookworm", label: "Reader" },
-  { name: "star", label: "Star" },
+  { name: "star", label: "Spark" },
 ];
 
 const PILLARS = [
@@ -63,7 +63,7 @@ export default function HomePage() {
             </Stack>
 
             <Stack gap={4} align="center">
-              <Row gap={6} wrap justify="center">
+              <Row gap={10} wrap justify="center">
                 {COMPANIONS.map((c) => (
                   <Stack key={c.name} gap={2} align="center">
                     <Mascot name={c.name} size="md" hideCoupon />
@@ -71,7 +71,9 @@ export default function HomePage() {
                   </Stack>
                 ))}
               </Row>
-              <p className="text-caption">Meet the companions. Hover student or teacher for a treat.</p>
+              <p className="text-caption">
+                Companions hide in the corners of the site. Keep an eye out.
+              </p>
             </Stack>
           </Stack>
         </Container>

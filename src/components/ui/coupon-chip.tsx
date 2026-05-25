@@ -1,16 +1,21 @@
 "use client";
 
 import { Check, Copy } from "lucide-react";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
+import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 
 /**
- * CouponChip — small mono pill that copies a discount code to clipboard
- * on click. Styled to feel like a Nothing-phone tag: dense mono caps,
- * wide tracking, monolithic surface.
+ * CouponChip — small mono pill that copies a discount code on click.
+ * Visible feedback via a "Copied" state on the button itself AND a
+ * sonner toast (so a user who's already moved their cursor away still
+ * sees that the copy happened).
  *
- * Used inside Mascot blobs for the discount Easter egg and anywhere
- * else a copy-on-click code surface is needed.
+ * The chip lives inside Framer Motion wrappers (Mascot uses whileTap)
+ * which can swallow click intent if we don't stopPropagation on the
+ * pointer events. The clipboard API also fails silently in some
+ * browser contexts — we fall back to an execCommand("copy") with a
+ * transient textarea so insecure-context / older browsers still work.
  */
 
 interface CouponChipProps {
@@ -18,25 +23,74 @@ interface CouponChipProps {
   className?: string;
 }
 
+function execCommandCopy(text: string): boolean {
+  if (typeof document === "undefined") return false;
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(textarea);
+  return ok;
+}
+
 export function CouponChip({ code, className }: CouponChipProps) {
   const [copied, setCopied] = useState(false);
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
+  const handleClick = async (event: MouseEvent<HTMLButtonElement>) => {
+    // Don't let the parent Mascot's whileTap consume this gesture.
+    event.stopPropagation();
+    event.preventDefault();
+
+    const succeed = () => {
       setCopied(true);
+      toast.success(`Copied ${code}`);
       window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // Clipboard not available (insecure context, denied perm). Fall
-      // back to selecting text via a transient input — handled by the
-      // browser via the user's copy shortcut. We do not throw.
+    };
+
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === "function"
+    ) {
+      try {
+        await navigator.clipboard.writeText(code);
+        succeed();
+        return;
+      } catch {
+        // fall through to execCommand
+      }
     }
+
+    if (execCommandCopy(code)) {
+      succeed();
+      return;
+    }
+
+    toast.error("Couldn't copy. Long-press to copy manually.");
   };
+
+  // Also block the parent's pointer handlers — Framer's whileTap fires
+  // on pointer down, which can interfere with the synthetic click event
+  // in some browsers.
+  const stop = (e: MouseEvent<HTMLButtonElement>) => e.stopPropagation();
 
   return (
     <button
       type="button"
-      onClick={copy}
+      onClick={handleClick}
+      onPointerDown={stop}
+      onPointerUp={stop}
       aria-label={copied ? "Copied" : `Copy discount code ${code}`}
       className={cn(
         "group/chip relative inline-flex items-center gap-2",

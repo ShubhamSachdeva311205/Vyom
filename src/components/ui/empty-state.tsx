@@ -21,6 +21,8 @@ interface EmptyStateProps {
   action?: ReactNode;
   /** Storefront mascot. Cannot be combined with `icon`. */
   mascot?: MascotName;
+  /** Mascot mood — affects smile (sad = frown) and accessory color. */
+  mascotMood?: "happy" | "sad";
   /** Lucide icon for operational routes. Cannot be combined with `mascot`. */
   icon?: LucideIcon;
   className?: string;
@@ -31,6 +33,7 @@ export function EmptyState({
   description,
   action,
   mascot,
+  mascotMood,
   icon: Icon = Inbox,
   className,
 }: EmptyStateProps) {
@@ -44,7 +47,7 @@ export function EmptyState({
       )}
     >
       {mascot ? (
-        <Mascot name={mascot} size="md" />
+        <Mascot name={mascot} size="md" mood={mascotMood} />
       ) : (
         <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Icon className="size-6" aria-hidden="true" />

@@ -14,13 +14,14 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { motion, useReducedMotion } from "framer-motion";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CouponChip } from "./coupon-chip";
 
 const wrapperVariants = cva("relative inline-flex flex-col items-center", {
   variants: {
     size: {
+      xs: "gap-1",
       sm: "gap-2",
       md: "gap-3",
       lg: "gap-4",
@@ -32,6 +33,7 @@ const wrapperVariants = cva("relative inline-flex flex-col items-center", {
 const svgSizeVariants = cva("block", {
   variants: {
     size: {
+      xs: "h-9 w-9",
       sm: "h-24 w-24",
       md: "h-40 w-40",
       lg: "h-56 w-56",
@@ -48,6 +50,8 @@ interface MascotProps extends VariantProps<typeof wrapperVariants> {
   code?: string;
   /** Hide the coupon chip even if a default code exists. */
   hideCoupon?: boolean;
+  /** Resting mood. Affects smile path and accessory color. */
+  mood?: "happy" | "sad";
   label?: string;
   className?: string;
 }
@@ -62,12 +66,13 @@ const FACE_STROKE = "oklch(0.14 0.04 175)";
 /* ----------------------------------------------------------------
  * Accessory primitives — extra SVG layers that ride on top of the
  * face. They animate with the parent blob's spring (same SVG group).
+ *
+ * Accessories use currentColor for stroke + fill so the parent SVG's
+ * `color` style (driven by the mood) controls accessory tint without
+ * each accessory having to be aware of mood state.
  * ---------------------------------------------------------------- */
 
 function CollarAccessory() {
-  // Small button-down shirt visible under the chin: horizontal collar
-  // band with a V-notch cut from the bottom. Subtle outline stroke so
-  // it doesn't read as a featureless white tab against the gradient.
   return (
     <g>
       <path
@@ -79,7 +84,7 @@ function CollarAccessory() {
            L 92 178
            L 78 178 Z"
         fill="oklch(0.99 0.005 175)"
-        stroke={FACE_STROKE}
+        stroke="currentColor"
         strokeOpacity="0.35"
         strokeWidth="1.4"
         strokeLinejoin="round"
@@ -91,11 +96,23 @@ function CollarAccessory() {
 function GlassesAccessory() {
   return (
     <g>
-      {/* Lens fill — barely-there warm tint so eyes show through. */}
-      <rect x="56" y="80" width="36" height="26" rx="11" fill="oklch(0.99 0.01 75 / 0.18)" />
-      <rect x="108" y="80" width="36" height="26" rx="11" fill="oklch(0.99 0.01 75 / 0.18)" />
-      {/* Frame stroke. */}
-      <g stroke={FACE_STROKE} strokeWidth="3.5" fill="none" strokeLinejoin="round">
+      <rect
+        x="56"
+        y="80"
+        width="36"
+        height="26"
+        rx="11"
+        fill="oklch(0.99 0.01 75 / 0.18)"
+      />
+      <rect
+        x="108"
+        y="80"
+        width="36"
+        height="26"
+        rx="11"
+        fill="oklch(0.99 0.01 75 / 0.18)"
+      />
+      <g stroke="currentColor" strokeWidth="3.5" fill="none" strokeLinejoin="round">
         <rect x="56" y="80" width="36" height="26" rx="11" />
         <rect x="108" y="80" width="36" height="26" rx="11" />
         <line x1="92" y1="93" x2="108" y2="93" />
@@ -105,15 +122,13 @@ function GlassesAccessory() {
 }
 
 function CapAccessory() {
-  // Small graduation cap silhouette resting on top of the head.
   return (
     <g>
       <path
         d="M 56 30 L 100 16 L 144 30 L 100 44 Z"
-        fill={FACE_STROKE}
+        fill="currentColor"
       />
-      <rect x="74" y="44" width="52" height="4" rx="1" fill={FACE_STROKE} />
-      {/* Tassel — small circle + line off the right side */}
+      <rect x="74" y="44" width="52" height="4" rx="1" fill="currentColor" />
       <line
         x1="138"
         y1="28"
@@ -129,27 +144,45 @@ function CapAccessory() {
 }
 
 function HeadphonesAccessory() {
-  // Curved band over the top with two ear cups on either side.
+  // Thicker headband that arcs over the head, plus oval ear cups that
+  // protrude into the body silhouette (not floating outside it).
+  // Brand-color speaker dot on each cup, slightly larger so it reads.
   return (
     <g>
       <path
-        d="M 36 80 Q 100 22 164 80"
-        stroke={FACE_STROKE}
-        strokeWidth="5"
+        d="M 32 90 Q 100 14 168 90"
+        stroke="currentColor"
+        strokeWidth="9"
         strokeLinecap="round"
         fill="none"
       />
-      <rect x="22" y="76" width="22" height="32" rx="8" fill={FACE_STROKE} />
-      <rect x="156" y="76" width="22" height="32" rx="8" fill={FACE_STROKE} />
-      {/* Small brand-color speaker dot on each cup */}
-      <circle cx="33" cy="92" r="3" fill="var(--brand)" />
-      <circle cx="167" cy="92" r="3" fill="var(--brand)" />
+      <ellipse cx="36" cy="98" rx="14" ry="20" fill="currentColor" />
+      <ellipse cx="164" cy="98" rx="14" ry="20" fill="currentColor" />
+      <ellipse
+        cx="36"
+        cy="98"
+        rx="14"
+        ry="20"
+        fill="none"
+        stroke="oklch(0.99 0.005 175 / 0.15)"
+        strokeWidth="1.5"
+      />
+      <ellipse
+        cx="164"
+        cy="98"
+        rx="14"
+        ry="20"
+        fill="none"
+        stroke="oklch(0.99 0.005 175 / 0.15)"
+        strokeWidth="1.5"
+      />
+      <circle cx="36" cy="98" r="4.5" fill="var(--brand)" />
+      <circle cx="164" cy="98" r="4.5" fill="var(--brand)" />
     </g>
   );
 }
 
 function BackpackStrapAccessory() {
-  // Single diagonal strap across the body, suggesting a slung backpack.
   return (
     <g>
       <path
@@ -161,7 +194,7 @@ function BackpackStrapAccessory() {
       />
       <path
         d="M 50 80 Q 70 130, 130 170"
-        stroke={FACE_STROKE}
+        stroke="currentColor"
         strokeOpacity="0.25"
         strokeWidth="1.5"
         strokeLinecap="round"
@@ -180,20 +213,14 @@ const ACCESSORIES: Record<string, ReactNode> = {
 };
 
 /* ----------------------------------------------------------------
- * Blob shapes — hand-tuned organic silhouettes. All on a 200×200
- * viewBox so accessories share a coordinate system, but the blobs
- * themselves occupy different regions for visual variety.
+ * Blob shapes
  * ---------------------------------------------------------------- */
 
 interface BlobConfig {
   path: string;
-  /** Three-stop radial gradient (bright corner → mid → deep edge). */
   gradient: [string, string, string];
-  /** Gradient origin in % within the viewBox. */
   gradientOrigin: { cx: number; cy: number; r: number };
-  /** Resting tilt in degrees. */
   tilt: number;
-  /** Face geometry. */
   face: {
     eyeY: number;
     eyeLeftX: number;
@@ -201,14 +228,11 @@ interface BlobConfig {
     smileY: number;
     smileWidth: number;
   };
-  /** Optional accessory key (renders on top of face). */
   accessory?: "collar" | "glasses" | "cap" | "headphones" | "backpack-strap";
-  /** Highlight ellipse for that "lit-from-inside" Mindspace feel. */
   highlight: { cx: number; cy: number; rx: number; ry: number };
 }
 
 const BLOBS: Record<MascotName, BlobConfig> = {
-  /* Student — roundish irregular blob with a school-uniform collar. */
   student: {
     path:
       "M 102 14 " +
@@ -228,7 +252,6 @@ const BLOBS: Record<MascotName, BlobConfig> = {
     highlight: { cx: 64, cy: 56, rx: 46, ry: 32 },
   },
 
-  /* Teacher — slightly taller oval, warm emerald + amber lift, glasses. */
   teacher: {
     path:
       "M 100 8 " +
@@ -248,7 +271,6 @@ const BLOBS: Record<MascotName, BlobConfig> = {
     highlight: { cx: 74, cy: 50, rx: 46, ry: 34 },
   },
 
-  /* Bookworm — tall vertical capsule with headphones. Cool emerald→violet. */
   bookworm: {
     path:
       "M 100 8 " +
@@ -264,12 +286,11 @@ const BLOBS: Record<MascotName, BlobConfig> = {
     ],
     gradientOrigin: { cx: 36, cy: 22, r: 88 },
     tilt: 0,
-    face: { eyeY: 96, eyeLeftX: 80, eyeRightX: 120, smileY: 132, smileWidth: 34 },
+    face: { eyeY: 116, eyeLeftX: 80, eyeRightX: 120, smileY: 148, smileWidth: 32 },
     accessory: "headphones",
     highlight: { cx: 66, cy: 44, rx: 36, ry: 30 },
   },
 
-  /* Star — wide asymmetric pebble. Warm amber→emerald, playful tilt. */
   star: {
     path:
       "M 36 60 " +
@@ -291,7 +312,7 @@ const BLOBS: Record<MascotName, BlobConfig> = {
 };
 
 /* ----------------------------------------------------------------
- * Framer Motion variants — gentle bounce + face wake-up
+ * Framer Motion variants
  * ---------------------------------------------------------------- */
 
 const blobMotion = {
@@ -344,6 +365,7 @@ export function Mascot({
   name,
   code,
   hideCoupon = false,
+  mood = "happy",
   label,
   size,
   className,
@@ -359,6 +381,14 @@ export function Mascot({
 
   const [forceOpen, setForceOpen] = useState(false);
   const variantState = reduce ? "hover" : undefined;
+
+  // Accessory color follows mood: red when sad, default face color when happy.
+  // Exposed via CSS variable so each accessory's `currentColor` paths pick it up.
+  const accessoryColor = mood === "sad" ? "var(--destructive)" : FACE_STROKE;
+  const svgStyle: CSSProperties = {
+    rotate: `${config.tilt}deg`,
+    color: accessoryColor,
+  };
 
   return (
     <motion.div
@@ -377,7 +407,7 @@ export function Mascot({
         aria-label={label}
         aria-hidden={!label}
         variants={blobMotion}
-        style={{ rotate: config.tilt }}
+        style={svgStyle}
         className={cn(svgSizeVariants({ size }), "overflow-visible")}
       >
         <defs>
@@ -420,7 +450,6 @@ export function Mascot({
           </filter>
         </defs>
 
-        {/* Blob body — gradient + grain + inner highlight, all masked. */}
         <g mask={`url(#${maskId})`}>
           <rect width="200" height="200" fill={`url(#${gradientId})`} />
           <rect width="200" height="200" filter={`url(#${noiseId})`} />
@@ -434,7 +463,7 @@ export function Mascot({
           />
         </g>
 
-        {/* Resting face. */}
+        {/* Resting face — closed eyes always; smile vs frown by mood. */}
         <motion.g variants={closedMotion} stroke={FACE_STROKE} strokeLinecap="round" fill="none">
           <path
             d={`M ${config.face.eyeLeftX - 8} ${config.face.eyeY} q 8 -8 16 0`}
@@ -447,14 +476,19 @@ export function Mascot({
         </motion.g>
         <motion.path
           variants={restSmileMotion}
-          d={`M ${100 - config.face.smileWidth / 2} ${config.face.smileY} q ${config.face.smileWidth / 2} 12 ${config.face.smileWidth} 0`}
+          d={
+            mood === "sad"
+              ? `M ${100 - config.face.smileWidth / 2} ${config.face.smileY + 6} q ${config.face.smileWidth / 2} -10 ${config.face.smileWidth} 0`
+              : `M ${100 - config.face.smileWidth / 2} ${config.face.smileY} q ${config.face.smileWidth / 2} 12 ${config.face.smileWidth} 0`
+          }
           stroke={FACE_STROKE}
           strokeWidth="5"
           strokeLinecap="round"
           fill="none"
         />
 
-        {/* Awake face — open eyes + wider grin. */}
+        {/* Awake face — open eyes + wider grin (hover state). When mood
+            is sad we still let hover lift the mood slightly. */}
         <motion.g variants={openMotion} fill={FACE_STROKE}>
           <circle cx={config.face.eyeLeftX} cy={config.face.eyeY - 2} r="4" />
           <circle cx={config.face.eyeRightX} cy={config.face.eyeY - 2} r="4" />
@@ -469,7 +503,6 @@ export function Mascot({
           fill="none"
         />
 
-        {/* Accessory (collar / glasses) — sits above the face. */}
         {config.accessory ? ACCESSORIES[config.accessory] : null}
       </motion.svg>
 

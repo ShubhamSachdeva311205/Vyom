@@ -26,6 +26,7 @@ export default function NotFound() {
           <Card variant="surface" padding="none" className="overflow-hidden">
             <EmptyState
               mascot="bookworm"
+              mascotMood="sad"
               title="Nothing at this address"
               description="Head back to the store, the curriculum pages, or the homepage."
               action={

@@ -53,6 +53,8 @@ Subphase 1.4: Hardening (NEW)
 
     [x] Metadata audit: per-route OG image generator via next/og.
 
+    [ ] Contact details page (/contact): email, location (Bangalore), order-support hours. Linked from Footer + Community.
+
 PHASE 2: DATABASE & AUTHENTICATION (The Brain)
 
 Goal: Secure user accounts and define the exact data structures and constraints.
@@ -219,7 +221,15 @@ Subphase 8.4: Performance
 
     [ ] p95 latency check from Bangalore, Delhi, Mumbai. Confirm Supabase region (Mumbai), R2 (default global), Vercel edge.
 
-Subphase 8.5: Backup drills
+Subphase 8.5: Ambient brand decoration (NEW — deferred per user feedback after Phase 1.4)
+
+    [ ] Floating books decoration: subtle parallax-drifting book-spine SVGs scattered behind hero sections on /, /store, /ibdp, /igcse. Pure decoration, respects prefers-reduced-motion. Uses brand palette.
+
+    [ ] Scattered companions: place small Mascot instances in unexpected corners across pages (peeking from cards, sitting next to section eyebrows, etc.). Only student + teacher carry coupon chips so the Easter-egg ratio stays right — the rest are silent.
+
+    [ ] Mascot mood system extension: expand beyond happy/sad to support seasonal moods (sleepy/celebrating) for future use.
+
+Subphase 8.6: Backup drills
 
     [ ] One full Supabase restore drill into a staging project. Verify access_grants survive intact.
 

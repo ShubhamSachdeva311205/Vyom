@@ -35,6 +35,8 @@ const rowVariants = cva("flex flex-row", {
       4: "gap-4",
       6: "gap-6",
       8: "gap-8",
+      10: "gap-10",
+      12: "gap-12",
     },
     align: {
       start: "items-start",
