@@ -175,7 +175,116 @@ After each work session: add an entry here → `git commit` → `git push` so Gi
 
 ### Subphase 1.1 — Design tokens & primitives
 
-- [ ] *(pending)*
+**Status:** Complete
+**Date:** 2026-05-26
+
+#### Steps performed
+
+1. **Installed Phase 1.1 dependencies** (`pnpm add`):
+   `class-variance-authority`, `clsx`, `tailwind-merge`, `next-themes`,
+   `framer-motion`, `lucide-react`, `tw-animate-css`, `@radix-ui/react-slot`.
+
+2. **Scaffolded the full `src/` folder contract** from `CLAUDE.md` §3:
+   `src/actions/`, `src/components/{ui,features,layouts}`,
+   `src/lib/{motion,supabase}`, `src/types/`, `src/styles/`.
+   Folders with no real file yet hold a `.gitkeep` placeholder.
+
+3. **Added `cn()` helper** at `src/lib/utils.ts` (clsx + tailwind-merge).
+
+4. **Built the two-layer token system** in `src/app/globals.css`:
+   - Layer 1 (`@theme`): font, tracking, radius primitives.
+   - Layer 2 (semantic aliases on `:root` / `.dark` / `[data-mode="operational"]`):
+     spec-mandated tokens plus shadcn-compatible names
+     (`--card`, `--popover`, `--primary`, `--secondary`, `--accent`,
+     `--input`) and four status pairs (success/warning/pending/destructive)
+     using emerald/amber/blue/rose hues in OKLCH.
+   - `@theme inline` re-exports all semantic tokens as `--color-*` keys
+     so Tailwind utilities (`bg-background`, `text-muted-foreground`,
+     `border-border`, etc.) resolve without a `tailwind.config.ts`
+     (Tailwind v4 CSS-first).
+   - Added `@custom-variant op` so components can write `op:rounded-md`
+     to target operational routes.
+   - Global focus ring + `prefers-reduced-motion` safety net.
+   - **Fixed:** removed the stray `font-family: Arial, Helvetica` on `body`
+     from the CRA scaffold — now `var(--font-sans)`.
+
+5. **Extracted typography ramp** to `src/styles/typography.css` —
+   `.text-display`, `.text-title`, `.text-headline`, `.text-eyebrow`,
+   `.text-body`, `.text-body-lg`, `.text-caption`, `.text-mono`.
+
+6. **Built the background utility system** at `src/styles/backgrounds.css` —
+   `.bg-mesh-aurora`, `.bg-mesh-soft`, `.bg-noise`. Opacity scales off the
+   active theme's `--mesh-opacity` (0.10 light / 0.30 dark / 0 operational),
+   so the same class adapts per context. Mode B kill-switch makes gradients
+   architecturally impossible on `[data-mode="operational"]`.
+
+7. **Configured `next-themes`** via `src/components/layouts/theme-provider.tsx`
+   (`attribute="class"`, `defaultTheme="dark"`, `enableSystem={false}`,
+   `disableTransitionOnChange`). Wired into `src/app/layout.tsx` with
+   `suppressHydrationWarning` on `<html>` and `bg-background text-foreground`
+   on `<body>`.
+
+8. **Updated root metadata** to Advaita title/description (was
+   "Create Next App").
+
+9. **Motion primitives** at `src/lib/motion/`:
+   - `tokens.ts` — `spring`, `cinematicReveal`, `hoverScale`, `tapScale`,
+     `fadeUp`, `staggerContainer`, `staggerItem` (values verbatim from
+     `design-system-spec.md`).
+   - `primitives.tsx` — `<FadeIn>`, `<Stagger>`, `<StaggerItem>`,
+     `<HoverLift>` client components. Each respects `useReducedMotion()`
+     and degrades to a plain `<div>`. Header comment forbids admin/checkout
+     routes from importing this module.
+
+10. **Shared layout containers** in `src/components/layouts/`:
+    - `Container` — sizes `page` / `wide` / `form` / `reading`.
+    - `Section` — vertical rhythm via `tight` / `default` / `loose` spacing.
+    - `Stack` and `Row` — token-driven gap / align / justify. All CVA-based.
+
+11. **`Button` primitive** at `src/components/ui/button.tsx` — full CVA
+    with variants `default | secondary | outline | ghost | destructive | link`,
+    sizes `sm | md | lg | icon` (≥44px from `md` up, per CLAUDE.md §10),
+    `shape` compound variant for pill vs square, `asChild` via
+    `@radix-ui/react-slot`.
+
+12. **`Card` composition** at `src/components/ui/card.tsx` —
+    `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`,
+    `CardFooter`. Variants `surface | translucent | flat`. Translucent
+    auto-flattens to opaque on `[data-mode="operational"]`.
+
+13. **Token playground** at `/design-tokens` (`src/app/design-tokens/page.tsx`)
+    — every semantic token, status token, type ramp entry, button variant,
+    and card variant on one page for visual calibration. `metadata.robots`
+    set to `noindex, nofollow`. Removed in Phase 1.3.
+
+14. **Build + dev smoke test** — `pnpm build` succeeds, `/`, `/design-tokens`
+    both return 200, all sections (Typography / Semantic colors / Status
+    tokens / Buttons / Cards) render.
+
+#### Errors & fixes (Subphase 1.1)
+
+##### 1. `lucide-react` version looked anomalous
+
+| | |
+|---|---|
+| **Symptom** | pnpm install resolved `lucide-react@1.16.0` — much higher than expected (the library has lived at `0.x` for years). |
+| **How detected** | Visual scan of install output. |
+| **Fix** | None required — verified via `node_modules/lucide-react/package.json` that 1.x is the current published major. No code change. |
+| **Verification** | Used `<ArrowRight />` and `<Sparkles />` in the token playground successfully. |
+
+##### 2. `_design` route did not register
+
+| | |
+|---|---|
+| **Symptom** | First post-write `pnpm build` route table listed only `/` and `/_not-found` — the playground at `src/app/_design/page.tsx` was missing. |
+| **How detected** | Comparing `Route (app)` output against expected files. |
+| **Root cause** | Next.js App Router treats folders prefixed with `_` as *private folders* that opt out of routing entirely. The leading underscore was meant to suggest "internal" but is reserved syntax. |
+| **Fix** | Renamed `src/app/_design/` → `src/app/design-tokens/`. Search-engine isolation is handled via `metadata.robots = { index: false, follow: false }` instead. |
+| **Verification** | Subsequent build listed `/design-tokens` in the route table; `curl http://localhost:3000/design-tokens` returned `200` with all expected sections present. |
+
+#### Subphase 1.1 commits
+
+*(See git log — committed in logical groups: deps, tokens/css, motion+containers, primitives+playground, journal.)*
 
 ### Subphase 1.2 — Shared UI components
 

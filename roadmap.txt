@@ -17,13 +17,13 @@ PHASE 1: UI/UX FOUNDATION (Incremental Shell)
 Goal: Build the visual system from the atomic level up to the layout shells.
 Subphase 1.1: Design Tokens & Primitives
 
-    [ ] Setup CSS variables for design tokens (colors, spacing, radius).
+    [x] Setup CSS variables for design tokens (colors, spacing, radius).
 
-    [ ] Build the typography system (Inter/Geist, tight tracking for headings).
+    [x] Build the typography system (Inter/Geist, tight tracking for headings).
 
-    [ ] Build the background system (mesh gradients, blur layers for Mode A).
+    [x] Build the background system (mesh gradients, blur layers for Mode A).
 
-    [ ] Configure next-themes for dark-mode-first architecture.
+    [x] Configure next-themes for dark-mode-first architecture.
 
 Subphase 1.2: Shared UI Components (shadcn/ui + Framer Motion)
 
