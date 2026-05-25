@@ -171,7 +171,8 @@ After each work session: add an entry here → `git commit` → `git push` so Gi
 
 ## Phase 1: UI/UX Foundation
 
-*Not started. Entries will be added below as work proceeds, with emphasis on errors and how they were found.*
+**Goal:** Visual system from tokens → components → page shells.  
+**Subphase 1.1:** Complete (Claude Code + pushed to GitHub). **1.2 / 1.3:** Pending.
 
 ### Subphase 1.1 — Design tokens & primitives
 
@@ -284,7 +285,35 @@ After each work session: add an entry here → `git commit` → `git push` so Gi
 
 #### Subphase 1.1 commits
 
-*(See git log — committed in logical groups: deps, tokens/css, motion+containers, primitives+playground, journal.)*
+| Commit | Message |
+|--------|---------|
+| `63ba20c` | docs: relocate CLAUDE.md and design-system-spec.md |
+| `617c558` | phase-1.1: install ui foundation deps and scaffold src tree |
+| `99c0999` | phase-1.1: token system, typography, backgrounds, next-themes |
+| `d347c19` | phase-1.1: cn() helper, motion primitives, shared containers |
+| `32c810f` | phase-1.1: Button and Card primitives plus /design-tokens calibration page |
+| `ac9abc0` | phase-1.1: complete journal entry and tick roadmap checkboxes |
+
+**Docs relocation (commit `63ba20c`):** Root `CLAUDE.md` → `.claude/CLAUDE.md`; root `design-system-spec.md` → `design/design-system-spec.md`. Phase 1.1+ references use these paths.
+
+**Intentionally not committed:** `.claude/skills/` (shadcn-architect, motion-designer, tailwind-mastery, react-perfectionist, impeccable) — local Claude Code helpers only; add a follow-up commit if you want them on GitHub.
+
+#### How to preview the UI (Subphase 1.1)
+
+| What | Ready? | URL |
+|------|--------|-----|
+| **Design token playground** | Yes | http://localhost:3000/design-tokens |
+| **Homepage (`/`)** | No — still default Next.js starter | http://localhost:3000/ |
+| **Store / admin shells** | No — Subphase 1.3 | — |
+
+```bash
+cd /Users/shubhamsachdeva/Documents/Mom_Biness
+pnpm dev
+```
+
+Open **/design-tokens** for typography, semantic colors, status tokens, Button variants, and Card variants. Dark mode is default (`next-themes`, no toggle yet). If port 3000 is busy, use the port shown in the terminal (e.g. 3001).
+
+**Verified (Cursor, 2026-05-26):** `pnpm build` lists routes `/`, `/design-tokens`; build succeeds.
 
 ### Subphase 1.2 — Shared UI components
 
