@@ -87,6 +87,7 @@ src/
 - Run `pnpm lint` and `pnpm build` before marking work complete.
 - One logical change per commit; message format: `phase-N: short description`.
 - Update `roadmap.txt` checkboxes when a roadmap item is done.
+- **Update `BUILD-JOURNAL.md`** after each session: steps taken (no code), and for Phase 1+ document errors/bugs in detail (symptom, detection, fix, verification). Commit and push with the code.
 
 ## What not to do
 
