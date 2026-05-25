@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, ShoppingBag, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,10 +12,31 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CouponChip } from "@/components/ui/coupon-chip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mascot, type MascotName } from "@/components/ui/mascot";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -24,7 +45,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ToastDemoButtons } from "./toast-demo";
 import { Container } from "@/components/layouts/container";
 import { NoiseLayer } from "@/components/layouts/noise-layer";
 import { Row, Stack } from "@/components/layouts/stack";
@@ -425,6 +449,162 @@ export default function DesignTokensPage() {
                         <span className="text-caption">·</span>
                         <span className="text-mono text-sm">student10</span>
                         <Badge variant="success" size="sm">Applied</Badge>
+                      </Row>
+                    </Stack>
+                  </Stack>
+                </Card>
+              </Stack>
+
+              {/* ---- States ---- */}
+              <Stack gap={6}>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">State</span>
+                  <h2 className="text-title">Loading, empty, error</h2>
+                  <p className="text-body text-muted-foreground max-w-2xl">
+                    Every list, table, or fetched view must define all three
+                    (CLAUDE.md §6 + §11). Empty states get a mascot on
+                    storefront and a quiet icon on admin.
+                  </p>
+                </Stack>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <Card variant="surface" padding="lg">
+                    <Stack gap={4}>
+                      <span className="text-eyebrow">Loading</span>
+                      <Stack gap={3}>
+                        <Skeleton shape="block" className="h-24" />
+                        <Skeleton shape="line" className="w-3/4" />
+                        <Skeleton shape="line" className="w-1/2" />
+                      </Stack>
+                    </Stack>
+                  </Card>
+
+                  <Card variant="surface" padding="none" className="overflow-hidden">
+                    <EmptyState
+                      mascot="bookworm"
+                      title="No orders yet"
+                      description="When students place their first order, you'll see it here."
+                      action={
+                        <Button size="sm" variant="outline">
+                          Share the store <ArrowRight />
+                        </Button>
+                      }
+                    />
+                  </Card>
+
+                  <Card variant="surface" padding="none" className="overflow-hidden">
+                    <ErrorState
+                      title="Couldn't load orders"
+                      description="The connection blinked. The issue is on our side."
+                      action={
+                        <Button size="sm" variant="outline">
+                          Try again
+                        </Button>
+                      }
+                    />
+                  </Card>
+                </div>
+
+                <Card variant="surface" padding="none" className="overflow-hidden">
+                  <EmptyState
+                    icon={ShoppingBag}
+                    title="Cart is empty"
+                    description="Browse the catalog to add your first item."
+                    action={<Button size="sm">Open store</Button>}
+                  />
+                </Card>
+              </Stack>
+
+              {/* ---- Overlays ---- */}
+              <Stack gap={6}>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">Overlay</span>
+                  <h2 className="text-title">Modals, sheets, popovers, toasts</h2>
+                  <p className="text-body text-muted-foreground max-w-2xl">
+                    Dialog for centered confirmations, Drawer for mobile
+                    full-screen actions, Popover for inline detail, Toast
+                    for transient feedback. Same token vocabulary across all.
+                  </p>
+                </Stack>
+
+                <Card variant="surface" padding="lg">
+                  <Stack gap={6}>
+                    <Stack gap={2}>
+                      <span className="text-eyebrow">Triggers</span>
+                      <Row gap={3} wrap>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline">Open dialog</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Mark as shipped?</DialogTitle>
+                              <DialogDescription>
+                                This will email the customer their tracking link.
+                                You can&rsquo;t undo this.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                              <Button variant="outline">Cancel</Button>
+                              <Button>Mark shipped</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="outline">Open drawer</Button>
+                          </DrawerTrigger>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle>Order actions</DrawerTitle>
+                              <DrawerDescription>
+                                Quick actions for ORD-2026-05-26-0001.
+                              </DrawerDescription>
+                            </DrawerHeader>
+                            <div className="px-6 pb-2">
+                              <Stack gap={2}>
+                                <Button variant="outline">Mark as packed</Button>
+                                <Button variant="outline">Print label</Button>
+                                <Button variant="outline">Copy billing details</Button>
+                              </Stack>
+                            </div>
+                            <DrawerFooter>
+                              <Button variant="ghost">Close</Button>
+                            </DrawerFooter>
+                          </DrawerContent>
+                        </Drawer>
+
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline">Open popover</Button>
+                          </PopoverTrigger>
+                          <PopoverContent>
+                            <Stack gap={2}>
+                              <h4 className="text-headline">Coupon details</h4>
+                              <p className="text-caption">
+                                <span className="text-mono">student10</span> applies a flat 10%
+                                discount on physical + digital goods. Amazon
+                                purchases are exempt.
+                              </p>
+                            </Stack>
+                          </PopoverContent>
+                        </Popover>
+                      </Row>
+                    </Stack>
+
+                    <Stack gap={2}>
+                      <span className="text-eyebrow">Toasts</span>
+                      <ToastDemoButtons />
+                    </Stack>
+
+                    <Stack gap={2}>
+                      <span className="text-eyebrow">Theme toggle</span>
+                      <Row gap={3} align="center">
+                        <ThemeToggle />
+                        <p className="text-caption">
+                          Single button, flips between light and dark.
+                        </p>
                       </Row>
                     </Stack>
                   </Stack>
