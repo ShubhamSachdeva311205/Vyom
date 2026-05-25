@@ -67,13 +67,15 @@
 }
 
 /* Global grain overlay. Drop <NoiseLayer /> once at a storefront layout
- * root and every page beneath inherits the texture. Auto-suppressed
- * under [data-mode="operational"]. */
+ * root and every page beneath inherits the texture. z-index sits above
+ * normal flow content but BELOW interactive overlays (Dialog/Drawer/
+ * Popover all use z-50) so grain modulates page content but never
+ * floats over modals. Auto-suppressed under [data-mode="operational"]. */
 .noise-layer {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 5;
   opacity: var(--noise-opacity);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-size: 240px 240px;

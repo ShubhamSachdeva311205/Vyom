@@ -104,9 +104,79 @@ function GlassesAccessory() {
   );
 }
 
+function CapAccessory() {
+  // Small graduation cap silhouette resting on top of the head.
+  return (
+    <g>
+      <path
+        d="M 56 30 L 100 16 L 144 30 L 100 44 Z"
+        fill={FACE_STROKE}
+      />
+      <rect x="74" y="44" width="52" height="4" rx="1" fill={FACE_STROKE} />
+      {/* Tassel — small circle + line off the right side */}
+      <line
+        x1="138"
+        y1="28"
+        x2="146"
+        y2="48"
+        stroke="var(--brand)"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <circle cx="146" cy="52" r="3" fill="var(--brand)" />
+    </g>
+  );
+}
+
+function HeadphonesAccessory() {
+  // Curved band over the top with two ear cups on either side.
+  return (
+    <g>
+      <path
+        d="M 36 80 Q 100 22 164 80"
+        stroke={FACE_STROKE}
+        strokeWidth="5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <rect x="22" y="76" width="22" height="32" rx="8" fill={FACE_STROKE} />
+      <rect x="156" y="76" width="22" height="32" rx="8" fill={FACE_STROKE} />
+      {/* Small brand-color speaker dot on each cup */}
+      <circle cx="33" cy="92" r="3" fill="var(--brand)" />
+      <circle cx="167" cy="92" r="3" fill="var(--brand)" />
+    </g>
+  );
+}
+
+function BackpackStrapAccessory() {
+  // Single diagonal strap across the body, suggesting a slung backpack.
+  return (
+    <g>
+      <path
+        d="M 50 80 Q 70 130, 130 170"
+        stroke="oklch(0.99 0.005 175)"
+        strokeWidth="9"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M 50 80 Q 70 130, 130 170"
+        stroke={FACE_STROKE}
+        strokeOpacity="0.25"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </g>
+  );
+}
+
 const ACCESSORIES: Record<string, ReactNode> = {
   collar: <CollarAccessory />,
   glasses: <GlassesAccessory />,
+  cap: <CapAccessory />,
+  headphones: <HeadphonesAccessory />,
+  "backpack-strap": <BackpackStrapAccessory />,
 };
 
 /* ----------------------------------------------------------------
@@ -132,7 +202,7 @@ interface BlobConfig {
     smileWidth: number;
   };
   /** Optional accessory key (renders on top of face). */
-  accessory?: "collar" | "glasses";
+  accessory?: "collar" | "glasses" | "cap" | "headphones" | "backpack-strap";
   /** Highlight ellipse for that "lit-from-inside" Mindspace feel. */
   highlight: { cx: number; cy: number; rx: number; ry: number };
 }
@@ -178,7 +248,7 @@ const BLOBS: Record<MascotName, BlobConfig> = {
     highlight: { cx: 74, cy: 50, rx: 46, ry: 34 },
   },
 
-  /* Bookworm — tall vertical capsule. Cool emerald→violet, upright. */
+  /* Bookworm — tall vertical capsule with headphones. Cool emerald→violet. */
   bookworm: {
     path:
       "M 100 8 " +
@@ -194,7 +264,8 @@ const BLOBS: Record<MascotName, BlobConfig> = {
     ],
     gradientOrigin: { cx: 36, cy: 22, r: 88 },
     tilt: 0,
-    face: { eyeY: 88, eyeLeftX: 80, eyeRightX: 120, smileY: 124, smileWidth: 34 },
+    face: { eyeY: 96, eyeLeftX: 80, eyeRightX: 120, smileY: 132, smileWidth: 34 },
+    accessory: "headphones",
     highlight: { cx: 66, cy: 44, rx: 36, ry: 30 },
   },
 
