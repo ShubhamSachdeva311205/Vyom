@@ -1,0 +1,140 @@
+PHASE 0: PROJECT FOUNDATION (Architecture & Rules)
+
+Goal: Lock in the repository, environment, and AI instructions before writing app code.
+
+    [x] Initialize Environment: Install Node.js, pnpm, Git, and Cursor.
+
+    [x] Create Repository: Initialize Next.js App Router project with TypeScript and Tailwind CSS.
+
+    [x] Secure Repository: Add .env.local to .gitignore. Enable branch protection and 2FA on GitHub.
+
+    [x] Establish AI Architecture Rules (CLAUDE.md): Create this file in the root directory to enforce coding standards, component philosophy, operational clarity principles, and the strict rule to only use Supabase Migrations for database changes.
+
+    [x] Establish Aesthetic Rules (design-system-spec.md): Create this file to define typography, spacing, and the "Two UX Modes" (Cinematic Premium vs. Operational Clarity).
+
+PHASE 1: UI/UX FOUNDATION (Incremental Shell)
+
+Goal: Build the visual system from the atomic level up to the layout shells.
+Subphase 1.1: Design Tokens & Primitives
+
+    [ ] Setup CSS variables for design tokens (colors, spacing, radius).
+
+    [ ] Build the typography system (Inter/Geist, tight tracking for headings).
+
+    [ ] Build the background system (mesh gradients, blur layers for Mode A).
+
+    [ ] Configure next-themes for dark-mode-first architecture.
+
+Subphase 1.2: Shared UI Components (shadcn/ui + Framer Motion)
+
+    [ ] Build Buttons, Cards, and Inputs using CVA (Class Variance Authority) for variants.
+
+    [ ] Build navigation primitives (Navbar, Footer, Modal/Drawer systems).
+
+    [ ] Build standard UI states: Skeletons (loading), Empty states, and Error states for all components.
+
+Subphase 1.3: Page Shells & Layouts
+
+    [ ] Create Mode A Shells (Cinematic): /store, /ibdp, /igcse, /community.
+
+    [ ] Create Mode B Shells (Operational): /admin, /dashboard (Customer Library), secure PDF viewer shell.
+
+    [ ] Create Legal Shell: /legal (Strict "No Returns / Final Sale" policy and TOS).
+
+PHASE 2: DATABASE & AUTHENTICATION (The Brain)
+
+Goal: Secure user accounts and define the exact data structures and constraints.
+
+    [ ] Auth: Configure Supabase Email and Google OAuth.
+
+    [ ] Users Table: Map to Auth, define roles (customer, admin).
+
+    [ ] Inventory Table: Create books table with price, type, and real-time inventory_count.
+
+    [ ] Orders Table: Track status (new, packed, shipped), Razorpay IDs, and tracking URLs.
+
+    [ ] Digital Vault: Create access_grants table with a UNIQUE constraint locking user_id + book_id to prevent duplicate access.
+
+    [ ] Coupon Table: Store codes, discount percentages, and type (global vs single_use). Add atomic transaction locks to prevent race conditions on single-use codes.
+
+    [ ] Community Tables: Create content_submissions and feedback tables (no user_id required for frictionless guest submission).
+
+    [ ] Security: Enable Row Level Security (RLS) on all tables. Only Admin can write to inventory/orders.
+
+PHASE 3: PAYMENTS, DISCOUNTS & SHIPPING LOGIC
+
+Goal: Secure money processing and automate localized logistics.
+Subphase 3.1: Checkout & Discounts
+
+    [ ] Integrate Razorpay order creation on the backend.
+
+    [ ] Implement webhook (payment.captured) with HMAC signature verification.
+
+    [ ] Global Discount Logic: Program student10 and teacher10 for a flat 10% off physical/digital goods.
+
+    [ ] Amazon Logic: Document/display that Amazon purchases are exempt from website discounts.
+
+Subphase 3.2: Shipping Logic
+
+    [ ] Build pincode validation function at checkout.
+
+    [ ] Condition 1: If pincode is Bangalore OR physical cart < Rs 100 → Shipping Cost = 0.
+
+    [ ] Condition 2: All other inputs → Trigger standard Delhivery estimation logic.
+
+PHASE 4: ZERO-EXPOSURE CONTENT DELIVERY
+
+Goal: Render premium files without ever exposing raw URLs to the browser.
+
+    [ ] Create private Cloudflare R2 buckets (audio-private, papers-private).
+
+    [ ] Audio Protection: Build Next.js API route to fetch audio from R2 and pipe/stream it directly to the client (no signed URLs sent to browser).
+
+    [ ] PDF Protection: Build API route to buffer PDF from R2.
+
+    [ ] Viewer Rendering: Use pdf.js to render the buffer into HTML <canvas> elements page-by-page.
+
+    [ ] Watermarking: Server dynamically stamps User Email + Order ID onto the PDF buffer before sending it to the canvas.
+
+PHASE 5: THE ADMIN COMMAND CENTER (Mom's Panel)
+
+Goal: High legibility, mobile-friendly operational UI.
+Subphase 5.1: Order & Inventory Management
+
+    [ ] Build Kanban UI for active orders: 🟥 New → 🟨 Packed → 🟩 Shipped (with tracking URL prompt).
+
+    [ ] Build Inventory UI: Real-time stock list with automated red warnings if stock < 5.
+
+    [ ] Build Customer Lookup: Search by email to see order history, shipping status, and digital access.
+
+Subphase 5.2: Custom Tools
+
+    [ ] Dynamic Vendor Coupons: Build UI to generate random single-use codes with a custom, variable discount percentage input. Display a list tracking active vs used vendor codes.
+
+    [ ] Manual Access Grants (Offline/Amazon Buyers): Build UI to input an email, select a book, and click "Grant Access" (triggers email link).
+
+PHASE 6: COMMUNITY & EXPORTS
+
+Goal: Bridge offline logic and launch community features.
+
+    [ ] Build public Creative Corner feed and submission form (poems, stories, dramas).
+
+    [ ] Build Admin moderation queue (1-click Approve/Reject for pending submissions).
+
+    [ ] Build public Feedback form routing to Admin dashboard.
+
+    [ ] Vyapar Integration: Add "Copy Billing Details" button to Admin order view to copy a perfectly formatted text block for the desktop app.
+
+PHASE 7: EMAILS & DEPLOYMENT
+
+Goal: Automate transactional communication and lock down infrastructure.
+
+    [ ] Integrate Resend for: Receipts, offline magic links, and shipping notifications.
+
+    [ ] Deploy to Vercel and attach Cloudflare DNS.
+
+    [ ] Enforce Cloudflare Rate Limiting on checkout, login, and coupon-entry routes to prevent bot brute-forcing.
+
+PHASE 8: FUTURE SCALING
+
+    [ ] Local Ollama chatbot for syllabus queries via Cloudflare Tunnel.
