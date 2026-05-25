@@ -370,17 +370,197 @@ Open **/design-tokens** for typography, semantic colors, status tokens, Button v
 
 ### Subphase 1.2 — Shared UI components
 
-**Status:** In progress  
-**Done (committed):** Mascots (`8315fcd`); form stack (`1690ac3`, `47ce47b`, `4232e38`) — Label, Input, Textarea, FormField, Badge, Select, RadioGroup, Checkbox + `/design-tokens` Forms & Badges sections. Buttons/Cards = Phase 1.1.  
-**Still pending:** Navbar, Footer, Dialog, Drawer, Popover, Toast, Skeleton, EmptyState, ErrorState.  
-**User note:** Fix **collar** mascot after 1.2/1.3; roadmap order review after 1.3.
+**Status:** Complete  
+**Date:** 2026-05-26
 
-### Subphase 1.3 — Page shells & layouts
+#### Steps performed
 
-- [ ] *(pending)*
+1. **Form primitives** (commits `1690ac3`, `47ce47b`, `4232e38`):
+   - `Label` wrapping `@radix-ui/react-label` (CVA size + required asterisk).
+   - `Input` with CVA size (`sm`/`md`/`lg`, md ≥ 44px per CLAUDE.md §10) and state (default/error).
+   - `Textarea` mirroring Input's state model with `min-height: 96px` and `resize-y`.
+   - `FormField` composer that wires `Label` + control + helper/error using `useId` + `cloneElement` to inject `id`, `aria-describedby`, `aria-invalid`, and the error `state` into the single child control automatically.
+   - `Badge` with status variants (`success` / `warning` / `pending` / `destructive`) bound to the same semantic tokens used on the order pills, plus generic `default`/`secondary`/`outline`/`brand` variants. Uses `text-mono-tag` so badges share rhythm with coupon chips.
+   - `Select` wrapping `@radix-ui/react-select` (trigger matches Input visuals; portaled content; lucide ChevronDown/Up/Check).
+   - `RadioGroup` wrapping `@radix-ui/react-radio-group` (brand-color checked state with a small brand-foreground dot).
+   - `Checkbox` wrapping `@radix-ui/react-checkbox` (Check or Minus icon — Minus handles Radix's indeterminate state).
+   - `/design-tokens` Forms section: text-fields card (Input + Textarea + an Input in error state with helper/error copy) and choice-fields card (Select for curriculum + RadioGroup for format + Checkbox for ToS).
+   - `/design-tokens` Badges section: admin order-state row (New / Packed / Shipped / Pending payment), generic variants, and an in-context order ID + coupon example.
+
+2. **Mascot collar fix** (commit `ee511db`): the previous thick V-stroke read as a chin marking, not a uniform collar. Replaced with a small pentagon-with-V-notch shape filled near-white with a 35% face-color outline — reads instantly as a button-down shirt visible at the neckline.
+
+3. **State primitives** (commit `ee511db`):
+   - `Skeleton` with shape variants `line`/`block`/`circle`, animated pulse.
+   - `EmptyState` accepting either a `mascot` prop (storefront) or a Lucide `icon` (operational) — when no mascot/icon is passed, falls back to `Inbox`. Always renders `title` + `description` and an optional `action`. Encodes CLAUDE.md §11.
+   - `ErrorState` with destructive-toned `AlertTriangle` ring, friendly copy that locates fault on our side, optional `onRetry` handler that auto-renders a `Try again` button.
+
+4. **Overlay primitives + ThemeToggle** (commit `a79e3d7`):
+   - `Dialog` (`@radix-ui/react-dialog`): centered, max-w-lg, backdrop-blurred on storefront, opaque on operational via `op:` variant. Header/Title/Description/Footer/Close exposed.
+   - `Drawer` (`vaul`): mobile-first bottom sheet with swipe-to-dismiss. Same API shape as Dialog so consumers can swap based on viewport. Drag-handle pill on top.
+   - `Popover` (`@radix-ui/react-popover`): smaller inline panel for tooltips with body content. Same animation vocabulary as Dialog.
+   - `Toaster` (`sonner`): mounted once in the root layout; theme follows next-themes via `resolvedTheme`. Re-exports `toast`.
+   - `ThemeToggle`: Sun/Moon button hitting `setTheme`. SSR guard via `mounted` flag.
+   - Root layout now mounts `<Toaster />` beside `children` inside `ThemeProvider`.
+   - `/design-tokens` overlays section: Dialog (mark shipped confirm), Drawer (mobile order-actions sheet), Popover (coupon details), four toast triggers in a small `'use client'` island (`toast-demo.tsx`), and an inline ThemeToggle.
+
+5. **Mascot accessories + KineticHeading + Navbar + Footer** (commit `ba38159`):
+   - Three new accessory SVG fragments wired into the `ACCESSORIES` map: `cap` (graduation cap with brand-color tassel), `headphones` (band over the head with two cups + brand speaker dot), `backpack-strap` (diagonal cross-body strap).
+   - `bookworm` now wears headphones (tall capsule + emerald→violet gradient + music = study companion). Eye/smile positions nudged so the headphone band sits above the eyes correctly.
+   - `KineticHeading`: splits a heading string into words and reveals them with a staggered slide-up + fade (matvoyce.tv-flavored entrance). One word optionally highlighted in brand color via `emphasize` index. Respects `useReducedMotion`.
+   - `Navbar` (Mode A): sticky, backdrop-blurred, with star mascot logo lockup + Advaita wordmark, desktop nav links, cart button, ThemeToggle, and a mobile menu that uses Drawer with the same links.
+   - `Footer` (Mode A): four-column grid (brand blurb + Catalog / Community / Help) with caption-toned link list and a version stamp in mono.
+   - Lowered `.noise-layer` z-index from 9999 → 5 so grain modulates page content but never floats over Dialog/Drawer/Popover (z-50).
+
+#### Errors & fixes (Subphase 1.2)
+
+##### 1. `Stack` `gap` value not in scale
+
+| | |
+|---|---|
+| **Symptom** | `Type '5' is not assignable to type '0 \| 4 \| 1 \| 12 \| 2 \| 3 \| 6 \| 8 \| null \| undefined'` |
+| **How detected** | First `pnpm build` after writing the playground palette compare. |
+| **Fix** | Switched the offending site to `gap={4}` then later added `10` to the scale (40px) for common section rhythm needs. |
+
+##### 2. `JSX.Element` not in global namespace (React 19)
+
+| | |
+|---|---|
+| **Symptom** | `Cannot find namespace 'JSX'` on `Record<MascotName, JSX.Element>`. |
+| **How detected** | TS build error on the original mascot file. |
+| **Fix** | Imported `ReactElement` from `react` and typed the map with it instead. |
+| **Root cause** | React 19 + new JSX transform no longer exposes the global `JSX` namespace; you need `React.JSX.Element` or `ReactElement`. |
+
+##### 3. `MASCOT_NAMES.map is not a function`
+
+| | |
+|---|---|
+| **Symptom** | Prerender failed on `/design-tokens` with `aR.MASCOT_NAMES.map is not a function`. |
+| **How detected** | First build after refactoring the mascot module to `'use client'`. |
+| **Fix** | Inlined the array in the playground page; removed the export. |
+| **Root cause** | Non-component exports from a `'use client'` module can be reference-replaced at the RSC boundary when consumed from a server component. Constants travel poorly across the boundary; React components and primitives are fine. |
+
+##### 4. NoiseLayer z-index above modals
+
+| | |
+|---|---|
+| **Symptom** | Dialog/Drawer/Popover overlays appeared to have grain layered on top. |
+| **How detected** | Visual review while wiring overlay primitives. |
+| **Fix** | Lowered `.noise-layer` `z-index` from 9999 → 5. Sits above page flow content, below interactive overlays at z-50. |
+
+##### 5. `_design` route did not register (carried over from 1.1)
+
+Already documented in Subphase 1.1 — renamed to `/design-tokens`.
+
+#### Subphase 1.2 commits
+
+| Commit | Message |
+|--------|---------|
+| `1690ac3` | phase-1.2: Input, Label, Textarea, FormField, Badge |
+| `47ce47b` | phase-1.2: Select, RadioGroup, Checkbox (Radix-based) |
+| `4232e38` | phase-1.2: form primitives in /design-tokens playground |
+| `8315fcd` | phase-1.2: expand mascot cast — collar, glasses, bookworm, star |
+| `ee511db` | phase-1.2: fix student collar; add Skeleton, EmptyState, ErrorState |
+| `a79e3d7` | phase-1.2: Dialog, Drawer, Popover, Toast, ThemeToggle |
+| `e2c1934` | phase-1.2: state + overlay sections on /design-tokens |
+| `ba38159` | phase-1.2: KineticHeading, mascot accessories, Navbar, Footer |
 
 ---
 
-## Phase 2–8
+### Subphase 1.3 — Page shells & layouts
+
+**Status:** Complete  
+**Date:** 2026-05-26
+
+#### Steps performed
+
+1. **Route group structure.** Created `(storefront)` for Mode A pages (Navbar + NoiseLayer + Footer) and `(operational)` for Mode B (data-mode="operational" + minimal top bar, no nav). `/design-tokens` stays at the top level as an internal calibration surface. Deleted the CRA boilerplate at `src/app/page.tsx` — the homepage now lives at `src/app/(storefront)/page.tsx`.
+
+2. **Storefront shells:**
+   - `/` — cinematic landing with `KineticHeading` ("Study, slowly." with the second word in brand color), four companion mascots row (student/teacher/bookworm/star), three pillar cards linking to /store, /ibdp, /community.
+   - `/store`, `/ibdp`, `/igcse` — placeholder shells via the new `ShellPage` helper (eyebrow + hero + EmptyState with a thematic mascot). Each names Phase 2 as the launch milestone so the route never feels broken (CLAUDE.md §12).
+   - `/community` — twin-card hero (Creative Corner + Feedback) with Mascot accents and "form coming soon" disabled buttons.
+
+3. **Legal shells** under `(storefront)/legal/`:
+   - Reading-width local layout (`Container size="reading"`, `max-w-3xl`).
+   - Index page linking to three policies.
+   - `/legal/terms` — short binding shipping/coupon rules + draft notice.
+   - `/legal/returns` — full "all sales are final" wording with damaged-in-transit exception.
+   - `/legal/privacy` — what we collect / don't collect summary.
+
+4. **Operational shells:**
+   - `(operational)/layout.tsx` sets `data-mode="operational"` on the wrapping div (existing CSS keys off this attribute), adds a minimal top bar with brand label + storefront-link, drops the storefront Navbar entirely.
+   - `/admin` — command center grid (Orders / Inventory / Coupons / Customers / Submissions) with status Badges in the header (`0 new`, `0 packed`, `0 shipped`) and a no-orders EmptyState below.
+   - `/dashboard` — customer library with no-purchases EmptyState plus a card explaining the Amazon-buyer manual access workflow.
+   - `/checkout` — empty-cart state pointing back to the store.
+
+5. **Supporting:**
+   - `src/components/layouts/shell-page.tsx` — `ShellPage` helper composing hero + EmptyState so the placeholder pages share one source of truth.
+   - Extended `Stack` `gap` scale with `10` (40px) for common section rhythm.
+
+#### Errors & fixes (Subphase 1.3)
+
+##### 1. `Stack` `gap={10}` not in scale (recurrence of 1.2 issue)
+
+| | |
+|---|---|
+| **Symptom** | `Type '10' is not assignable to type '0 \| 4 \| 1 \| 12 \| 2 \| 3 \| 6 \| 8 \| null \| undefined'`. |
+| **How detected** | Build after writing `(storefront)/community/page.tsx`. |
+| **Fix** | Added `10: 'gap-10'` to the Stack CVA scale rather than chase replacements. |
+
+#### Subphase 1.3 commits
+
+| Commit | Message |
+|--------|---------|
+| `be326f3` | phase-1.3: route shells — storefront, legal, operational |
+
+#### Routes prerendered after 1.3
+
+```
+/                       (storefront home)
+/_not-found
+/admin                  (operational)
+/checkout               (operational)
+/community              (storefront)
+/dashboard              (operational)
+/design-tokens          (internal calibration)
+/ibdp                   (storefront)
+/igcse                  (storefront)
+/legal                  (storefront)
+/legal/privacy
+/legal/returns
+/legal/terms
+/store                  (storefront)
+```
+
+All 14 routes return 200 in dev and prerender as static content in production builds.
+
+---
+
+## Roadmap audit (2026-05-26)
+
+After 1.3, audited `roadmap.txt` end-to-end against the actual product
+plan. Findings, recommendations, and the diff I applied directly are
+in `design/roadmap-audit.md`. Headline changes:
+
+- Added **Subphase 1.4 (Hardening)** — env validator, error/404 pages, sitemap, OG images.
+- Phase 2 explicitly separates **customer auth** from **admin auth** (allowlist-based magic-link only for admin).
+- Added **carts table** to Phase 2.
+- Renumbered Phase 3 to add **3.2 cart + order confirmation**, **3.4 refund/chargeback webhooks**, **3.5 GST/tax**.
+- Added **Subphase 5.3 product CRUD + image upload** so admin actually has a way to add books and cover images.
+- Added **Subphase 5.4 mobile admin QA** as an explicit launch gate.
+- Split old Phase 7 into **Phase 7 (transactional emails)**, **Phase 8 (polish & launch readiness — SEO, observability, accessibility, performance, backup drill)**, **Phase 9 (deployment + Razorpay test→live cutover)**.
+- Renumbered "future scaling" from 8 → 10.
+
+Open decisions flagged in the audit (require user input before
+implementation):
+
+- Cart state location (Supabase table vs localStorage).
+- Whether wishlist/reviews ship in v1 or stay in Phase 10.
+- Newsletter provider (Resend audiences vs ConvertKit/Buttondown).
+- Mirror digital-grant emails to a manual override spreadsheet for offline resilience?
+
+---
+
+## Phase 2–10
 
 *Placeholder — journal sections will be appended when each phase begins.*
