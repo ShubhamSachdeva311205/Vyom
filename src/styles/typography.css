@@ -1,36 +1,49 @@
-/* Typography ramp — Mode A cinematic editorial scale.
+/* Typography ramp.
+ * Display + body share Geist Sans. Eyebrows + mono are Geist Mono with
+ * wide tracking — leans into the technical/utility feel of nothing.tech
+ * and the kinetic typographic structure of matvoyce.tv without
+ * imitating either directly.
+ *
  * Mode B routes (admin/dashboard/checkout) should prefer plain Tailwind
- * sizes (text-sm, text-base) to stay neutral and operational. */
+ * sizes to stay neutral and operational. */
 
 @utility text-display {
   font-family: var(--font-display);
-  font-size: clamp(2.75rem, 6vw, 4.5rem);   /* 44 → 72px */
-  line-height: 1.02;
-  letter-spacing: var(--tracking-tighter);
+  font-size: clamp(2.75rem, 6vw, 4.75rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  font-weight: 600;
+}
+
+@utility text-kinetic {
+  font-family: var(--font-display);
+  font-size: clamp(3.25rem, 9vw, 6rem);
+  line-height: 0.92;
+  letter-spacing: -0.055em;
   font-weight: 600;
 }
 
 @utility text-title {
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3vw, 2.5rem);   /* 28 → 40px */
-  line-height: 1.1;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  line-height: 1.08;
   letter-spacing: var(--tracking-tight);
   font-weight: 600;
 }
 
 @utility text-headline {
   font-family: var(--font-sans);
-  font-size: 1.25rem;                        /* 20px */
+  font-size: 1.25rem;
   line-height: 1.35;
   letter-spacing: var(--tracking-tight);
   font-weight: 600;
 }
 
 @utility text-eyebrow {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;                        /* 12px */
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   line-height: 1;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.18em;
   font-weight: 500;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -38,22 +51,22 @@
 
 @utility text-body {
   font-family: var(--font-sans);
-  font-size: 1rem;                           /* 16px */
+  font-size: 1rem;
   line-height: 1.6;
   font-weight: 400;
 }
 
 @utility text-body-lg {
   font-family: var(--font-sans);
-  font-size: 1.125rem;                       /* 18px */
+  font-size: 1.125rem;
   line-height: 1.6;
   font-weight: 400;
 }
 
 @utility text-caption {
   font-family: var(--font-sans);
-  font-size: 0.8125rem;                      /* 13px */
-  line-height: 1.4;
+  font-size: 0.8125rem;
+  line-height: 1.45;
   color: var(--muted-foreground);
 }
 
@@ -62,4 +75,13 @@
   font-size: 0.8125rem;
   line-height: 1.5;
   letter-spacing: 0;
+}
+
+@utility text-mono-tag {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  text-transform: uppercase;
 }

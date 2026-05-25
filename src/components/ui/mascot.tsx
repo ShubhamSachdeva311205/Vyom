@@ -1,135 +1,314 @@
-import { cva, type VariantProps } from "class-variance-authority";
-import type { ReactElement, SVGProps } from "react";
-import { cn } from "@/lib/utils";
+"use client";
 
 /**
- * Mascot — Advaita's "study companions". Three hand-authored SVG
- * characters, kept geometric and abstract so they read as friendly
- * without veering into Pixar territory. Each uses currentColor for the
- * main shape (so it themes via Tailwind text-* utilities) and
- * var(--brand) for a single accent so it picks up the active palette.
+ * Mascot — Advaita's study companions, rendered as soft distorted gradient
+ * blobs with a sleeping-smile face. Hover to wake them up; each one carries
+ * a discount-code Easter egg (student → student10, teacher → teacher10).
  *
- * Easy to swap with proper illustrations later — only the PATHS map
- * changes; the public API stays stable.
+ * Storefront-only. Do NOT import from operational routes — this component
+ * pulls in framer-motion. The Mode A motion budget already accommodates it.
+ *
+ * To swap in proper illustrations later, only the BLOBS map changes.
  */
 
-const mascotVariants = cva("inline-block shrink-0", {
+import { cva, type VariantProps } from "class-variance-authority";
+import { motion, useReducedMotion } from "framer-motion";
+import { useId, useState } from "react";
+import { cn } from "@/lib/utils";
+import { CouponChip } from "./coupon-chip";
+
+const wrapperVariants = cva("relative inline-flex flex-col items-center", {
   variants: {
     size: {
-      sm: "h-8 w-8",
-      md: "h-12 w-12",
-      lg: "h-20 w-20",
-      xl: "h-32 w-32",
-    },
-    tone: {
-      foreground: "text-foreground",
-      muted: "text-muted-foreground",
-      brand: "text-brand",
-      primary: "text-primary",
+      sm: "gap-2",
+      md: "gap-3",
+      lg: "gap-4",
     },
   },
-  defaultVariants: { size: "md", tone: "foreground" },
+  defaultVariants: { size: "md" },
 });
 
-export type MascotName = "bookling" | "stellar" | "lumen";
+const svgSizeVariants = cva("block", {
+  variants: {
+    size: {
+      sm: "h-24 w-24",
+      md: "h-40 w-40",
+      lg: "h-56 w-56",
+    },
+  },
+  defaultVariants: { size: "md" },
+});
 
-interface MascotProps
-  extends Omit<SVGProps<SVGSVGElement>, "name">,
-    VariantProps<typeof mascotVariants> {
+export type MascotName = "student" | "teacher";
+
+interface MascotProps extends VariantProps<typeof wrapperVariants> {
   name: MascotName;
+  /** Override the coupon code that gets copied on click. Defaults to the
+   * code from CLAUDE.md §7 — student → student10, teacher → teacher10. */
+  code?: string;
+  /** Hide the coupon chip entirely (just a decorative blob). */
+  hideCoupon?: boolean;
   label?: string;
+  className?: string;
 }
 
-const PATHS: Record<MascotName, ReactElement> = {
-  /* Bookling — open book with two soft eyes. The reading companion. */
-  bookling: (
-    <g>
-      <path
-        d="M6 16 L32 24 L58 16 L58 50 L32 58 L6 50 Z"
-        fill="currentColor"
-        opacity="0.95"
-      />
-      <path
-        d="M32 24 L32 58"
-        stroke="var(--background)"
-        strokeWidth="1.5"
-        opacity="0.35"
-        strokeLinecap="round"
-      />
-      <circle cx="20" cy="34" r="2.2" fill="var(--background)" />
-      <circle cx="44" cy="34" r="2.2" fill="var(--background)" />
-      <path
-        d="M16 44 Q20 47 24 44"
-        stroke="var(--background)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.55"
-      />
-      <path
-        d="M40 44 Q44 47 48 44"
-        stroke="var(--background)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.55"
-      />
-    </g>
-  ),
+const DEFAULT_CODES: Record<MascotName, string> = {
+  student: "student10",
+  teacher: "teacher10",
+};
 
-  /* Stellar — soft four-pointed sparkle. The "aha" moment. */
-  stellar: (
-    <g>
-      <path
-        d="M32 4
-           C 32 22, 34 30, 60 32
-           C 34 34, 32 42, 32 60
-           C 32 42, 30 34, 4 32
-           C 30 30, 32 22, 32 4 Z"
-        fill="currentColor"
-      />
-      <circle cx="32" cy="32" r="3.5" fill="var(--brand)" />
-      <circle cx="14" cy="16" r="1.5" fill="currentColor" opacity="0.6" />
-      <circle cx="52" cy="50" r="1.2" fill="currentColor" opacity="0.5" />
-    </g>
-  ),
+interface BlobConfig {
+  /** Distorted blob outline. ViewBox is 0 0 200 200. */
+  path: string;
+  /** Three-stop radial gradient — bright corner, mid, deep edge. */
+  gradient: [string, string, string];
+  /** Gradient origin in % within the viewBox. */
+  gradientOrigin: { cx: number; cy: number; r: number };
+  /** Resting tilt in degrees. */
+  tilt: number;
+  /** Face geometry — positions in viewBox coords. */
+  face: {
+    eyeY: number;
+    eyeLeftX: number;
+    eyeRightX: number;
+    smileY: number;
+    smileWidth: number;
+  };
+}
 
-  /* Lumen — crescent moon with a tiny companion star. Night-study calm. */
-  lumen: (
-    <g>
-      <path
-        d="M44 34
-           A 22 22 0 1 1 22 10
-           A 16 16 0 1 0 44 34 Z"
-        fill="currentColor"
-      />
-      <path
-        d="M50 12 L51.6 16.2 L56 17.8 L51.6 19.4 L50 23.6 L48.4 19.4 L44 17.8 L48.4 16.2 Z"
-        fill="var(--brand)"
-      />
-    </g>
-  ),
+/**
+ * Two distinct blob characters. Paths are hand-tuned organic curves —
+ * not circles, not symmetric. Gradients use brand tokens so the active
+ * palette flows through automatically.
+ */
+const BLOBS: Record<MascotName, BlobConfig> = {
+  student: {
+    path:
+      "M 102 14 " +
+      "C 150 10, 188 44, 186 100 " +
+      "C 184 152, 142 188, 92 184 " +
+      "C 40 180, 12 144, 14 90 " +
+      "C 16 42, 50 18, 102 14 Z",
+    gradient: [
+      "color-mix(in oklch, var(--brand) 80%, white 20%)",
+      "var(--brand)",
+      "var(--brand-deep)",
+    ],
+    gradientOrigin: { cx: 32, cy: 28, r: 78 },
+    tilt: -4,
+    face: {
+      eyeY: 92,
+      eyeLeftX: 72,
+      eyeRightX: 128,
+      smileY: 128,
+      smileWidth: 44,
+    },
+  },
+  teacher: {
+    path:
+      "M 100 12 " +
+      "C 156 14, 188 52, 188 104 " +
+      "C 188 152, 158 188, 104 188 " +
+      "C 48 188, 12 154, 12 100 " +
+      "C 12 48, 46 14, 100 12 Z",
+    gradient: [
+      "color-mix(in oklch, var(--mesh-accent-b) 60%, var(--brand) 40%)",
+      "color-mix(in oklch, var(--brand) 70%, var(--mesh-accent-b) 30%)",
+      "var(--brand-deep)",
+    ],
+    gradientOrigin: { cx: 38, cy: 26, r: 82 },
+    tilt: 3,
+    face: {
+      eyeY: 96,
+      eyeLeftX: 74,
+      eyeRightX: 126,
+      smileY: 130,
+      smileWidth: 52,
+    },
+  },
+};
+
+/* ----------------------------------------------------------------
+ * Framer Motion variants — gentle bounce + face wake-up
+ * ---------------------------------------------------------------- */
+const FACE_STROKE = "oklch(0.14 0.04 175)";
+
+const blobMotion = {
+  rest: { scale: 1, rotate: 0 },
+  hover: {
+    scale: 1.04,
+    rotate: 0,
+    transition: { type: "spring" as const, stiffness: 280, damping: 14 },
+  },
+};
+
+const closedMotion = {
+  rest: { opacity: 1 },
+  hover: { opacity: 0, transition: { duration: 0.12 } },
+};
+
+const openMotion = {
+  rest: { opacity: 0, scale: 0.85 },
+  hover: {
+    opacity: 1,
+    scale: 1,
+    transition: { type: "spring" as const, stiffness: 360, damping: 18, delay: 0.05 },
+  },
+};
+
+const restSmileMotion = {
+  rest: { opacity: 1 },
+  hover: { opacity: 0, transition: { duration: 0.12 } },
+};
+
+const grinMotion = {
+  rest: { opacity: 0, scaleY: 0.6 },
+  hover: {
+    opacity: 1,
+    scaleY: 1,
+    transition: { type: "spring" as const, stiffness: 340, damping: 16, delay: 0.05 },
+  },
+};
+
+const chipMotion = {
+  rest: { opacity: 0, y: 6, scale: 0.95 },
+  hover: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: "spring" as const, stiffness: 360, damping: 22, delay: 0.06 },
+  },
 };
 
 export function Mascot({
   name,
-  size,
-  tone,
+  code,
+  hideCoupon = false,
   label,
+  size,
   className,
-  ...rest
 }: MascotProps) {
+  const reduce = useReducedMotion();
+  const config = BLOBS[name];
+  const couponCode = code ?? DEFAULT_CODES[name];
+  const gradientId = useId();
+  const maskId = useId();
+  const noiseId = useId();
+
+  // Keep the chip visible for keyboard-focus users too.
+  const [forceOpen, setForceOpen] = useState(false);
+  const variantState = reduce ? "hover" : undefined;
+
   return (
-    <svg
-      viewBox="0 0 64 64"
-      xmlns="http://www.w3.org/2000/svg"
-      role={label ? "img" : undefined}
-      aria-label={label}
-      aria-hidden={!label}
-      className={cn(mascotVariants({ size, tone }), className)}
-      {...rest}
+    <motion.div
+      initial="rest"
+      animate={forceOpen ? "hover" : variantState}
+      whileHover={reduce ? undefined : "hover"}
+      whileTap={reduce ? undefined : "hover"}
+      onFocus={() => setForceOpen(true)}
+      onBlur={() => setForceOpen(false)}
+      className={cn(wrapperVariants({ size }), className)}
     >
-      {PATHS[name]}
-    </svg>
+      <motion.svg
+        viewBox="0 0 200 200"
+        xmlns="http://www.w3.org/2000/svg"
+        role={label ? "img" : undefined}
+        aria-label={label}
+        aria-hidden={!label}
+        variants={blobMotion}
+        style={{ rotate: config.tilt }}
+        className={cn(svgSizeVariants({ size }), "overflow-visible")}
+      >
+        <defs>
+          <radialGradient
+            id={gradientId}
+            cx={`${config.gradientOrigin.cx}%`}
+            cy={`${config.gradientOrigin.cy}%`}
+            r={`${config.gradientOrigin.r}%`}
+          >
+            <stop offset="0%" stopColor={config.gradient[0]} />
+            <stop offset="55%" stopColor={config.gradient[1]} />
+            <stop offset="100%" stopColor={config.gradient[2]} />
+          </radialGradient>
+
+          <mask id={maskId}>
+            <path d={config.path} fill="white" />
+          </mask>
+
+          <filter id={noiseId} x="0" y="0" width="100%" height="100%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.85"
+              numOctaves="2"
+              seed={name === "teacher" ? 7 : 3}
+            />
+            <feColorMatrix
+              values="0 0 0 0 0
+                      0 0 0 0 0
+                      0 0 0 0 0
+                      0 0 0 0.22 0"
+            />
+          </filter>
+        </defs>
+
+        {/* Blob body — gradient + internal grain, both masked to the
+            blob silhouette so they don't bleed past the edge. */}
+        <g mask={`url(#${maskId})`}>
+          <rect width="200" height="200" fill={`url(#${gradientId})`} />
+          <rect width="200" height="200" filter={`url(#${noiseId})`} />
+          {/* Soft inner highlight for that Mindspace "lit from inside" feel */}
+          <ellipse
+            cx={(config.gradientOrigin.cx / 100) * 200}
+            cy={(config.gradientOrigin.cy / 100) * 200}
+            rx="46"
+            ry="34"
+            fill="white"
+            opacity="0.18"
+          />
+        </g>
+
+        {/* Resting face — closed eyes + soft smile */}
+        <motion.g variants={closedMotion} stroke={FACE_STROKE} strokeLinecap="round" fill="none">
+          <path
+            d={`M ${config.face.eyeLeftX - 8} ${config.face.eyeY} q 8 -8 16 0`}
+            strokeWidth="5"
+          />
+          <path
+            d={`M ${config.face.eyeRightX - 8} ${config.face.eyeY} q 8 -8 16 0`}
+            strokeWidth="5"
+          />
+        </motion.g>
+        <motion.path
+          variants={restSmileMotion}
+          d={`M ${100 - config.face.smileWidth / 2} ${config.face.smileY} q ${config.face.smileWidth / 2} 12 ${config.face.smileWidth} 0`}
+          stroke={FACE_STROKE}
+          strokeWidth="5"
+          strokeLinecap="round"
+          fill="none"
+        />
+
+        {/* Awake face — open eyes + wider grin (hover state) */}
+        <motion.g variants={openMotion} fill={FACE_STROKE}>
+          <circle cx={config.face.eyeLeftX} cy={config.face.eyeY - 2} r="4" />
+          <circle cx={config.face.eyeRightX} cy={config.face.eyeY - 2} r="4" />
+        </motion.g>
+        <motion.path
+          variants={grinMotion}
+          style={{ originX: "100px", originY: `${config.face.smileY}px` }}
+          d={`M ${100 - (config.face.smileWidth + 14) / 2} ${config.face.smileY - 2} q ${(config.face.smileWidth + 14) / 2} 22 ${config.face.smileWidth + 14} 0`}
+          stroke={FACE_STROKE}
+          strokeWidth="5"
+          strokeLinecap="round"
+          fill="none"
+        />
+      </motion.svg>
+
+      {!hideCoupon ? (
+        <motion.div variants={chipMotion}>
+          <CouponChip code={couponCode} />
+        </motion.div>
+      ) : null}
+    </motion.div>
   );
 }
+

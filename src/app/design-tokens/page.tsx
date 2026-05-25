@@ -9,7 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CouponChip } from "@/components/ui/coupon-chip";
 import { Mascot, type MascotName } from "@/components/ui/mascot";
+
+const MASCOTS: readonly MascotName[] = ["student", "teacher"] as const;
 import { Container } from "@/components/layouts/container";
 import { NoiseLayer } from "@/components/layouts/noise-layer";
 import { Row, Stack } from "@/components/layouts/stack";
@@ -33,140 +36,54 @@ const semantic = [
   "accent",
   "brand",
   "brand-soft",
+  "brand-deep",
 ] as const;
 
 const status = ["success", "warning", "pending", "destructive"] as const;
-
-const palettes = [
-  {
-    key: "violet",
-    label: "Warm violet",
-    blurb: "Superlist / Linear territory. Premium, intellectual.",
-  },
-  {
-    key: "amber",
-    label: "Warm amber",
-    blurb: "Mindspace / library-at-dusk. Cozy, inviting.",
-  },
-  {
-    key: "emerald",
-    label: "Deep emerald",
-    blurb: "Scholarly, calm, growth-coded.",
-  },
-] as const;
-
-const mascots: { name: MascotName; label: string; blurb: string }[] = [
-  { name: "bookling", label: "Bookling", blurb: "The reading companion." },
-  { name: "stellar", label: "Stellar", blurb: "The aha moment." },
-  { name: "lumen", label: "Lumen", blurb: "Night-study calm." },
-];
 
 export default function DesignTokensPage() {
   return (
     <>
       <NoiseLayer />
-      <main className="bg-mesh-hero min-h-screen">
+      <main className="min-h-screen">
         <Container>
           <Section spacing="default">
             <Stack gap={12}>
               {/* ---- Hero ---- */}
-              <Stack gap={3}>
-                <span className="text-eyebrow">Internal · Phase 1.1</span>
-                <h1 className="text-display">Foundation tokens.</h1>
+              <Stack gap={4}>
+                <span className="text-eyebrow">Internal · v0.1.1</span>
+                <h1 className="text-kinetic">Foundation.</h1>
                 <p className="text-body-lg text-muted-foreground max-w-2xl">
-                  Visual calibration surface for Advaita&rsquo;s design system.
-                  Pick a palette, scan the textures, meet the mascots.
+                  Advaita&rsquo;s calibration surface. Emerald is locked.
+                  Hover the companions to wake them up — each one carries a
+                  copyable discount code.
                 </p>
               </Stack>
 
-              {/* ---- Palette comparison ---- */}
+              {/* ---- Mascots — the centerpiece ---- */}
               <Stack gap={6}>
                 <Stack gap={2}>
-                  <span className="text-eyebrow">Pick one</span>
-                  <h2 className="text-title">Palette directions</h2>
+                  <span className="text-eyebrow">Companions</span>
+                  <h2 className="text-title">Hover to say hi.</h2>
                   <p className="text-body text-muted-foreground max-w-2xl">
-                    Each card below scopes a different brand palette. Notice
-                    how the mesh, the CTA, and the mascot accent all shift
-                    together — only the brand tokens vary.
+                    Soft distorted blobs with internal grain. Default state
+                    is asleep; cursor in and they open their eyes, grin, and
+                    surface a coupon you can copy.
                   </p>
                 </Stack>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {palettes.map((p) => (
-                    <div key={p.key} data-palette={p.key}>
-                      <Card
-                        variant="surface"
-                        padding="lg"
-                        className="bg-mesh-aurora bg-noise min-h-[340px] overflow-hidden"
-                      >
-                        <Stack gap={4}>
-                          <Row align="center" justify="between">
-                            <span className="text-eyebrow">{p.key}</span>
-                            <Mascot name="stellar" tone="brand" size="md" />
-                          </Row>
-                          <Stack gap={1}>
-                            <h3 className="text-headline">{p.label}</h3>
-                            <p className="text-caption">{p.blurb}</p>
-                          </Stack>
-                          <Row gap={2} wrap>
-                            <span
-                              className="rounded-md px-2 py-1 text-mono text-xs"
-                              style={{
-                                background: "var(--brand)",
-                                color: "var(--brand-foreground)",
-                              }}
-                            >
-                              brand
-                            </span>
-                            <span
-                              className="rounded-md px-2 py-1 text-mono text-xs"
-                              style={{
-                                background: "var(--brand-soft)",
-                                color: "var(--brand-foreground)",
-                              }}
-                            >
-                              brand-soft
-                            </span>
-                          </Row>
-                          <Row gap={2}>
-                            <Button size="sm">Primary</Button>
-                            <Button size="sm" variant="outline">
-                              Outline
-                            </Button>
-                          </Row>
-                        </Stack>
-                      </Card>
-                    </div>
-                  ))}
-                </div>
-              </Stack>
-
-              {/* ---- Mascots ---- */}
-              <Stack gap={6}>
-                <Stack gap={2}>
-                  <span className="text-eyebrow">Characters</span>
-                  <h2 className="text-title">Study companions</h2>
-                  <p className="text-body text-muted-foreground max-w-2xl">
-                    Hand-authored inline SVG. Each uses{" "}
-                    <code className="text-mono">currentColor</code> for the
-                    body and the active brand for the accent. Swap with
-                    proper illustrations later by replacing the path data.
-                  </p>
-                </Stack>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {mascots.map((m) => (
-                    <Card key={m.name} variant="surface" padding="lg">
-                      <Stack gap={4} align="center">
-                        <Mascot
-                          name={m.name}
-                          tone="foreground"
-                          size="xl"
-                          label={m.label}
-                        />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {MASCOTS.map((n) => (
+                    <Card key={n} variant="surface" padding="lg">
+                      <Stack gap={6} align="center">
+                        <Mascot name={n} size="lg" label={n} />
                         <Stack gap={1} align="center">
-                          <h3 className="text-headline">{m.label}</h3>
-                          <p className="text-caption text-center">{m.blurb}</p>
+                          <h3 className="text-headline capitalize">{n}</h3>
+                          <p className="text-caption text-center max-w-[28ch]">
+                            {n === "student"
+                              ? "Cool emerald gradient, slight left tilt."
+                              : "Warmer emerald with amber lift, slight right tilt."}
+                          </p>
                         </Stack>
                       </Stack>
                     </Card>
@@ -174,16 +91,18 @@ export default function DesignTokensPage() {
                 </div>
 
                 <Card variant="surface" padding="lg">
-                  <Stack gap={3}>
-                    <span className="text-eyebrow">Tones</span>
-                    <Row gap={4} align="center" wrap>
-                      <Mascot name="bookling" tone="foreground" size="md" />
-                      <Mascot name="bookling" tone="muted" size="md" />
-                      <Mascot name="bookling" tone="brand" size="md" />
-                      <Mascot name="stellar" tone="foreground" size="md" />
-                      <Mascot name="stellar" tone="brand" size="md" />
-                      <Mascot name="lumen" tone="foreground" size="md" />
-                      <Mascot name="lumen" tone="brand" size="md" />
+                  <Stack gap={4}>
+                    <Stack gap={1}>
+                      <span className="text-eyebrow">Inline use</span>
+                      <p className="text-caption">
+                        Coupon chips also work standalone — anywhere a code
+                        needs to be copyable.
+                      </p>
+                    </Stack>
+                    <Row gap={3} wrap>
+                      <CouponChip code="student10" />
+                      <CouponChip code="teacher10" />
+                      <CouponChip code="welcome2026" />
                     </Row>
                   </Stack>
                 </Card>
@@ -191,9 +110,16 @@ export default function DesignTokensPage() {
 
               {/* ---- Typography ---- */}
               <Stack gap={6}>
-                <h2 className="text-title">Typography</h2>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">Type</span>
+                  <h2 className="text-title">Typography</h2>
+                </Stack>
                 <Card variant="surface" padding="lg">
                   <Stack gap={6}>
+                    <Stack gap={1}>
+                      <span className="text-eyebrow">text-kinetic</span>
+                      <p className="text-kinetic">Big idea.</p>
+                    </Stack>
                     <Stack gap={1}>
                       <span className="text-eyebrow">text-display</span>
                       <p className="text-display">Calm, intelligent, premium.</p>
@@ -232,7 +158,10 @@ export default function DesignTokensPage() {
 
               {/* ---- Semantic colors ---- */}
               <Stack gap={6}>
-                <h2 className="text-title">Semantic colors</h2>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">Color</span>
+                  <h2 className="text-title">Semantic tokens</h2>
+                </Stack>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                   {semantic.map((name) => (
                     <Card
@@ -255,12 +184,15 @@ export default function DesignTokensPage() {
 
               {/* ---- Status tokens ---- */}
               <Stack gap={6}>
-                <h2 className="text-title">Status tokens</h2>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">Status</span>
+                  <h2 className="text-title">Order pills</h2>
+                </Stack>
                 <Row gap={3} wrap>
                   {status.map((name) => (
                     <div
                       key={name}
-                      className="rounded-full px-4 py-2 text-sm font-medium"
+                      className="rounded-full px-4 py-2 text-mono-tag"
                       style={{
                         backgroundColor: `var(--${name})`,
                         color: `var(--${name}-foreground)`,
@@ -274,7 +206,10 @@ export default function DesignTokensPage() {
 
               {/* ---- Buttons ---- */}
               <Stack gap={6}>
-                <h2 className="text-title">Buttons</h2>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">Action</span>
+                  <h2 className="text-title">Buttons</h2>
+                </Stack>
                 <Card variant="surface" padding="lg">
                   <Stack gap={6}>
                     <Stack gap={2}>
@@ -316,7 +251,10 @@ export default function DesignTokensPage() {
 
               {/* ---- Cards ---- */}
               <Stack gap={6}>
-                <h2 className="text-title">Cards</h2>
+                <Stack gap={2}>
+                  <span className="text-eyebrow">Surface</span>
+                  <h2 className="text-title">Cards</h2>
+                </Stack>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card variant="surface">
                     <CardHeader>

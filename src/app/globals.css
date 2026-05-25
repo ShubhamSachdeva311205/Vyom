@@ -6,14 +6,12 @@
 
 /* -----------------------------------------------------------------
  * Advaita design tokens
- * Layer 1 — primitive scales (used as raw values, not by components).
- * Layer 2 — semantic aliases on :root (Mode A light), .dark (Mode A
- *           dark, default), [data-mode="operational"] (Mode B forced
- *           light, no gradients, no blur).
- * Layer 3 — palette presets ([data-palette="violet|amber|emerald"])
- *           swap brand + primary + a subtle background tint without
- *           touching the rest of the system.
- * Components only ever reference Layer 2/3.
+ * Layer 1 — primitive scales (@theme).
+ * Layer 2 — semantic aliases on :root / .dark / [data-mode="operational"].
+ * Layer 3 — palette presets via [data-palette]. Emerald is the locked
+ *           default; violet/amber remain as opt-in scopes for future
+ *           themed surfaces (e.g., seasonal hero sections).
+ * Components reference only Layer 2.
  * ----------------------------------------------------------------- */
 
 @theme {
@@ -37,12 +35,12 @@
 
 /* -------- Mode A — Light (default :root) -------- */
 :root {
-  --background: oklch(0.985 0.005 285);           /* warm off-white */
-  --foreground: oklch(0.18 0.012 285);
-  --muted: oklch(0.96 0.005 285);
-  --muted-foreground: oklch(0.48 0.014 285);
-  --border: oklch(0.92 0.008 285);
-  --input: oklch(0.94 0.006 285);
+  --background: oklch(0.985 0.006 175);           /* warm off-white, subtle emerald tint */
+  --foreground: oklch(0.18 0.014 175);
+  --muted: oklch(0.96 0.006 175);
+  --muted-foreground: oklch(0.46 0.014 175);
+  --border: oklch(0.92 0.008 175);
+  --input: oklch(0.94 0.007 175);
   --ring: var(--brand);
 
   --card: oklch(1 0 0 / 0.7);
@@ -52,9 +50,9 @@
 
   --primary: var(--brand);
   --primary-foreground: var(--brand-foreground);
-  --secondary: oklch(0.95 0.005 285);
+  --secondary: oklch(0.95 0.006 175);
   --secondary-foreground: var(--foreground);
-  --accent: oklch(0.95 0.005 285);
+  --accent: oklch(0.95 0.006 175);
   --accent-foreground: var(--foreground);
 
   --success: oklch(0.68 0.16 152);
@@ -66,30 +64,43 @@
   --destructive: oklch(0.62 0.22 22);
   --destructive-foreground: oklch(0.98 0.01 22);
 
+  /* Locked emerald brand */
+  --brand: oklch(0.58 0.16 168);
+  --brand-soft: oklch(0.76 0.13 178);
+  --brand-foreground: oklch(0.98 0.02 168);
+  --brand-deep: oklch(0.34 0.13 170);
+
+  /* Mesh accent nodes — kept available for surfaces that opt into mesh
+   * (e.g., blob fills, optional hero treatments). Not used on the page
+   * bg anymore. */
+  --mesh-accent-a: oklch(0.68 0.15 168);          /* emerald */
+  --mesh-accent-b: oklch(0.78 0.13 75);           /* warm amber */
+  --mesh-accent-c: oklch(0.72 0.13 285);          /* soft violet */
+
   --mesh-opacity: 0.18;
   --noise-opacity: 0.06;
 }
 
 /* -------- Mode A — Dark (storefront default) -------- */
 .dark {
-  --background: oklch(0.135 0.018 285);          /* warm dark, slight violet tint */
-  --foreground: oklch(0.97 0.005 285);
-  --muted: oklch(0.20 0.014 285);
-  --muted-foreground: oklch(0.68 0.014 285);
-  --border: oklch(0.28 0.014 285 / 0.55);
-  --input: oklch(0.22 0.012 285);
+  --background: oklch(0.135 0.014 175);           /* dark, subtle emerald tint */
+  --foreground: oklch(0.97 0.005 175);
+  --muted: oklch(0.20 0.012 175);
+  --muted-foreground: oklch(0.68 0.014 175);
+  --border: oklch(0.28 0.014 175 / 0.55);
+  --input: oklch(0.22 0.012 175);
   --ring: var(--brand);
 
-  --card: oklch(0.19 0.014 285 / 0.55);
+  --card: oklch(0.18 0.014 175 / 0.55);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.17 0.014 285);
+  --popover: oklch(0.17 0.014 175);
   --popover-foreground: var(--foreground);
 
   --primary: var(--brand);
   --primary-foreground: var(--brand-foreground);
-  --secondary: oklch(0.22 0.012 285);
+  --secondary: oklch(0.22 0.012 175);
   --secondary-foreground: var(--foreground);
-  --accent: oklch(0.24 0.014 285);
+  --accent: oklch(0.24 0.014 175);
   --accent-foreground: var(--foreground);
 
   --success: oklch(0.72 0.16 152);
@@ -101,77 +112,53 @@
   --destructive: oklch(0.66 0.21 22);
   --destructive-foreground: oklch(0.16 0.04 22);
 
+  --brand: oklch(0.74 0.16 172);
+  --brand-soft: oklch(0.56 0.16 172);
+  --brand-foreground: oklch(0.12 0.04 172);
+  --brand-deep: oklch(0.40 0.14 170);
+
   --mesh-opacity: 0.55;
-  --noise-opacity: 0.15;
+  --noise-opacity: 0.14;
 }
 
-/* -------- Layer 3 — Palette presets --------
- * Default brand is violet. Override by setting data-palette on any
- * ancestor: <html data-palette="amber"> or <section data-palette="emerald">
- * for the comparison grid on /design-tokens.
- * --------------------------------------------- */
-:root,
+/* -------- Optional palette overrides (for future themed surfaces) -------- */
 [data-palette="violet"] {
   --brand: oklch(0.66 0.19 290);
   --brand-soft: oklch(0.78 0.13 290);
   --brand-foreground: oklch(0.16 0.04 290);
-  --mesh-accent-a: oklch(0.66 0.19 290);     /* violet */
-  --mesh-accent-b: oklch(0.72 0.16 220);     /* sky */
-  --mesh-accent-c: oklch(0.74 0.17 350);     /* warm rose */
+  --brand-deep: oklch(0.38 0.16 290);
 }
-
 .dark[data-palette="violet"],
 .dark :where([data-palette="violet"]) {
   --brand: oklch(0.74 0.17 290);
   --brand-soft: oklch(0.58 0.18 290);
   --brand-foreground: oklch(0.12 0.04 290);
+  --brand-deep: oklch(0.44 0.17 290);
 }
 
 [data-palette="amber"] {
   --brand: oklch(0.72 0.16 75);
   --brand-soft: oklch(0.84 0.12 75);
   --brand-foreground: oklch(0.20 0.05 75);
-  --mesh-accent-a: oklch(0.78 0.17 75);      /* honey */
-  --mesh-accent-b: oklch(0.74 0.17 350);     /* rose */
-  --mesh-accent-c: oklch(0.72 0.16 152);     /* emerald */
+  --brand-deep: oklch(0.46 0.13 60);
 }
-
 .dark[data-palette="amber"],
 .dark :where([data-palette="amber"]) {
   --brand: oklch(0.80 0.16 75);
   --brand-soft: oklch(0.66 0.14 75);
   --brand-foreground: oklch(0.18 0.05 75);
+  --brand-deep: oklch(0.50 0.13 60);
 }
 
-[data-palette="emerald"] {
-  --brand: oklch(0.62 0.13 165);
-  --brand-soft: oklch(0.78 0.11 175);
-  --brand-foreground: oklch(0.14 0.04 165);
-  --mesh-accent-a: oklch(0.68 0.15 165);     /* emerald */
-  --mesh-accent-b: oklch(0.66 0.19 290);     /* violet */
-  --mesh-accent-c: oklch(0.78 0.17 75);      /* amber */
-}
-
-.dark[data-palette="emerald"],
-.dark :where([data-palette="emerald"]) {
-  --brand: oklch(0.74 0.14 170);
-  --brand-soft: oklch(0.58 0.14 170);
-  --brand-foreground: oklch(0.12 0.04 170);
-}
-
-/* -------- Mode B — Operational Clarity (admin / dashboard / checkout)
- * Forced light. No gradients. No blur. Higher density. Applied via
- * <html data-mode="operational"> on the relevant route layouts.
- * Brand still available for accents but never for full surfaces.
- * ---------------------------------------------------------------- */
+/* -------- Mode B — Operational Clarity -------- */
 [data-mode="operational"] {
-  --background: oklch(1 0 0);                   /* #FFFFFF */
+  --background: oklch(1 0 0);
   --foreground: oklch(0.18 0.01 270);
-  --muted: oklch(0.985 0.002 270);              /* #F9FAFB row-alt */
+  --muted: oklch(0.985 0.002 270);
   --muted-foreground: oklch(0.46 0.012 270);
   --border: oklch(0.90 0.005 270);
   --input: oklch(0.94 0.005 270);
-  --ring: oklch(0.55 0.15 250);                 /* visible focus ring */
+  --ring: oklch(0.55 0.15 250);
 
   --card: oklch(1 0 0);
   --card-foreground: var(--foreground);
@@ -210,6 +197,7 @@
   --color-brand: var(--brand);
   --color-brand-soft: var(--brand-soft);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-deep: var(--brand-deep);
 
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
