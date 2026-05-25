@@ -45,13 +45,13 @@ Subphase 1.3: Page Shells & Layouts
 
 Subphase 1.4: Hardening (NEW)
 
-    [ ] env-var validator (zod-env): fail-fast at boot if RAZORPAY/SUPABASE/R2/RESEND keys are missing or wrong shape (e.g., production must use rzp_live_).
+    [x] env-var validator (zod-env): fail-fast at boot if RAZORPAY/SUPABASE/R2/RESEND keys are missing or wrong shape (e.g., production must use rzp_live_).
 
-    [ ] Global error.tsx + not-found.tsx pages with the same polish as empty states (CLAUDE.md §11 extended to errors).
+    [x] Global error.tsx + not-found.tsx pages with the same polish as empty states (CLAUDE.md §11 extended to errors).
 
-    [ ] sitemap.ts and robots.ts shells. Auto-populate the storefront routes; exclude /admin, /dashboard, /design-tokens.
+    [x] sitemap.ts and robots.ts shells. Auto-populate the storefront routes; exclude /admin, /dashboard, /design-tokens.
 
-    [ ] Metadata audit: per-route OG image generator via next/og.
+    [x] Metadata audit: per-route OG image generator via next/og.
 
 PHASE 2: DATABASE & AUTHENTICATION (The Brain)
 
