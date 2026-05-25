@@ -1,23 +1,52 @@
 /* Mode A ambient backgrounds.
- * Opacity is driven by --mesh-opacity from the active theme — 0.10 in
- * light, 0.30 in dark, 0 in [data-mode="operational"]. So the same
- * utility class produces the right intensity for the current context. */
+ * Opacity is driven by --mesh-opacity from the active theme. Mesh nodes
+ * pull from --mesh-accent-{a,b,c} so they automatically restyle per
+ * palette preset. The same utility produces correct intensity in light,
+ * dark, or operational context.
+ */
 
 @utility bg-mesh-aurora {
   background-color: var(--background);
   background-image:
-    radial-gradient(at 18% 22%, color-mix(in oklch, oklch(0.62 0.19 250) calc(var(--mesh-opacity) * 100%), transparent) 0px, transparent 55%),
-    radial-gradient(at 82% 18%, color-mix(in oklch, oklch(0.66 0.21 22)  calc(var(--mesh-opacity) * 100%), transparent) 0px, transparent 55%),
-    radial-gradient(at 50% 92%, color-mix(in oklch, oklch(0.68 0.16 152) calc(var(--mesh-opacity) * 100%), transparent) 0px, transparent 60%);
+    radial-gradient(60% 50% at 18% 22%,
+      color-mix(in oklch, var(--mesh-accent-a) calc(var(--mesh-opacity) * 100%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(55% 50% at 82% 18%,
+      color-mix(in oklch, var(--mesh-accent-b) calc(var(--mesh-opacity) * 90%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(65% 60% at 50% 95%,
+      color-mix(in oklch, var(--mesh-accent-c) calc(var(--mesh-opacity) * 80%), transparent) 0%,
+      transparent 75%);
 }
 
 @utility bg-mesh-soft {
   background-color: var(--background);
   background-image:
-    radial-gradient(at 30% 30%, color-mix(in oklch, oklch(0.55 0.04 270) calc(var(--mesh-opacity) * 50%), transparent) 0px, transparent 60%),
-    radial-gradient(at 75% 70%, color-mix(in oklch, oklch(0.55 0.04 270) calc(var(--mesh-opacity) * 50%), transparent) 0px, transparent 60%);
+    radial-gradient(50% 50% at 30% 30%,
+      color-mix(in oklch, var(--mesh-accent-a) calc(var(--mesh-opacity) * 60%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(50% 50% at 70% 75%,
+      color-mix(in oklch, var(--mesh-accent-b) calc(var(--mesh-opacity) * 50%), transparent) 0%,
+      transparent 70%);
 }
 
+@utility bg-mesh-hero {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(80% 60% at 20% 0%,
+      color-mix(in oklch, var(--mesh-accent-a) calc(var(--mesh-opacity) * 120%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(70% 60% at 95% 30%,
+      color-mix(in oklch, var(--mesh-accent-c) calc(var(--mesh-opacity) * 90%), transparent) 0%,
+      transparent 70%),
+    radial-gradient(90% 70% at 50% 110%,
+      color-mix(in oklch, var(--mesh-accent-b) calc(var(--mesh-opacity) * 100%), transparent) 0%,
+      transparent 75%);
+}
+
+/* Inline noise — opt-in per element. Useful on cards, banners, hero
+ * sections that want a bit of grain without the global overlay.
+ * Uses soft-light blend so it reads on both light and dark surfaces. */
 @utility bg-noise {
   position: relative;
   isolation: isolate;
@@ -31,18 +60,47 @@
     pointer-events: none;
     z-index: -1;
     opacity: var(--noise-opacity);
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
-    background-size: 160px 160px;
-    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-size: 220px 220px;
+    mix-blend-mode: soft-light;
   }
 }
 
-/* Mode B kill-switch — gradients/noise vanish on operational routes
- * even if a component class still references them. */
-[data-mode="operational"] .bg-mesh-aurora,
-[data-mode="operational"] .bg-mesh-soft {
-  background-image: none;
+/* Global grain overlay. Drop <NoiseLayer /> once at a storefront layout
+ * root and every page beneath inherits the texture. Auto-suppressed
+ * under [data-mode="operational"]. */
+.noise-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+  mix-blend-mode: soft-light;
 }
-[data-mode="operational"] .bg-noise::after {
+
+/* Slow ambient drift for hero mesh — pure CSS, respects reduced-motion
+ * via the global safety net in globals.css. */
+@keyframes mesh-drift {
+  0%   { background-position: 0% 0%, 100% 0%, 50% 100%; }
+  50%  { background-position: 5% 3%, 95% 4%, 50% 96%; }
+  100% { background-position: 0% 0%, 100% 0%, 50% 100%; }
+}
+
+@utility bg-mesh-hero-animated {
+  animation: mesh-drift 24s ease-in-out infinite;
+}
+
+/* Mode B kill-switch — gradients and noise vanish on operational routes
+ * even if a stale class is still on the element. */
+[data-mode="operational"] .bg-mesh-aurora,
+[data-mode="operational"] .bg-mesh-soft,
+[data-mode="operational"] .bg-mesh-hero {
+  background-image: none;
+  animation: none;
+}
+[data-mode="operational"] .bg-noise::after,
+[data-mode="operational"] .noise-layer {
   display: none;
 }

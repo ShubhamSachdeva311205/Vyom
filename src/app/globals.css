@@ -10,7 +10,10 @@
  * Layer 2 — semantic aliases on :root (Mode A light), .dark (Mode A
  *           dark, default), [data-mode="operational"] (Mode B forced
  *           light, no gradients, no blur).
- * Components only ever reference Layer 2.
+ * Layer 3 — palette presets ([data-palette="violet|amber|emerald"])
+ *           swap brand + primary + a subtle background tint without
+ *           touching the rest of the system.
+ * Components only ever reference Layer 2/3.
  * ----------------------------------------------------------------- */
 
 @theme {
@@ -34,59 +37,59 @@
 
 /* -------- Mode A — Light (default :root) -------- */
 :root {
-  --background: oklch(0.985 0.002 95);          /* #FAFAF9 */
-  --foreground: oklch(0.18 0.01 270);
-  --muted: oklch(0.96 0.003 270);
-  --muted-foreground: oklch(0.48 0.012 270);
-  --border: oklch(0.92 0.005 270);
-  --input: oklch(0.94 0.005 270);
-  --ring: oklch(0.55 0.02 270);
+  --background: oklch(0.985 0.005 285);           /* warm off-white */
+  --foreground: oklch(0.18 0.012 285);
+  --muted: oklch(0.96 0.005 285);
+  --muted-foreground: oklch(0.48 0.014 285);
+  --border: oklch(0.92 0.008 285);
+  --input: oklch(0.94 0.006 285);
+  --ring: var(--brand);
 
   --card: oklch(1 0 0 / 0.7);
   --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.22 0.01 270);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.003 270);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.95 0.005 285);
   --secondary-foreground: var(--foreground);
-  --accent: oklch(0.95 0.003 270);
+  --accent: oklch(0.95 0.005 285);
   --accent-foreground: var(--foreground);
 
-  --success: oklch(0.68 0.16 152);              /* emerald-500 */
+  --success: oklch(0.68 0.16 152);
   --success-foreground: oklch(0.98 0.01 152);
-  --warning: oklch(0.79 0.17 75);               /* amber-500 */
+  --warning: oklch(0.79 0.17 75);
   --warning-foreground: oklch(0.22 0.05 75);
-  --pending: oklch(0.62 0.19 250);              /* blue-500 */
+  --pending: oklch(0.62 0.19 250);
   --pending-foreground: oklch(0.98 0.01 250);
-  --destructive: oklch(0.62 0.22 22);           /* rose-500 */
+  --destructive: oklch(0.62 0.22 22);
   --destructive-foreground: oklch(0.98 0.01 22);
 
-  --mesh-opacity: 0.10;
-  --noise-opacity: 0.02;
+  --mesh-opacity: 0.18;
+  --noise-opacity: 0.06;
 }
 
 /* -------- Mode A — Dark (storefront default) -------- */
 .dark {
-  --background: oklch(0.13 0.008 270);
-  --foreground: oklch(0.97 0.005 270);
-  --muted: oklch(0.20 0.008 270);
-  --muted-foreground: oklch(0.65 0.012 270);
-  --border: oklch(0.25 0.008 270 / 0.6);
-  --input: oklch(0.22 0.008 270);
-  --ring: oklch(0.55 0.02 270);
+  --background: oklch(0.135 0.018 285);          /* warm dark, slight violet tint */
+  --foreground: oklch(0.97 0.005 285);
+  --muted: oklch(0.20 0.014 285);
+  --muted-foreground: oklch(0.68 0.014 285);
+  --border: oklch(0.28 0.014 285 / 0.55);
+  --input: oklch(0.22 0.012 285);
+  --ring: var(--brand);
 
-  --card: oklch(0.18 0.008 270 / 0.55);
+  --card: oklch(0.19 0.014 285 / 0.55);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.16 0.008 270);
+  --popover: oklch(0.17 0.014 285);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.97 0.005 270);
-  --primary-foreground: oklch(0.18 0.01 270);
-  --secondary: oklch(0.22 0.008 270);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.22 0.012 285);
   --secondary-foreground: var(--foreground);
-  --accent: oklch(0.24 0.008 270);
+  --accent: oklch(0.24 0.014 285);
   --accent-foreground: var(--foreground);
 
   --success: oklch(0.72 0.16 152);
@@ -98,13 +101,68 @@
   --destructive: oklch(0.66 0.21 22);
   --destructive-foreground: oklch(0.16 0.04 22);
 
-  --mesh-opacity: 0.30;
-  --noise-opacity: 0.04;
+  --mesh-opacity: 0.55;
+  --noise-opacity: 0.15;
+}
+
+/* -------- Layer 3 — Palette presets --------
+ * Default brand is violet. Override by setting data-palette on any
+ * ancestor: <html data-palette="amber"> or <section data-palette="emerald">
+ * for the comparison grid on /design-tokens.
+ * --------------------------------------------- */
+:root,
+[data-palette="violet"] {
+  --brand: oklch(0.66 0.19 290);
+  --brand-soft: oklch(0.78 0.13 290);
+  --brand-foreground: oklch(0.16 0.04 290);
+  --mesh-accent-a: oklch(0.66 0.19 290);     /* violet */
+  --mesh-accent-b: oklch(0.72 0.16 220);     /* sky */
+  --mesh-accent-c: oklch(0.74 0.17 350);     /* warm rose */
+}
+
+.dark[data-palette="violet"],
+.dark :where([data-palette="violet"]) {
+  --brand: oklch(0.74 0.17 290);
+  --brand-soft: oklch(0.58 0.18 290);
+  --brand-foreground: oklch(0.12 0.04 290);
+}
+
+[data-palette="amber"] {
+  --brand: oklch(0.72 0.16 75);
+  --brand-soft: oklch(0.84 0.12 75);
+  --brand-foreground: oklch(0.20 0.05 75);
+  --mesh-accent-a: oklch(0.78 0.17 75);      /* honey */
+  --mesh-accent-b: oklch(0.74 0.17 350);     /* rose */
+  --mesh-accent-c: oklch(0.72 0.16 152);     /* emerald */
+}
+
+.dark[data-palette="amber"],
+.dark :where([data-palette="amber"]) {
+  --brand: oklch(0.80 0.16 75);
+  --brand-soft: oklch(0.66 0.14 75);
+  --brand-foreground: oklch(0.18 0.05 75);
+}
+
+[data-palette="emerald"] {
+  --brand: oklch(0.62 0.13 165);
+  --brand-soft: oklch(0.78 0.11 175);
+  --brand-foreground: oklch(0.14 0.04 165);
+  --mesh-accent-a: oklch(0.68 0.15 165);     /* emerald */
+  --mesh-accent-b: oklch(0.66 0.19 290);     /* violet */
+  --mesh-accent-c: oklch(0.78 0.17 75);      /* amber */
+}
+
+.dark[data-palette="emerald"],
+.dark :where([data-palette="emerald"]) {
+  --brand: oklch(0.74 0.14 170);
+  --brand-soft: oklch(0.58 0.14 170);
+  --brand-foreground: oklch(0.12 0.04 170);
 }
 
 /* -------- Mode B — Operational Clarity (admin / dashboard / checkout)
  * Forced light. No gradients. No blur. Higher density. Applied via
  * <html data-mode="operational"> on the relevant route layouts.
+ * Brand still available for accents but never for full surfaces.
  * ---------------------------------------------------------------- */
 [data-mode="operational"] {
   --background: oklch(1 0 0);                   /* #FFFFFF */
@@ -115,7 +173,7 @@
   --input: oklch(0.94 0.005 270);
   --ring: oklch(0.55 0.15 250);                 /* visible focus ring */
 
-  --card: oklch(1 0 0);                         /* opaque, no translucency */
+  --card: oklch(1 0 0);
   --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--foreground);
@@ -127,10 +185,7 @@
   --noise-opacity: 0;
 }
 
-/* -------- Expose semantic tokens as Tailwind utilities --------
- * Anything declared here is reachable via `bg-background`, `text-muted-foreground`,
- * `border-border`, etc. without a tailwind.config.ts (Tailwind v4 CSS-first).
- * ------------------------------------------------------------- */
+/* -------- Expose semantic tokens as Tailwind utilities -------- */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -151,6 +206,10 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-foreground: var(--brand-foreground);
 
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -183,15 +242,12 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Focus ring — uniform across modes, sharper in Mode B. */
 :where(button, [role="button"], a, input, textarea, select, summary):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-/* Honor reduced motion globally as a safety net (motion primitives also
- * gate via useReducedMotion). */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
