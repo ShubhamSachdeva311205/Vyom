@@ -65,26 +65,24 @@ const FACE_STROKE = "oklch(0.14 0.04 175)";
  * ---------------------------------------------------------------- */
 
 function CollarAccessory() {
+  // Small button-down shirt visible under the chin: horizontal collar
+  // band with a V-notch cut from the bottom. Subtle outline stroke so
+  // it doesn't read as a featureless white tab against the gradient.
   return (
     <g>
-      {/* White V-collar — reads instantly as a school uniform. */}
       <path
-        d="M 70 154 L 100 184 L 130 154"
-        stroke="oklch(0.99 0.005 175)"
-        strokeWidth="11"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      {/* Subtle inner shadow on the collar so it doesn't look flat. */}
-      <path
-        d="M 70 154 L 100 184 L 130 154"
+        d="M 78 162
+           L 122 162
+           L 122 178
+           L 108 178
+           L 100 168
+           L 92 178
+           L 78 178 Z"
+        fill="oklch(0.99 0.005 175)"
         stroke={FACE_STROKE}
-        strokeOpacity="0.18"
-        strokeWidth="2"
-        strokeLinecap="round"
+        strokeOpacity="0.35"
+        strokeWidth="1.4"
         strokeLinejoin="round"
-        fill="none"
       />
     </g>
   );
