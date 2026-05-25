@@ -10,13 +10,13 @@ Errors, fixes, and how they were detected are called out when relevant.
 
 | Check | Status |
 |-------|--------|
-| `pnpm build` (committed `8315fcd`) | Pass — `/`, `/design-tokens` |
+| `pnpm build` (`4232e38`) | Pass — `/`, `/design-tokens` |
 | Dev server | http://localhost:3000 — run `pnpm dev` if refused |
-| GitHub sync | Pushed `7801bc6`…`8315fcd` (see below) |
-| Claude Code | **In progress** — Subphase 1.2 form primitives (uncommitted WIP) |
-| Open feedback | **Collar mascot** — user says it looks off; other mascots approved |
+| GitHub sync | Push `1690ac3`…`4232e38` after this journal commit |
+| Claude Code | **1.2 forms shipped** — waiting on user feedback; nav/overlays/states still pending |
+| Open feedback | **Collar mascot** — rework after 1.2/1.3; then roadmap review |
 
-**Preview:** http://localhost:3000/design-tokens
+**See Phase 1.2 UI:** http://localhost:3000/design-tokens → scroll to **Forms** and **Badges** (below Buttons).
 
 ---
 
@@ -33,11 +33,19 @@ Errors, fixes, and how they were detected are called out when relevant.
 
 3. **`8315fcd` — phase-1.2 (partial)** — Expanded mascot cast: collar, glasses, bookworm, star (decorative). *User feedback: collar needs rework; other characters look good.*
 
-### WIP (not committed — Claude Code active)
+### Phase 1.2 form primitives (committed)
 
-- Form primitives: `label`, `input`, `textarea`, `select`, `checkbox`, `radio-group`, `badge`, `form-field` + Radix deps in `package.json`
-- `/design-tokens` playground — Forms section being added
-- Reference image `combined_ss_from_mindspace.png` — local only (not in repo)
+| Commit | Message |
+|--------|---------|
+| `1690ac3` | phase-1.2: Input, Label, Textarea, FormField, Badge |
+| `47ce47b` | phase-1.2: Select, RadioGroup, Checkbox (Radix-based) |
+| `4232e38` | phase-1.2: form primitives in /design-tokens playground |
+
+**Playground sections (top → bottom):** Hero → Mascots → Typography → Colors → Status → Buttons → **Forms** → **Badges** → Cards.
+
+**Still pending for 1.2:** Skeleton, EmptyState, ErrorState, Dialog, Drawer, Popover, Toast, Navbar, Footer.
+
+**Local only:** `combined_ss_from_mindspace.png`, `.claude/skills/`
 
 ### Errors (refresh session)
 
@@ -217,7 +225,7 @@ After each work session: add an entry here → `git commit` → `git push` so Gi
 ## Phase 1: UI/UX Foundation
 
 **Goal:** Visual system from tokens → components → page shells.  
-**Subphase 1.1:** Complete. **1.1 refresh/tune:** Complete (pushed). **1.2:** In progress (forms WIP). **1.3:** Pending.
+**Subphase 1.1:** Complete. **1.1 refresh/tune:** Complete. **1.2:** Partial (forms + badges done; nav/overlays/states pending). **1.3:** Pending.
 
 ### Subphase 1.1 — Design tokens & primitives
 
@@ -362,11 +370,10 @@ Open **/design-tokens** for typography, semantic colors, status tokens, Button v
 
 ### Subphase 1.2 — Shared UI components
 
-**Status:** In progress (Claude Code)  
-**Done so far (committed):** Mascot cast expansion (`8315fcd`). Buttons/Cards were Phase 1.1.  
-**WIP (uncommitted):** Label, Input, Textarea, Select, Checkbox, RadioGroup, Badge, FormField + playground Forms section.  
-**Still pending:** Navbar, Footer, Modal/Drawer, Skeleton, Empty, Error states.  
-**User note:** Fix **collar** mascot after 1.2/1.3; then roadmap order review per user request.
+**Status:** In progress  
+**Done (committed):** Mascots (`8315fcd`); form stack (`1690ac3`, `47ce47b`, `4232e38`) — Label, Input, Textarea, FormField, Badge, Select, RadioGroup, Checkbox + `/design-tokens` Forms & Badges sections. Buttons/Cards = Phase 1.1.  
+**Still pending:** Navbar, Footer, Dialog, Drawer, Popover, Toast, Skeleton, EmptyState, ErrorState.  
+**User note:** Fix **collar** mascot after 1.2/1.3; roadmap order review after 1.3.
 
 ### Subphase 1.3 — Page shells & layouts
 
