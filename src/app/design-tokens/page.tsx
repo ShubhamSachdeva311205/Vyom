@@ -12,7 +12,15 @@ import {
 import { CouponChip } from "@/components/ui/coupon-chip";
 import { Mascot, type MascotName } from "@/components/ui/mascot";
 
-const MASCOTS: readonly MascotName[] = ["student", "teacher"] as const;
+const FEATURED: readonly MascotName[] = ["student", "teacher"] as const;
+const DECORATIVE: readonly MascotName[] = ["bookworm", "star"] as const;
+
+const BLURBS: Record<MascotName, string> = {
+  student: "Round, white V-collar, cool emerald gradient. Carries student10.",
+  teacher: "Slightly taller, glasses, warm emerald with amber lift. Carries teacher10.",
+  bookworm: "Tall vertical capsule, violet-shifted gradient. Decorative.",
+  star: "Wide asymmetric pebble, warm amber→emerald. Decorative.",
+};
 import { Container } from "@/components/layouts/container";
 import { NoiseLayer } from "@/components/layouts/noise-layer";
 import { Row, Stack } from "@/components/layouts/stack";
@@ -73,16 +81,38 @@ export default function DesignTokensPage() {
                 </Stack>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {MASCOTS.map((n) => (
+                  {FEATURED.map((n) => (
                     <Card key={n} variant="surface" padding="lg">
                       <Stack gap={6} align="center">
                         <Mascot name={n} size="lg" label={n} />
                         <Stack gap={1} align="center">
                           <h3 className="text-headline capitalize">{n}</h3>
                           <p className="text-caption text-center max-w-[28ch]">
-                            {n === "student"
-                              ? "Cool emerald gradient, slight left tilt."
-                              : "Warmer emerald with amber lift, slight right tilt."}
+                            {BLURBS[n]}
+                          </p>
+                        </Stack>
+                      </Stack>
+                    </Card>
+                  ))}
+                </div>
+
+                <Stack gap={3}>
+                  <span className="text-eyebrow">More shapes</span>
+                  <p className="text-caption max-w-2xl">
+                    Decorative blob variants — different silhouettes so the
+                    cast feels like a family, not duplicates. No coupon code
+                    unless you pass one explicitly.
+                  </p>
+                </Stack>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {DECORATIVE.map((n) => (
+                    <Card key={n} variant="surface" padding="lg">
+                      <Stack gap={6} align="center">
+                        <Mascot name={n} size="lg" label={n} />
+                        <Stack gap={1} align="center">
+                          <h3 className="text-headline capitalize">{n}</h3>
+                          <p className="text-caption text-center max-w-[28ch]">
+                            {BLURBS[n]}
                           </p>
                         </Stack>
                       </Stack>

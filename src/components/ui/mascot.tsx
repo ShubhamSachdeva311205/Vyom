@@ -2,18 +2,19 @@
 
 /**
  * Mascot — Advaita's study companions, rendered as soft distorted gradient
- * blobs with a sleeping-smile face. Hover to wake them up; each one carries
- * a discount-code Easter egg (student → student10, teacher → teacher10).
+ * blobs with a sleeping-smile face. Hover to wake them up; student and
+ * teacher carry discount-code chips (student10 / teacher10 per CLAUDE.md
+ * §7), the rest are decorative.
  *
  * Storefront-only. Do NOT import from operational routes — this component
- * pulls in framer-motion. The Mode A motion budget already accommodates it.
+ * pulls in framer-motion.
  *
  * To swap in proper illustrations later, only the BLOBS map changes.
  */
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { motion, useReducedMotion } from "framer-motion";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CouponChip } from "./coupon-chip";
 
@@ -39,34 +40,92 @@ const svgSizeVariants = cva("block", {
   defaultVariants: { size: "md" },
 });
 
-export type MascotName = "student" | "teacher";
+export type MascotName = "student" | "teacher" | "bookworm" | "star";
 
 interface MascotProps extends VariantProps<typeof wrapperVariants> {
   name: MascotName;
-  /** Override the coupon code that gets copied on click. Defaults to the
-   * code from CLAUDE.md §7 — student → student10, teacher → teacher10. */
+  /** Override the coupon code that gets copied on click. */
   code?: string;
-  /** Hide the coupon chip entirely (just a decorative blob). */
+  /** Hide the coupon chip even if a default code exists. */
   hideCoupon?: boolean;
   label?: string;
   className?: string;
 }
 
-const DEFAULT_CODES: Record<MascotName, string> = {
+const DEFAULT_CODES: Partial<Record<MascotName, string>> = {
   student: "student10",
   teacher: "teacher10",
 };
 
+const FACE_STROKE = "oklch(0.14 0.04 175)";
+
+/* ----------------------------------------------------------------
+ * Accessory primitives — extra SVG layers that ride on top of the
+ * face. They animate with the parent blob's spring (same SVG group).
+ * ---------------------------------------------------------------- */
+
+function CollarAccessory() {
+  return (
+    <g>
+      {/* White V-collar — reads instantly as a school uniform. */}
+      <path
+        d="M 70 154 L 100 184 L 130 154"
+        stroke="oklch(0.99 0.005 175)"
+        strokeWidth="11"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Subtle inner shadow on the collar so it doesn't look flat. */}
+      <path
+        d="M 70 154 L 100 184 L 130 154"
+        stroke={FACE_STROKE}
+        strokeOpacity="0.18"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </g>
+  );
+}
+
+function GlassesAccessory() {
+  return (
+    <g>
+      {/* Lens fill — barely-there warm tint so eyes show through. */}
+      <rect x="56" y="80" width="36" height="26" rx="11" fill="oklch(0.99 0.01 75 / 0.18)" />
+      <rect x="108" y="80" width="36" height="26" rx="11" fill="oklch(0.99 0.01 75 / 0.18)" />
+      {/* Frame stroke. */}
+      <g stroke={FACE_STROKE} strokeWidth="3.5" fill="none" strokeLinejoin="round">
+        <rect x="56" y="80" width="36" height="26" rx="11" />
+        <rect x="108" y="80" width="36" height="26" rx="11" />
+        <line x1="92" y1="93" x2="108" y2="93" />
+      </g>
+    </g>
+  );
+}
+
+const ACCESSORIES: Record<string, ReactNode> = {
+  collar: <CollarAccessory />,
+  glasses: <GlassesAccessory />,
+};
+
+/* ----------------------------------------------------------------
+ * Blob shapes — hand-tuned organic silhouettes. All on a 200×200
+ * viewBox so accessories share a coordinate system, but the blobs
+ * themselves occupy different regions for visual variety.
+ * ---------------------------------------------------------------- */
+
 interface BlobConfig {
-  /** Distorted blob outline. ViewBox is 0 0 200 200. */
   path: string;
-  /** Three-stop radial gradient — bright corner, mid, deep edge. */
+  /** Three-stop radial gradient (bright corner → mid → deep edge). */
   gradient: [string, string, string];
   /** Gradient origin in % within the viewBox. */
   gradientOrigin: { cx: number; cy: number; r: number };
   /** Resting tilt in degrees. */
   tilt: number;
-  /** Face geometry — positions in viewBox coords. */
+  /** Face geometry. */
   face: {
     eyeY: number;
     eyeLeftX: number;
@@ -74,14 +133,14 @@ interface BlobConfig {
     smileY: number;
     smileWidth: number;
   };
+  /** Optional accessory key (renders on top of face). */
+  accessory?: "collar" | "glasses";
+  /** Highlight ellipse for that "lit-from-inside" Mindspace feel. */
+  highlight: { cx: number; cy: number; rx: number; ry: number };
 }
 
-/**
- * Two distinct blob characters. Paths are hand-tuned organic curves —
- * not circles, not symmetric. Gradients use brand tokens so the active
- * palette flows through automatically.
- */
 const BLOBS: Record<MascotName, BlobConfig> = {
+  /* Student — roundish irregular blob with a school-uniform collar. */
   student: {
     path:
       "M 102 14 " +
@@ -96,48 +155,80 @@ const BLOBS: Record<MascotName, BlobConfig> = {
     ],
     gradientOrigin: { cx: 32, cy: 28, r: 78 },
     tilt: -4,
-    face: {
-      eyeY: 92,
-      eyeLeftX: 72,
-      eyeRightX: 128,
-      smileY: 128,
-      smileWidth: 44,
-    },
+    face: { eyeY: 92, eyeLeftX: 72, eyeRightX: 128, smileY: 128, smileWidth: 42 },
+    accessory: "collar",
+    highlight: { cx: 64, cy: 56, rx: 46, ry: 32 },
   },
+
+  /* Teacher — slightly taller oval, warm emerald + amber lift, glasses. */
   teacher: {
     path:
-      "M 100 12 " +
-      "C 156 14, 188 52, 188 104 " +
-      "C 188 152, 158 188, 104 188 " +
-      "C 48 188, 12 154, 12 100 " +
-      "C 12 48, 46 14, 100 12 Z",
+      "M 100 8 " +
+      "C 158 10, 188 46, 188 102 " +
+      "C 188 158, 156 192, 100 192 " +
+      "C 44 192, 12 158, 12 102 " +
+      "C 12 46, 42 10, 100 8 Z",
     gradient: [
       "color-mix(in oklch, var(--mesh-accent-b) 60%, var(--brand) 40%)",
       "color-mix(in oklch, var(--brand) 70%, var(--mesh-accent-b) 30%)",
       "var(--brand-deep)",
     ],
-    gradientOrigin: { cx: 38, cy: 26, r: 82 },
+    gradientOrigin: { cx: 38, cy: 24, r: 82 },
     tilt: 3,
-    face: {
-      eyeY: 96,
-      eyeLeftX: 74,
-      eyeRightX: 126,
-      smileY: 130,
-      smileWidth: 52,
-    },
+    face: { eyeY: 96, eyeLeftX: 74, eyeRightX: 126, smileY: 132, smileWidth: 50 },
+    accessory: "glasses",
+    highlight: { cx: 74, cy: 50, rx: 46, ry: 34 },
+  },
+
+  /* Bookworm — tall vertical capsule. Cool emerald→violet, upright. */
+  bookworm: {
+    path:
+      "M 100 8 " +
+      "C 140 8, 162 36, 162 78 " +
+      "C 162 122, 158 162, 144 184 " +
+      "C 136 198, 64 198, 56 184 " +
+      "C 42 162, 38 122, 38 78 " +
+      "C 38 36, 60 8, 100 8 Z",
+    gradient: [
+      "color-mix(in oklch, var(--mesh-accent-c) 55%, var(--brand) 45%)",
+      "var(--brand)",
+      "color-mix(in oklch, var(--brand-deep) 70%, var(--mesh-accent-c) 30%)",
+    ],
+    gradientOrigin: { cx: 36, cy: 22, r: 88 },
+    tilt: 0,
+    face: { eyeY: 88, eyeLeftX: 80, eyeRightX: 120, smileY: 124, smileWidth: 34 },
+    highlight: { cx: 66, cy: 44, rx: 36, ry: 30 },
+  },
+
+  /* Star — wide asymmetric pebble. Warm amber→emerald, playful tilt. */
+  star: {
+    path:
+      "M 36 60 " +
+      "C 56 28, 116 24, 156 38 " +
+      "C 192 52, 196 96, 178 124 " +
+      "C 156 154, 102 162, 64 154 " +
+      "C 28 148, 8 122, 12 88 " +
+      "C 16 68, 24 62, 36 60 Z",
+    gradient: [
+      "color-mix(in oklch, var(--mesh-accent-b) 75%, white 25%)",
+      "var(--mesh-accent-b)",
+      "color-mix(in oklch, var(--brand-deep) 60%, var(--mesh-accent-b) 40%)",
+    ],
+    gradientOrigin: { cx: 30, cy: 32, r: 92 },
+    tilt: 6,
+    face: { eyeY: 84, eyeLeftX: 78, eyeRightX: 122, smileY: 116, smileWidth: 40 },
+    highlight: { cx: 58, cy: 56, rx: 42, ry: 28 },
   },
 };
 
 /* ----------------------------------------------------------------
  * Framer Motion variants — gentle bounce + face wake-up
  * ---------------------------------------------------------------- */
-const FACE_STROKE = "oklch(0.14 0.04 175)";
 
 const blobMotion = {
-  rest: { scale: 1, rotate: 0 },
+  rest: { scale: 1 },
   hover: {
     scale: 1.04,
-    rotate: 0,
     transition: { type: "spring" as const, stiffness: 280, damping: 14 },
   },
 };
@@ -191,11 +282,12 @@ export function Mascot({
   const reduce = useReducedMotion();
   const config = BLOBS[name];
   const couponCode = code ?? DEFAULT_CODES[name];
+  const showCoupon = !hideCoupon && Boolean(couponCode);
+
   const gradientId = useId();
   const maskId = useId();
   const noiseId = useId();
 
-  // Keep the chip visible for keyboard-focus users too.
   const [forceOpen, setForceOpen] = useState(false);
   const variantState = reduce ? "hover" : undefined;
 
@@ -240,7 +332,15 @@ export function Mascot({
               type="fractalNoise"
               baseFrequency="0.85"
               numOctaves="2"
-              seed={name === "teacher" ? 7 : 3}
+              seed={
+                name === "teacher"
+                  ? 7
+                  : name === "bookworm"
+                    ? 11
+                    : name === "star"
+                      ? 13
+                      : 3
+              }
             />
             <feColorMatrix
               values="0 0 0 0 0
@@ -251,23 +351,21 @@ export function Mascot({
           </filter>
         </defs>
 
-        {/* Blob body — gradient + internal grain, both masked to the
-            blob silhouette so they don't bleed past the edge. */}
+        {/* Blob body — gradient + grain + inner highlight, all masked. */}
         <g mask={`url(#${maskId})`}>
           <rect width="200" height="200" fill={`url(#${gradientId})`} />
           <rect width="200" height="200" filter={`url(#${noiseId})`} />
-          {/* Soft inner highlight for that Mindspace "lit from inside" feel */}
           <ellipse
-            cx={(config.gradientOrigin.cx / 100) * 200}
-            cy={(config.gradientOrigin.cy / 100) * 200}
-            rx="46"
-            ry="34"
+            cx={config.highlight.cx}
+            cy={config.highlight.cy}
+            rx={config.highlight.rx}
+            ry={config.highlight.ry}
             fill="white"
             opacity="0.18"
           />
         </g>
 
-        {/* Resting face — closed eyes + soft smile */}
+        {/* Resting face. */}
         <motion.g variants={closedMotion} stroke={FACE_STROKE} strokeLinecap="round" fill="none">
           <path
             d={`M ${config.face.eyeLeftX - 8} ${config.face.eyeY} q 8 -8 16 0`}
@@ -287,7 +385,7 @@ export function Mascot({
           fill="none"
         />
 
-        {/* Awake face — open eyes + wider grin (hover state) */}
+        {/* Awake face — open eyes + wider grin. */}
         <motion.g variants={openMotion} fill={FACE_STROKE}>
           <circle cx={config.face.eyeLeftX} cy={config.face.eyeY - 2} r="4" />
           <circle cx={config.face.eyeRightX} cy={config.face.eyeY - 2} r="4" />
@@ -301,14 +399,16 @@ export function Mascot({
           strokeLinecap="round"
           fill="none"
         />
+
+        {/* Accessory (collar / glasses) — sits above the face. */}
+        {config.accessory ? ACCESSORIES[config.accessory] : null}
       </motion.svg>
 
-      {!hideCoupon ? (
+      {showCoupon ? (
         <motion.div variants={chipMotion}>
-          <CouponChip code={couponCode} />
+          <CouponChip code={couponCode as string} />
         </motion.div>
       ) : null}
     </motion.div>
   );
 }
-
