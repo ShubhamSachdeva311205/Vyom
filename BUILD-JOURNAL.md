@@ -6,7 +6,52 @@ Errors, fixes, and how they were detected are called out when relevant.
 **Repo:** https://github.com/ShubhamSachdeva311205/Advaita  
 **Local path:** `/Users/shubhamsachdeva/Documents/Mom_Biness`
 
+### Latest health check (Cursor)
+
+| Check | Status |
+|-------|--------|
+| `pnpm build` (committed `8315fcd`) | Pass — `/`, `/design-tokens` |
+| Dev server | http://localhost:3000 — run `pnpm dev` if refused |
+| GitHub sync | Pushed `7801bc6`…`8315fcd` (see below) |
+| Claude Code | **In progress** — Subphase 1.2 form primitives (uncommitted WIP) |
+| Open feedback | **Collar mascot** — user says it looks off; other mascots approved |
+
+**Preview:** http://localhost:3000/design-tokens
+
 ---
+
+## Phase 1.1 refresh & tune (post–1.1 commits)
+
+**Status:** Complete (pushed)  
+**Date:** 2026-05-26
+
+### Steps performed
+
+1. **`7801bc6` — phase-1.1-refresh** — Brand palette updates in `globals.css`, punchier mesh in `backgrounds.css`, `NoiseLayer`, blob **mascots** (`mascot.tsx`), expanded `/design-tokens` playground layout.
+
+2. **`0b57594` — phase-1.1-tune** — Refined mascots to blob style, **coupon easter egg** (`coupon-chip.tsx`), typography tweaks, emerald lock on brand tokens.
+
+3. **`8315fcd` — phase-1.2 (partial)** — Expanded mascot cast: collar, glasses, bookworm, star (decorative). *User feedback: collar needs rework; other characters look good.*
+
+### WIP (not committed — Claude Code active)
+
+- Form primitives: `label`, `input`, `textarea`, `select`, `checkbox`, `radio-group`, `badge`, `form-field` + Radix deps in `package.json`
+- `/design-tokens` playground — Forms section being added
+- Reference image `combined_ss_from_mindspace.png` — local only (not in repo)
+
+### Errors (refresh session)
+
+##### `/design-tokens` 500 during hot reload
+
+| | |
+|---|---|
+| **Symptom** | Dev log showed intermittent `GET /design-tokens 500` while `mascot.tsx` was editing |
+| **How detected** | Next dev server terminal output during Fast Refresh |
+| **Fix** | Transient — full reload after save; page returned 200 |
+| **Verification** | `pnpm build` on `8315fcd` succeeds; curl 200 |
+
+---
+
 
 ## How to use this file
 
@@ -172,7 +217,7 @@ After each work session: add an entry here → `git commit` → `git push` so Gi
 ## Phase 1: UI/UX Foundation
 
 **Goal:** Visual system from tokens → components → page shells.  
-**Subphase 1.1:** Complete (Claude Code + pushed to GitHub). **1.2 / 1.3:** Pending.
+**Subphase 1.1:** Complete. **1.1 refresh/tune:** Complete (pushed). **1.2:** In progress (forms WIP). **1.3:** Pending.
 
 ### Subphase 1.1 — Design tokens & primitives
 
@@ -317,7 +362,11 @@ Open **/design-tokens** for typography, semantic colors, status tokens, Button v
 
 ### Subphase 1.2 — Shared UI components
 
-- [ ] *(pending)*
+**Status:** In progress (Claude Code)  
+**Done so far (committed):** Mascot cast expansion (`8315fcd`). Buttons/Cards were Phase 1.1.  
+**WIP (uncommitted):** Label, Input, Textarea, Select, Checkbox, RadioGroup, Badge, FormField + playground Forms section.  
+**Still pending:** Navbar, Footer, Modal/Drawer, Skeleton, Empty, Error states.  
+**User note:** Fix **collar** mascot after 1.2/1.3; then roadmap order review per user request.
 
 ### Subphase 1.3 — Page shells & layouts
 
