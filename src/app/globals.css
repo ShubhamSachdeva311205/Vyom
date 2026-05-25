@@ -1,26 +1,204 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@import "../styles/typography.css";
+@import "../styles/backgrounds.css";
+
+/* -----------------------------------------------------------------
+ * Advaita design tokens
+ * Layer 1 — primitive scales (used as raw values, not by components).
+ * Layer 2 — semantic aliases on :root (Mode A light), .dark (Mode A
+ *           dark, default), [data-mode="operational"] (Mode B forced
+ *           light, no gradients, no blur).
+ * Components only ever reference Layer 2.
+ * ----------------------------------------------------------------- */
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-geist-sans);
+
+  --tracking-tighter: -0.04em;
+  --tracking-tight: -0.02em;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-pill: 9999px;
 }
 
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant op (&:where([data-mode="operational"], [data-mode="operational"] *));
+
+/* -------- Mode A — Light (default :root) -------- */
+:root {
+  --background: oklch(0.985 0.002 95);          /* #FAFAF9 */
+  --foreground: oklch(0.18 0.01 270);
+  --muted: oklch(0.96 0.003 270);
+  --muted-foreground: oklch(0.48 0.012 270);
+  --border: oklch(0.92 0.005 270);
+  --input: oklch(0.94 0.005 270);
+  --ring: oklch(0.55 0.02 270);
+
+  --card: oklch(1 0 0 / 0.7);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.22 0.01 270);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.95 0.003 270);
+  --secondary-foreground: var(--foreground);
+  --accent: oklch(0.95 0.003 270);
+  --accent-foreground: var(--foreground);
+
+  --success: oklch(0.68 0.16 152);              /* emerald-500 */
+  --success-foreground: oklch(0.98 0.01 152);
+  --warning: oklch(0.79 0.17 75);               /* amber-500 */
+  --warning-foreground: oklch(0.22 0.05 75);
+  --pending: oklch(0.62 0.19 250);              /* blue-500 */
+  --pending-foreground: oklch(0.98 0.01 250);
+  --destructive: oklch(0.62 0.22 22);           /* rose-500 */
+  --destructive-foreground: oklch(0.98 0.01 22);
+
+  --mesh-opacity: 0.10;
+  --noise-opacity: 0.02;
+}
+
+/* -------- Mode A — Dark (storefront default) -------- */
+.dark {
+  --background: oklch(0.13 0.008 270);
+  --foreground: oklch(0.97 0.005 270);
+  --muted: oklch(0.20 0.008 270);
+  --muted-foreground: oklch(0.65 0.012 270);
+  --border: oklch(0.25 0.008 270 / 0.6);
+  --input: oklch(0.22 0.008 270);
+  --ring: oklch(0.55 0.02 270);
+
+  --card: oklch(0.18 0.008 270 / 0.55);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.16 0.008 270);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.97 0.005 270);
+  --primary-foreground: oklch(0.18 0.01 270);
+  --secondary: oklch(0.22 0.008 270);
+  --secondary-foreground: var(--foreground);
+  --accent: oklch(0.24 0.008 270);
+  --accent-foreground: var(--foreground);
+
+  --success: oklch(0.72 0.16 152);
+  --success-foreground: oklch(0.15 0.02 152);
+  --warning: oklch(0.82 0.17 75);
+  --warning-foreground: oklch(0.20 0.05 75);
+  --pending: oklch(0.68 0.18 250);
+  --pending-foreground: oklch(0.15 0.03 250);
+  --destructive: oklch(0.66 0.21 22);
+  --destructive-foreground: oklch(0.16 0.04 22);
+
+  --mesh-opacity: 0.30;
+  --noise-opacity: 0.04;
+}
+
+/* -------- Mode B — Operational Clarity (admin / dashboard / checkout)
+ * Forced light. No gradients. No blur. Higher density. Applied via
+ * <html data-mode="operational"> on the relevant route layouts.
+ * ---------------------------------------------------------------- */
+[data-mode="operational"] {
+  --background: oklch(1 0 0);                   /* #FFFFFF */
+  --foreground: oklch(0.18 0.01 270);
+  --muted: oklch(0.985 0.002 270);              /* #F9FAFB row-alt */
+  --muted-foreground: oklch(0.46 0.012 270);
+  --border: oklch(0.90 0.005 270);
+  --input: oklch(0.94 0.005 270);
+  --ring: oklch(0.55 0.15 250);                 /* visible focus ring */
+
+  --card: oklch(1 0 0);                         /* opaque, no translucency */
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.22 0.01 270);
+  --primary-foreground: oklch(0.985 0 0);
+
+  --mesh-opacity: 0;
+  --noise-opacity: 0;
+}
+
+/* -------- Expose semantic tokens as Tailwind utilities --------
+ * Anything declared here is reachable via `bg-background`, `text-muted-foreground`,
+ * `border-border`, etc. without a tailwind.config.ts (Tailwind v4 CSS-first).
+ * ------------------------------------------------------------- */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-pending: var(--pending);
+  --color-pending-foreground: var(--pending-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* -------- Global base -------- */
+html {
+  color-scheme: light dark;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+[data-mode="operational"] {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Focus ring — uniform across modes, sharper in Mode B. */
+:where(button, [role="button"], a, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Honor reduced motion globally as a safety net (motion primitives also
+ * gate via useReducedMotion). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
