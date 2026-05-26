@@ -102,7 +102,7 @@ Supabase project.
 2. User Type: **External**. Click **Create**.
 3. Fill in the minimum required:
    - App name: `Advaita`
-   - User support email: `ai@gravity.fast`
+   - User support email: `shubhamhelpseries@gmail.com`
    - Developer contact email: same.
    - App logo: skip for now (can add later — we'll generate one in Phase 8).
 4. Click **Save and Continue**.
@@ -165,7 +165,7 @@ GOOGLE_CLIENT_SECRET=your_client_secret_here
 
 # ---- Admin allowlist ----
 # Comma-separated, no spaces. These emails can sign in to /admin.
-ADMIN_EMAILS=ai@gravity.fast
+ADMIN_EMAILS=shubhamhelpseries@gmail.com
 ```
 
 `.env.example` will be updated to mirror this shape (with placeholders

@@ -162,3 +162,20 @@ Empty states must never feel broken. Every empty state must:
      `Closes #N` in the commit body.
 - Issue templates are at `.github/ISSUE_TEMPLATE/`. Don't create blank
   issues — pick a template.
+
+---
+
+## 14. EMAIL IDENTITIES (decided 2026-05-26)
+- **`ai@gravity.fast`** is the Claude Code git-config identity. It exists
+  only so commits attribute correctly. **It is NEVER the production
+  admin, customer, support, or operations email.** Don't use it in
+  `ADMIN_EMAILS`, docs, mascot copy, OAuth consent screens, or anywhere
+  else customer-facing.
+- **`shubhamhelpseries@gmail.com`** is the actual business owner email.
+  Use this for:
+  - `ADMIN_EMAILS` allowlist
+  - Google Cloud Console OAuth consent screen (support + developer email)
+  - SETUP docs (when showing example values)
+  - Any production-touching identity field
+- Anywhere you see `ai@gravity.fast` in source / docs (other than
+  literal git commit attribution), it's a bug — fix on sight.

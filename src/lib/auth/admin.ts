@@ -4,7 +4,7 @@ import { env } from "@/lib/env";
  * Admin allowlist — hardcoded list of emails permitted to reach
  * /admin/*. Set via ADMIN_EMAILS env var, comma-separated, no spaces.
  *
- *   ADMIN_EMAILS=ai@gravity.fast,mom@example.com
+ *   ADMIN_EMAILS=shubhamhelpseries@gmail.com,mom@example.com
  *
  * Used by middleware to gate /admin/* routes AND by the admin sign-in
  * Server Action to reject magic-link requests from non-admin emails
