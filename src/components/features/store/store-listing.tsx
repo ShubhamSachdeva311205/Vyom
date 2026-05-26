@@ -94,14 +94,7 @@ function StoreBookCard({ book }: { book: Book }) {
           {book.subtitle ? (
             <p className="text-caption line-clamp-2">{book.subtitle}</p>
           ) : null}
-          <Row gap={2} align="center" justify="between">
-            <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
-            {book.discount_eligible ? (
-              <Badge variant="success" size="sm">10% elig.</Badge>
-            ) : (
-              <Badge variant="outline" size="sm">No coupons</Badge>
-            )}
-          </Row>
+          <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
         </Stack>
         <Button size="sm" className="w-full" disabled>
           Order — coming soon

@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
@@ -70,14 +69,9 @@ export function BookCard({
           <p className="text-xs font-medium text-foreground line-clamp-2 leading-tight">
             {book.title}
           </p>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-foreground">
-              {formatINR(book.price_paise)}
-            </span>
-            {book.discount_eligible ? (
-              <Badge variant="success" size="sm">10% elig.</Badge>
-            ) : null}
-          </div>
+          <span className="text-sm font-semibold text-foreground">
+            {formatINR(book.price_paise)}
+          </span>
         </div>
       ) : null}
     </>

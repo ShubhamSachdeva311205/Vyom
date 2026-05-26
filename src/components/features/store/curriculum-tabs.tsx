@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Headphones, Lock, BookOpenCheck, ShoppingBag } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Row, Stack } from "@/components/layouts/stack";
@@ -101,12 +100,7 @@ function OrderBookCard({ book }: { book: Book }) {
           {book.subtitle ? (
             <p className="text-caption">{book.subtitle}</p>
           ) : null}
-          <Row gap={2} align="center" justify="between">
-            <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
-            {book.discount_eligible ? (
-              <Badge variant="success" size="sm">10% off</Badge>
-            ) : null}
-          </Row>
+          <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
         </Stack>
         <Row gap={2}>
           <Button size="sm" className="flex-1" disabled>

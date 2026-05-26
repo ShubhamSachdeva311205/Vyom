@@ -743,6 +743,7 @@ covers. All 7 real book covers cropped + sized → `public/book-covers/`.
 | `3f5d585` | env wrapper for supabase CLI, all-books-eligible seed, wider hero spread, open-book vignette |
 | `e5fb59e` | book-facing fix, no-zoom hero cards, side cards md + bigger spread |
 | `0007920` | follow-up #4 — bring books closer on z-axis (Issue #46): side cards back to lg, offsetX 200+(d-1)*100 (layered) / 220+(d-1)*110 (scroll), rotateY -15, scale 0.94−depth*0.04 |
+| _next_     | follow-up #5 — strip discount badges + bookworm polish (Issues #47 #48). BookCard / StoreListing / CurriculumTabs drop the "10% elig." / "10% off" / "No coupons" success-badges (looked cheap). Mascot gains `awake` + `lookOffsetX` props so the awake face can pin on without hover and the pupils can be nudged toward something. BookwormReading: book offset to right (`left: 78%`), bumped to 84×58 (was 64×44), rotated 180° via `<g transform="rotate(180 35 26)">`, mascot rendered `awake lookOffsetX={8}` so eyes track the book. |
 
 ### Components shipped
 - `BookCard` — cover-first card primitive, sizes sm/md/lg/xl, `asStatic` + `showMeta` knobs for hero vs grid usage.
@@ -783,6 +784,17 @@ covers. All 7 real book covers cropped + sized → `public/book-covers/`.
 ### Closed issues in this phase
 
 #1, #16, #17, #19, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #34, #35, #46.
+
+### Open (pending user visual sign-off)
+- **#47** — discount-badge removal shipped, awaiting user "looks good".
+- **#48** — bookworm vignette polish shipped, awaiting user "looks good".
+
+### Workflow lesson (2026-05-27, captured to memory)
+Don't auto-close issues with `Closes #N` in commit messages until the
+user has visually confirmed the fix. Always reopen issues open + hand
+the user explicit "open URL X, look at Y" instructions before closing.
+Saved as `feedback_verify_before_closing.md` in the project memory dir
+so future sessions inherit the rule.
 
 ### Open follow-ups
 - Mascot scenes still don't fully sell "sitting/hanging" — user acknowledged this is okay to defer.

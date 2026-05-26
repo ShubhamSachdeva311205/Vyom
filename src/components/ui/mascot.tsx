@@ -64,6 +64,10 @@ interface MascotProps extends VariantProps<typeof wrapperVariants> {
   mood?: "happy" | "sad";
   /** Render stick-figure arms + legs (currently only honoured by `student`). */
   withLimbs?: boolean;
+  /** Force the awake (open-eyes + grin) face without needing a hover. */
+  awake?: boolean;
+  /** Horizontal pupil offset for "looking at" something. Positive = right. */
+  lookOffsetX?: number;
   label?: string;
   className?: string;
 }
@@ -520,6 +524,8 @@ export function Mascot({
   hideCoupon = false,
   mood = "happy",
   withLimbs = false,
+  awake = false,
+  lookOffsetX = 0,
   label,
   size,
   className,
@@ -544,7 +550,10 @@ export function Mascot({
   const noiseId = useId();
 
   const [forceOpen, setForceOpen] = useState(false);
-  const variantState = reduce ? "hover" : undefined;
+  // awake=true pins the open-eyes/grin face on without needing hover —
+  // used by the bookworm-reading vignette so the eyes can visibly look
+  // at the book it's reading.
+  const variantState = reduce || awake ? "hover" : undefined;
 
   const accentColor = isSad ? "var(--destructive)" : "var(--brand)";
   const svgStyle: CSSProperties = {
@@ -667,8 +676,8 @@ export function Mascot({
         {!isSad ? (
           <>
             <motion.g variants={happyOpenMotion} fill={FACE_STROKE}>
-              <circle cx={config.face.eyeLeftX} cy={config.face.eyeY - 2} r="4" />
-              <circle cx={config.face.eyeRightX} cy={config.face.eyeY - 2} r="4" />
+              <circle cx={config.face.eyeLeftX + lookOffsetX} cy={config.face.eyeY - 2} r="4" />
+              <circle cx={config.face.eyeRightX + lookOffsetX} cy={config.face.eyeY - 2} r="4" />
             </motion.g>
             <motion.path
               variants={happyGrinMotion}
