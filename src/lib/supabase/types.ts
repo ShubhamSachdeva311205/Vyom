@@ -89,22 +89,96 @@ export type Database = {
           },
         ]
       }
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_email: string | null
+          admin_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action: string
+          admin_email?: string | null
+          admin_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string
+          admin_email?: string | null
+          admin_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_emails: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          email: string
+          notes: string | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          email: string
+          notes?: string | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          email?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_emails_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       books: {
         Row: {
           audio_r2_key: string | null
           author: string | null
+          compare_at_price_paise: number | null
           cover_image_url: string | null
           created_at: string
           curriculum: Database["public"]["Enums"]["curriculum"]
           description: string | null
-          format: Database["public"]["Enums"]["book_format"]
+          discount_eligible: boolean
           gst_class: Database["public"]["Enums"]["gst_class"]
+          has_answer_key: boolean
+          has_audio: boolean
           id: string
           inventory_count: number
+          is_active: boolean
           isbn: string | null
           pdf_r2_key: string | null
           price_paise: number
-          published: boolean
+          publisher: string | null
           slug: string
           subject: string | null
           subtitle: string | null
@@ -114,18 +188,22 @@ export type Database = {
         Insert: {
           audio_r2_key?: string | null
           author?: string | null
+          compare_at_price_paise?: number | null
           cover_image_url?: string | null
           created_at?: string
           curriculum: Database["public"]["Enums"]["curriculum"]
           description?: string | null
-          format: Database["public"]["Enums"]["book_format"]
+          discount_eligible?: boolean
           gst_class?: Database["public"]["Enums"]["gst_class"]
+          has_answer_key?: boolean
+          has_audio?: boolean
           id?: string
           inventory_count?: number
+          is_active?: boolean
           isbn?: string | null
           pdf_r2_key?: string | null
           price_paise: number
-          published?: boolean
+          publisher?: string | null
           slug: string
           subject?: string | null
           subtitle?: string | null
@@ -135,18 +213,22 @@ export type Database = {
         Update: {
           audio_r2_key?: string | null
           author?: string | null
+          compare_at_price_paise?: number | null
           cover_image_url?: string | null
           created_at?: string
           curriculum?: Database["public"]["Enums"]["curriculum"]
           description?: string | null
-          format?: Database["public"]["Enums"]["book_format"]
+          discount_eligible?: boolean
           gst_class?: Database["public"]["Enums"]["gst_class"]
+          has_answer_key?: boolean
+          has_audio?: boolean
           id?: string
           inventory_count?: number
+          is_active?: boolean
           isbn?: string | null
           pdf_r2_key?: string | null
           price_paise?: number
-          published?: boolean
+          publisher?: string | null
           slug?: string
           subject?: string | null
           subtitle?: string | null
@@ -343,10 +425,6 @@ export type Database = {
       }
       coupons: {
         Row: {
-          applies_to_curriculum:
-            | Database["public"]["Enums"]["curriculum"]
-            | null
-          applies_to_format: Database["public"]["Enums"]["book_format"] | null
           code: string
           created_at: string
           created_by: string | null
@@ -360,10 +438,6 @@ export type Database = {
           uses_count: number
         }
         Insert: {
-          applies_to_curriculum?:
-            | Database["public"]["Enums"]["curriculum"]
-            | null
-          applies_to_format?: Database["public"]["Enums"]["book_format"] | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -377,10 +451,6 @@ export type Database = {
           uses_count?: number
         }
         Update: {
-          applies_to_curriculum?:
-            | Database["public"]["Enums"]["curriculum"]
-            | null
-          applies_to_format?: Database["public"]["Enums"]["book_format"] | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -461,7 +531,7 @@ export type Database = {
         Row: {
           book_id: string
           created_at: string
-          format: Database["public"]["Enums"]["book_format"]
+          final_price_paise: number
           id: string
           order_id: string
           quantity: number
@@ -470,7 +540,7 @@ export type Database = {
         Insert: {
           book_id: string
           created_at?: string
-          format: Database["public"]["Enums"]["book_format"]
+          final_price_paise?: number
           id?: string
           order_id: string
           quantity: number
@@ -479,7 +549,7 @@ export type Database = {
         Update: {
           book_id?: string
           created_at?: string
-          format?: Database["public"]["Enums"]["book_format"]
+          final_price_paise?: number
           id?: string
           order_id?: string
           quantity?: number
@@ -582,6 +652,35 @@ export type Database = {
           },
         ]
       }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
@@ -621,7 +720,6 @@ export type Database = {
     }
     Enums: {
       access_source: "order" | "amazon" | "manual" | "refund_revoked"
-      book_format: "physical" | "digital" | "bundle"
       coupon_type: "global" | "single_use"
       curriculum: "ibdp" | "igcse" | "other"
       feedback_kind:
@@ -773,7 +871,6 @@ export const Constants = {
   public: {
     Enums: {
       access_source: ["order", "amazon", "manual", "refund_revoked"],
-      book_format: ["physical", "digital", "bundle"],
       coupon_type: ["global", "single_use"],
       curriculum: ["ibdp", "igcse", "other"],
       feedback_kind: [

@@ -102,13 +102,19 @@ Subphase 3.2: Cart & Order Confirmation (NEW)
 
     [ ] Receipt email trigger fires here (uses Resend; see Phase 7).
 
-Subphase 3.3: Shipping Logic
+Subphase 3.3: Shipping Logic (REVISED per FULL_FEATURE_REFERENCE.md)
 
     [ ] Build pincode validation function at checkout.
 
-    [ ] Condition 1: If pincode is Bangalore OR physical cart < ₹100 → Shipping Cost = 0.
+    [ ] Get Delhivery's quoted shipping fee for the cart + pincode.
 
-    [ ] Condition 2: All other inputs → Trigger standard Delhivery estimation logic.
+    [ ] Read settings.free_shipping_enabled (server-side, never client).
+
+    [ ] If free_shipping_enabled = true AND Delhivery quote < ₹100 → Shipping Cost = 0.
+
+    [ ] Otherwise → customer pays the Delhivery rate.
+
+    [ ] Bangalore-pincode rule REMOVED. Pincode is only an input to Delhivery's quote.
 
 Subphase 3.4: Refund / Chargeback (NEW)
 
@@ -153,13 +159,35 @@ Subphase 5.2: Custom Tools
 
 Subphase 5.3: Product CRUD + Image Upload (NEW)
 
-    [ ] Admin UI to create/edit/delete book records (title, description, ISBN, GST class, price, format, syllabus tags).
+    [ ] Admin UI to create/edit/delete book records (title, subtitle, ISBN, publisher, slug, price, compare_at_price, curriculum, subject, has_audio, has_answer_key, discount_eligible, is_active, description).
 
     [ ] Image upload pipeline: admin uploads cover + sample images, server pushes to Cloudflare R2 (public bucket this time), DB stores R2 keys + alt text. Display via next/image with the appropriate sizes/priority.
 
+    [ ] Audio + answer-key file upload pipeline: admin uploads protected files to R2 private buckets, sets books.audio_r2_key / pdf_r2_key. Triggered when has_audio / has_answer_key is toggled on for a book.
+
+Subphase 5.4: Customer Lookup + Admin Tools
+
+    [ ] Customer search by email/name; customer detail page with order history + access grants + "Resend Access Email" button.
+
+    [ ] Free shipping toggle UI (settings.free_shipping_enabled) with audit log entry on every change.
+
+    [ ] CSV exports: today's orders + single-order detail.
+
+    [ ] Vyapar "Copy Billing Details" button on order detail.
+
+Subphase 5.5: Admin Allowlist Management (Issue #10)
+
+    [ ] /admin/settings/admins page — table of current admin emails, add/remove with confirm dialog.
+
+    [ ] Server Actions addAdminEmail / removeAdminEmail with audit log entries.
+
+    [ ] Guards: can't remove yourself, can't reduce list below one admin.
+
+Subphase 5.6: Admin Mobile QA
+
 Subphase 5.4: Admin Mobile QA
 
-    [ ] Real-device QA pass on Mom's iPhone (CLAUDE.md §10). Verify every admin action — accept order, mark packed, paste tracking URL, generate coupon — works one-handed. Document any gaps as a follow-up issue.
+    [ ] Real-device QA pass on Mom's iPhone (CLAUDE.md §10). Verify every admin action — accept order, mark packed, paste tracking URL, generate coupon, manage admin allowlist — works one-handed. Document any gaps as a follow-up issue.
 
 PHASE 6: COMMUNITY & EXPORTS
 

@@ -407,3 +407,102 @@ Desktop: sidebar nav. Mobile: bottom tab bar or hamburger.
 
 Note: `settings` table is new. Stores platform-level toggles.
 Seed with: `{ key: 'free_shipping_enabled', value: true }` on first migration.
+
+---
+
+# SECTION H — BRAND VOICE (added 2026-05-26)
+
+Companion to `design/design-system-spec.md` Two-UX-Modes spec. Captures
+the brand-decoration layer specific to Advaita's storefront. Not pure
+features — these are atmospheric choices that make the site feel like
+a place, not a tool. Inspired by Mindspace, Zen browser, Superlist,
+matvoyce.tv, nothing.tech.
+
+## H1. Mascot cast
+
+Four hand-authored SVG companions live in `src/components/ui/mascot.tsx`.
+Soft distorted blobs with closed-eye sleeping faces by default;
+hover-to-wake reveals open eyes + a wider grin.
+
+| Name | Silhouette | Accessory | Default coupon |
+|---|---|---|---|
+| `student` | Round irregular | White V-collar (shirt) | `student10` |
+| `teacher` | Slightly oval, larger | Rounded rectangle glasses | `teacher10` |
+| `bookworm` | Tall capsule | Over-ear headphones, brand-color LED | — |
+| `star` | Wide pebble, +6° tilt | — | — |
+
+### Mascot props
+- `name` — which character.
+- `mood` — `happy` (default) or `sad`. Sad keeps the smile flipped to a
+  frown and tints the accessory accent (e.g. headphone LED) red. Used
+  on the 404 page.
+- `code` — overrides the default coupon code on the floating chip.
+- `hideCoupon` — suppresses the chip even if a default exists.
+- `size` — xs (36px) for navbar, sm / md / lg for content surfaces.
+
+### Coupon-chip Easter egg
+Only `student` and `teacher` show a coupon chip on hover. Click the
+chip to copy the code to clipboard with a toast confirmation. The
+copy uses navigator.clipboard with an execCommand fallback so it works
+in older browsers + insecure contexts.
+
+## H2. Ambient brand decoration (Issue #2 · Phase 8.5)
+
+Site-wide decoration that makes pages feel populated without adding
+noise:
+
+- **Floating books** — 3–5 stylised book-spine SVGs drift behind hero
+  sections on `/`, `/store`, `/ibdp`, `/igcse`. Subtle parallax on
+  scroll + gentle bob via CSS keyframes. Respects
+  `prefers-reduced-motion`.
+- **Scattered companions** — small Mascot instances peek from
+  unexpected corners across storefront pages. Distribution rule: 1–2
+  per page, NEVER on operational routes (admin / dashboard /
+  checkout / design-tokens). Only `student` and `teacher` carry
+  coupons; the rest are silent.
+- **NoiseLayer** — fixed-position film-grain SVG mounted once at the
+  storefront layout root. Soft-light blend mode at theme-driven
+  opacity (~12% dark, ~5% light, 0% on operational routes).
+
+## H3. Kinetic typography
+
+`<KineticHeading>` (in `src/components/ui/kinetic-heading.tsx`) splits
+a heading into words and reveals them with a staggered slide-up +
+fade. One word can be highlighted in `--brand` colour via the
+`emphasize` index. Respects `prefers-reduced-motion`. Used on the
+homepage hero (`Study, slowly.`).
+
+## H4. Theme toggle
+
+- Storefront defaults to **dark mode** (`next-themes` defaultTheme).
+- Theme toggle (Sun/Moon) lives in the navbar — toggles between
+  `light` and `dark`. No "system" option; the user is making a
+  deliberate choice when they hit the toggle.
+- Operational routes are forced **light only** via
+  `data-mode="operational"` on the wrapping layout. The toggle is
+  hidden there.
+
+## H5. Status colour semantics
+
+Used for order pills, inventory badges, system feedback. Each has a
+bright variant for surfaces and a tinted-background pair for
+secondary use.
+
+| Token | Maps to (Mode A dark) | Used for |
+|---|---|---|
+| `--success` | emerald | shipped orders, in-stock |
+| `--warning` | amber | packed orders, inventory < 5 |
+| `--pending` | sky | pending_payment, unmoderated |
+| `--destructive` | rose | new orders needing action, errors, out-of-stock |
+| `--brand` | emerald (locked palette) | primary CTA, focus ring, mascot accent |
+
+Status text colour uses the bright variant against a faded
+status-tinted background — see `src/components/ui/badge.tsx`.
+
+## H6. Sound discipline
+
+No audio outside of:
+- Audio companion playback (Phase 4, in the player UI).
+- Toast notifications use Sonner's default behaviour — silent.
+
+No autoplay video. No background music. No UI sound effects.
