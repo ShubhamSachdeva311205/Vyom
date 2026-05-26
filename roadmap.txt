@@ -59,25 +59,25 @@ PHASE 2: DATABASE & AUTHENTICATION (The Brain)
 
 Goal: Secure user accounts and define the exact data structures and constraints.
 
-    [ ] Customer Auth: Supabase Email + Google OAuth for buyers.
+    [x] Customer Auth: Supabase Email + Google OAuth for buyers (with disposable-email blocklist).
 
-    [ ] Admin Auth: separate magic-link-only flow with a hardcoded email allowlist. Admin and customer should never share a session shape.
+    [x] Admin Auth: separate magic-link-only flow with a hardcoded email allowlist. Admin and customer share no session shape; gated by middleware.
 
-    [ ] Users Table: Map to Auth, define roles (customer, admin).
+    [x] Users Table: Map to Auth, define roles (customer, admin). Auto-populated via on_auth_user_created trigger.
 
-    [ ] Inventory Table: Create books table with price, type, and real-time inventory_count.
+    [x] Inventory Table: Books table with price (paise), type, format, GST class, and real-time inventory_count.
 
-    [ ] Orders Table: Track status (new, packed, shipped), Razorpay IDs, and tracking URLs.
+    [x] Orders Table: Status enum (pending_payment → packed → shipped → delivered/cancelled/refunded), Razorpay IDs, tracking URLs, GST/tax columns.
 
-    [ ] Carts Table (NEW): Server-backed cart tied to user_id (logged-in) OR anonymous_session_id (guest). Enables abandoned-cart emails later.
+    [x] Carts Table: Server-backed cart tied to user_id OR anonymous_session_id. Unique partial indexes + check constraint enforce one cart per owner.
 
-    [ ] Digital Vault: Create access_grants table with a UNIQUE constraint locking user_id + book_id to prevent duplicate access.
+    [x] Digital Vault: access_grants with UNIQUE (user_id, book_id) and source enum (order/amazon/manual/refund_revoked).
 
-    [ ] Coupon Table: Store codes, discount percentages, and type (global vs single_use). Add atomic transaction locks to prevent race conditions on single-use codes.
+    [x] Coupon Table: coupons + coupon_redemptions split. CHECK forces single_use codes to max_uses=1. UNIQUE (coupon_id, user_id) on redemptions enforces one-redemption-per-email.
 
-    [ ] Community Tables: Create content_submissions and feedback tables (no user_id required for frictionless guest submission).
+    [x] Community Tables: content_submissions + feedback, both accept guest submissions (user_id nullable).
 
-    [ ] Security: Enable Row Level Security (RLS) on all tables. Only Admin can write to inventory/orders.
+    [x] Security: RLS enabled on all 11 tables. is_admin() helper function for policy checks. Anonymous cart access scoped via current_setting('app.anonymous_session_id').
 
 PHASE 3: PAYMENTS, DISCOUNTS & SHIPPING LOGIC
 
