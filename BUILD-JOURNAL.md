@@ -561,6 +561,175 @@ implementation):
 
 ---
 
-## Phase 2–10
+---
 
-*Placeholder — journal sections will be appended when each phase begins.*
+## Phase 1.4 · Hardening
+
+**Status:** Complete  **Date:** 2026-05-26  **Commit:** `9249340` + `b4c7710` + `28130ea`
+
+env validator (`src/lib/env.ts`) — zod schema covering current + Phase
+2/3/4/7 keys. Production refinement on `RAZORPAY_KEY_ID` requires the
+`rzp_live_` prefix. Coerces empty `KEY=` to `undefined` before parsing
+so `.optional()` actually fires.
+
+Routes: `/error` (client component wrapping `ErrorState` with retry),
+`/not-found` (404 with sad bookworm + red headphones + back-to-home),
+`sitemap.ts` + `robots.ts` (storefront only, admin excluded),
+`opengraph-image.tsx` (edge runtime, Satori-rendered 1200×630 PNG).
+
+Roadmap 1.4 checkboxes all ticked.
+
+#### Errors & follow-up fixes captured as GitHub Issues
+
+- **CouponChip never copied** → empty catch was swallowing failures.
+  Fixed with stopPropagation + execCommand fallback + sonner toast.
+- **Navbar logo overlapped wordmark** → Mascot's `sm` size was 96 px;
+  override only sized the wrapper, not the SVG. Added `xs` size + used
+  it in navbar.
+- **Sad-mood face flipping to happy on hover** → variants overrode the
+  rest face. Neutralised hover variants when `mood='sad'`; skipped
+  awake-face render entirely.
+- **Headphone perspective fix** → cups moved inward, second thin back
+  arc behind head between cups, inner-of-cup darker circle offset
+  inward.
+
+---
+
+## Phase 2 · Database & Authentication
+
+**Status:** Complete  **Date:** 2026-05-26  **Commits:** `5bde065` → `92d3536` (six subphase commits) + `638e20a` checkbox tick + `27a8e83` workflow + `cc42e72` fixes batch + `5439aba` FFR alignment
+
+### Subphase 2.1 — Supabase scaffolding (`5bde065`)
+
+Installed `@supabase/supabase-js` + `@supabase/ssr` + `supabase` CLI as
+devDep + `disposable-email-domains`. `supabase/config.toml` customised:
+project_id=advaita, site_url=localhost:3000, redirect URLs added,
+`enable_confirmations=true` (magic-link verification required),
+`[auth.external.google]` block with env() substitution.
+
+`src/lib/supabase/{client,server,middleware,types}.ts` — browser +
+server + service-role + middleware-refresh clients. Type codegen
+script: `pnpm supabase:types`.
+
+### Subphase 2.2 — Core schema (`4e09e59`)
+
+Six tables (`users`/`books`/`orders`/`order_items`/`carts`/`cart_items`)
+with RLS. Money in paise. `auth.users` → `public.users` via
+`on_auth_user_created` trigger. `is_admin()` helper for RLS policies.
+
+### Subphase 2.3 — Auxiliary schema (`b2c1f19`)
+
+Five more tables (`access_grants`/`coupons`/`coupon_redemptions`/
+`content_submissions`/`feedback`) with RLS. `coupon_redemptions` UNIQUE
+on (coupon_id, user_id) enforces one-per-email + single-use vendor
+codes. `content_submissions` + `feedback` accept guest submissions.
+
+### Subphase 2.4 — Customer auth flows (`061673c`)
+
+Server Actions in `src/actions/auth.ts` (signUp, signIn,
+signInWithGoogle, signOut). Disposable-email blocklist (3-layer:
+canonical 10k + curated extras + regex patterns). OAuth callback route
+exchanging code for session. `(auth)` route group with clean layout.
+Sign-up + sign-in pages with Google button + email form.
+
+### Subphase 2.5 — Admin auth + middleware (`1c28b95`)
+
+Magic-link-only admin sign-in. `ADMIN_EMAILS` env allowlist.
+`src/middleware.ts` (note: must live in `src/`, not project root, with
+the `src/` app dir layout — caught when first placement no-op'd) runs
+on every request, refreshes JWT, redirects unauthenticated requests
+hitting `/admin/*`, `/dashboard/*`, `/checkout`.
+
+### Subphase 2.6 — Navbar signed-in state (`92d3536`)
+
+Navbar converted to async Server Component. Fetches user once,
+renders UserMenu (Popover-based avatar dropdown) when signed in or
+"Sign in" button when not. MobileNavMenu picks up the same `signedIn`
+flag for the drawer footer.
+
+### Subphase 2.7 — Alignment migration to FULL_FEATURE_REFERENCE.md (`5439aba`)
+
+Dropped `book_format` enum + columns (no more digital-only/bundle
+SKUs). Added `has_audio`, `has_answer_key`, `discount_eligible`,
+`compare_at_price_paise`. Renamed `published` → `is_active`. Dropped
+coupon-side scoping. New tables: `settings`, `admin_audit_logs`,
+`admin_emails`. `is_admin()` rewritten to read `admin_emails` —
+resolves the env-vs-DB drift bug. Seeded 7 real books from FFR §G.
+
+#### Phase 2 follow-up commits
+
+- `27a8e83` — GitHub Issues workflow + initial backlog templates (#1, #2, #3).
+- `cc42e72` — design-tokens crash fix + westecom blocklist + OTP entry.
+- `32d921d` — shorter smarty-pants copy + dark-mode warning badge.
+- `638e20a` — Phase 2 roadmap checkboxes.
+- `c096b62` — dedupe Google OAuth env vars.
+- `6234be2` — email swap (ai@gravity.fast → shubhamhelpseries@gmail.com), FFR diff doc, admin-emails feature filed.
+
+#### Errors & fixes (Phase 2)
+
+| Symptom | Root cause | Fix |
+|---|---|---|
+| Build failed on first import of `@supabase/ssr` | `KEY=` blanks in `.env.local` failed `.url()` before `.optional()` could catch | Preprocess `process.env` to coerce `""` → `undefined` before zod parse |
+| `pnpm dev` not redirecting `/dashboard` | `middleware.ts` placed at project root, ignored by Next 16 + `src/` layout | Moved to `src/middleware.ts` |
+| `/design-tokens` crashed at runtime (post-Phase-2-mascot-rewrite) | `React.Children.only()` threw on single-child JSX under React 19 + Turbopack dev | Replaced with `isValidElement(children)` + `cloneElement` |
+| Issue #10 auto-closed by "Closes #10" in commit body | Commit referenced the wrong issue number | Reopened; will close when UI lands in Phase 5.5 |
+
+---
+
+## Phase 1.5 · Mascot expansion + cover infra
+
+**Status:** Complete  **Date:** 2026-05-26  **Commits:** `efae5bd` + this session's commits
+
+Cast expanded 4 → 6: renamed `star` → `wisp` (the wide pebble), added
+real-star and rounded-triangle shapes. Each character gets a distinct
+oklch palette: emerald, amber, violet-blue, coral, gold, teal.
+
+Headphone cups reperspectived. Student got a bigger collar + tie + new
+`withLimbs` prop (stick arms + legs + 3-finger hands). `withLimbs`
+extended to teacher (long enough to hang/sit), navy tie replaces the
+brand-deep emerald (visibility against student blob).
+
+Bookworm dropped headphones, gained round glasses. Floating-book
+companion still pending (Issue #19 partial — covered by Issue #15
+homepage scene work).
+
+Cover pipeline: `scripts/process-book-covers.py` does OCR-based
+classification via Tesseract + Pillow; supports a manual
+`covers-map.txt` override for when OCR can't disambiguate Devanagari
+covers. All 7 real book covers cropped + sized → `public/book-covers/`.
+
+#### Notable GitHub Issues opened this phase
+
+| # | Title | State |
+|---|---|---|
+| #1 | Homepage teaser copy | open (closes with #16) |
+| #2 | Ambient brand decoration | open · Phase 8 |
+| #3 | Mailpit confusion (docs) | open |
+| #4 | /design-tokens crash | closed (`cc42e72`) |
+| #5 | Disposable email scale | open · P3 · Phase 8 |
+| #6 | OTP code entry | closed (`cc42e72`) |
+| #7 | Google OAuth redirect URI | open (user action — Cloud Console) |
+| #8 | Dark-mode warning badge | closed (`32d921d`) |
+| #9 | Admin role consistency | closed (`5439aba` — admin_emails table) |
+| #10 | Admin-managed admin allowlist | open (DB done; UI = Phase 5.5) |
+| #11 | Theme switcher | open · P3 · Phase 8 |
+| #12 | Mascot expansion (2 new + diversify) | open → closed when Phase 1.5 commit verified |
+| #13 | Bookworm headphone perspective | superseded by Issue #19 (full bookworm redesign) |
+| #14 | Student collar + tie + limbs | open · partial (collar/tie/limbs done; #19 still has floating book) |
+| #15 | Storefront book display | open · P1 · awaiting covers (now landed) |
+| #16 | Mascot scenes | open · P2 |
+| #17 | OCR cover script | closed when covers verified |
+| #18 | Teacher limbs + longer limbs | open · in progress |
+| #19 | Bookworm redesign (no headphones / glasses / floating book) | open · partial |
+| #20 | Student tie colour | open · in progress |
+| #21 | OCR + filename fallback | open · works via manual map for current batch |
+| #22 | Homepage scroll-reveal hero | open · pending Phase C |
+| #23 | Mascot names in customer UI | open · P3 decision |
+
+---
+
+## Phase 3+ · Pending
+
+Per `design/feature-reference-diff.md` decisions: cart + Razorpay +
+order confirmation + shipping logic + GST. Phase 5 admin command
+center follows.

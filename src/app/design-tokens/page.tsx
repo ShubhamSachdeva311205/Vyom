@@ -165,13 +165,14 @@ export default function DesignTokensPage() {
                     <Stack gap={1}>
                       <span className="text-eyebrow">Stick limbs (opt-in via withLimbs)</span>
                       <p className="text-caption">
-                        Student only, for now. Arms reach out from the body, 3-finger
-                        hands at the tips, legs hang from the bottom. Used in the
-                        homepage book-peek scene.
+                        Student + teacher only. Long enough to hang below the body
+                        or dangle over a book edge. 3-finger hands; small feet.
+                        Other mascots ignore the prop.
                       </p>
                     </Stack>
-                    <Row gap={6} align="end" wrap>
+                    <Row gap={8} align="end" wrap>
                       <Mascot name="student" size="lg" withLimbs hideCoupon label="Student with limbs" />
+                      <Mascot name="teacher" size="lg" withLimbs hideCoupon label="Teacher with limbs" />
                       <Mascot name="student" size="lg" hideCoupon label="Student no limbs (default)" />
                     </Row>
                   </Stack>

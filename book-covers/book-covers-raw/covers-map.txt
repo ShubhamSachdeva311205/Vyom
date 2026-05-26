@@ -1,0 +1,13 @@
+# Manual filename -> slug mapping. Picks up automatically if present.
+# Used when OCR can't classify (Devanagari-only covers, compressed photos, etc.)
+# Format: <filename>  <slug>   (whitespace-separated, comments after #).
+# Append `.fliplr` to the slug if the front cover is on the LEFT side
+# instead of the right.
+
+WhatsApp Image 2026-05-26 at 19.17.46.jpeg      ibdp-hindi-b-sl-io
+WhatsApp Image 2026-05-26 at 19.17.46 (1).jpeg  ibdp-hindi-b-hl-io
+WhatsApp Image 2026-05-26 at 19.17.46 (2).jpeg  ibdp-hindi-b-sl-reading
+WhatsApp Image 2026-05-26 at 19.17.46 (3).jpeg  igcse-hindi-paper-1
+WhatsApp Image 2026-05-26 at 19.17.46 (4).jpeg  igcse-hindi-paper-2-listening
+WhatsApp Image 2026-05-26 at 19.17.46 (5).jpeg  ibdp-hindi-b-shravan-lekhan
+WhatsApp Image 2026-05-26 at 19.20.18.jpeg      ibdp-hindi-b-hl-reading

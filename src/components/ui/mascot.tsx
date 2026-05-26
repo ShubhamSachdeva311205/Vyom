@@ -79,10 +79,11 @@ const FACE_STROKE = "oklch(0.14 0.04 175)";
  * Accessories
  * ---------------------------------------------------------------- */
 
+// Navy tie — classic school colour, reads cleanly against emerald body.
+const TIE_NAVY = "oklch(0.32 0.13 260)";
+const TIE_NAVY_DARK = "oklch(0.22 0.13 260)";
+
 function CollarAndTieAccessory() {
-  // Bigger Peter Pan-style white collar + school tie hanging from the
-  // V notch. Tie uses --brand-deep so it picks up the palette; stripes
-  // are near-white.
   return (
     <g>
       {/* Collar */}
@@ -101,45 +102,37 @@ function CollarAndTieAccessory() {
         strokeLinejoin="round"
       />
       {/* Tie body */}
-      <rect
-        x="93"
-        y="164"
-        width="14"
-        height="38"
-        rx="2.5"
-        fill="var(--brand-deep)"
-      />
-      {/* Tie knot — a small darker square at the top */}
+      <rect x="93" y="164" width="14" height="38" rx="2.5" fill={TIE_NAVY} />
+      {/* Tie knot — slightly darker for depth */}
       <rect
         x="91"
         y="160"
         width="18"
         height="10"
         rx="2"
-        fill="var(--brand-deep)"
+        fill={TIE_NAVY_DARK}
         stroke={FACE_STROKE}
         strokeOpacity="0.35"
         strokeWidth="1"
       />
-      {/* Tie stripes — diagonal */}
-      <line
-        x1="93"
-        y1="178"
-        x2="107"
-        y2="184"
-        stroke="oklch(0.99 0.005 175)"
-        strokeWidth="2"
-        strokeOpacity="0.8"
-      />
-      <line
-        x1="93"
-        y1="190"
-        x2="107"
-        y2="196"
-        stroke="oklch(0.99 0.005 175)"
-        strokeWidth="2"
-        strokeOpacity="0.8"
-      />
+      {/* Diagonal stripes */}
+      <line x1="93" y1="178" x2="107" y2="184" stroke="oklch(0.99 0.005 175)" strokeWidth="2" strokeOpacity="0.85" />
+      <line x1="93" y1="190" x2="107" y2="196" stroke="oklch(0.99 0.005 175)" strokeWidth="2" strokeOpacity="0.85" />
+    </g>
+  );
+}
+
+function RoundGlassesAccessory() {
+  // Round lenses — for bookworm, distinct from teacher's rounded-rect glasses.
+  return (
+    <g>
+      <circle cx="74" cy="93" r="15" fill="oklch(0.99 0.01 75 / 0.18)" />
+      <circle cx="126" cy="93" r="15" fill="oklch(0.99 0.01 75 / 0.18)" />
+      <g stroke={FACE_STROKE} strokeWidth="3.5" fill="none" strokeLinejoin="round">
+        <circle cx="74" cy="93" r="15" />
+        <circle cx="126" cy="93" r="15" />
+        <line x1="89" y1="93" x2="111" y2="93" />
+      </g>
     </g>
   );
 }
@@ -234,40 +227,78 @@ function BackpackStrapAccessory() {
 const ACCESSORIES: Record<string, ReactNode> = {
   collar: <CollarAndTieAccessory />,
   glasses: <GlassesAccessory />,
+  "glasses-round": <RoundGlassesAccessory />,
   cap: <CapAccessory />,
   headphones: <HeadphonesAccessory />,
   "backpack-strap": <BackpackStrapAccessory />,
 };
 
 /* ----------------------------------------------------------------
- * Limbs — stick arms + legs with 3-finger hands. Only honoured by
- * `student` (per Issue #14). Sits behind the body in z-order so the
- * hands curve into view from the sides.
+ * Limbs — stick arms + legs with 3-finger hands. Long enough to
+ * hang / sit / dangle. Configured per character so anchor points
+ * match the body silhouette. Honoured by `student` and `teacher`
+ * when `withLimbs` is set.
  * ---------------------------------------------------------------- */
-function StudentLimbs() {
+interface LimbsConfig {
+  // Arm anchor (where the arm leaves the body) + hand position (the end).
+  armAnchorY: number;
+  armEndX: number; // offset from each side (left=armEndX, right=200-armEndX)
+  armEndY: number;
+  // Leg anchor on the body bottom + foot position.
+  legAnchorY: number;
+  legSpread: number; // x offset of foot from leg anchor
+  legEndY: number;
+}
+
+const STUDENT_LIMBS: LimbsConfig = {
+  armAnchorY: 108,
+  armEndX: -8, // pushes hands well outside the body for a clear silhouette
+  armEndY: 176,
+  legAnchorY: 184,
+  legSpread: 14,
+  legEndY: 232,
+};
+
+const TEACHER_LIMBS: LimbsConfig = {
+  armAnchorY: 112,
+  armEndX: -10,
+  armEndY: 180,
+  legAnchorY: 192,
+  legSpread: 14,
+  legEndY: 238,
+};
+
+function fingerLines(cx: number, cy: number, spreadX: number) {
   return (
-    <g stroke={FACE_STROKE} strokeWidth="2.6" strokeLinecap="round" fill="none">
-      {/* Left arm — body side at (24, 110), bends down to hand at (4, 144) */}
-      <path d="M 24 110 Q 14 124 4 144" />
-      {/* Left hand — 3 fingers fanning out */}
-      <line x1="4" y1="144" x2="-2" y2="152" />
-      <line x1="4" y1="144" x2="4" y2="154" />
-      <line x1="4" y1="144" x2="10" y2="152" />
+    <>
+      <line x1={cx} y1={cy} x2={cx - spreadX} y2={cy + 10} />
+      <line x1={cx} y1={cy} x2={cx} y2={cy + 12} />
+      <line x1={cx} y1={cy} x2={cx + spreadX} y2={cy + 10} />
+    </>
+  );
+}
 
-      {/* Right arm — mirrored to (196, 144) */}
-      <path d="M 176 110 Q 186 124 196 144" />
-      <line x1="196" y1="144" x2="202" y2="152" />
-      <line x1="196" y1="144" x2="196" y2="154" />
-      <line x1="196" y1="144" x2="190" y2="152" />
+function Limbs({ config, armStart }: { config: LimbsConfig; armStart: { left: number; right: number } }) {
+  const { armAnchorY, armEndX, armEndY, legAnchorY, legSpread, legEndY } = config;
+  const leftArmEndX = armEndX;
+  const rightArmEndX = 200 - armEndX;
+  return (
+    <g stroke={FACE_STROKE} strokeWidth="2.8" strokeLinecap="round" fill="none">
+      {/* Left arm — quadratic curve so it hangs naturally */}
+      <path d={`M ${armStart.left} ${armAnchorY} Q ${leftArmEndX + 6} ${armAnchorY + 24} ${leftArmEndX} ${armEndY}`} />
+      {fingerLines(leftArmEndX, armEndY, 6)}
 
-      {/* Left leg — out of the bottom-left of the body */}
-      <path d="M 70 184 Q 64 196 60 208" />
-      {/* Foot — short horizontal stroke */}
-      <line x1="56" y1="208" x2="66" y2="208" />
+      {/* Right arm */}
+      <path d={`M ${armStart.right} ${armAnchorY} Q ${rightArmEndX - 6} ${armAnchorY + 24} ${rightArmEndX} ${armEndY}`} />
+      {fingerLines(rightArmEndX, armEndY, 6)}
 
-      {/* Right leg */}
-      <path d="M 130 184 Q 136 196 140 208" />
-      <line x1="134" y1="208" x2="144" y2="208" />
+      {/* Left leg + foot */}
+      <path d={`M 76 ${legAnchorY} Q 74 ${(legAnchorY + legEndY) / 2 - 4} ${76 - legSpread} ${legEndY}`} />
+      <line x1={76 - legSpread - 6} y1={legEndY} x2={76 - legSpread + 6} y2={legEndY} />
+
+      {/* Right leg + foot */}
+      <path d={`M 124 ${legAnchorY} Q 126 ${(legAnchorY + legEndY) / 2 - 4} ${124 + legSpread} ${legEndY}`} />
+      <line x1={124 + legSpread - 6} y1={legEndY} x2={124 + legSpread + 6} y2={legEndY} />
     </g>
   );
 }
@@ -292,7 +323,7 @@ interface BlobConfig {
     smileY: number;
     smileWidth: number;
   };
-  accessory?: "collar" | "glasses" | "cap" | "headphones" | "backpack-strap";
+  accessory?: "collar" | "glasses" | "glasses-round" | "cap" | "headphones" | "backpack-strap";
   highlight: { cx: number; cy: number; rx: number; ry: number };
 }
 
@@ -337,7 +368,7 @@ const BLOBS: Record<MascotName, BlobConfig> = {
     highlight: { cx: 74, cy: 50, rx: 46, ry: 34 },
   },
 
-  /* violet-blue */
+  /* violet-blue — headphones removed, round glasses added */
   bookworm: {
     path:
       "M 100 8 " +
@@ -353,8 +384,9 @@ const BLOBS: Record<MascotName, BlobConfig> = {
     ],
     gradientOrigin: { cx: 36, cy: 22, r: 88 },
     tilt: 0,
-    face: { eyeY: 126, eyeLeftX: 84, eyeRightX: 116, smileY: 156, smileWidth: 28 },
-    accessory: "headphones",
+    // Face moves back up since headphones no longer crowd the eye area.
+    face: { eyeY: 93, eyeLeftX: 74, eyeRightX: 126, smileY: 134, smileWidth: 32 },
+    accessory: "glasses-round",
     highlight: { cx: 66, cy: 44, rx: 36, ry: 30 },
   },
 
@@ -494,7 +526,15 @@ export function Mascot({
   const couponCode = code ?? DEFAULT_CODES[name];
   const showCoupon = !hideCoupon && Boolean(couponCode);
   const isSad = mood === "sad";
-  const showLimbs = withLimbs && name === "student"; // Only student supports limbs (for now)
+  // Limbs supported on student + teacher (Issue #18). Other characters
+  // ignore the prop silently.
+  const limbsConfig =
+    withLimbs && name === "student"
+      ? STUDENT_LIMBS
+      : withLimbs && name === "teacher"
+        ? TEACHER_LIMBS
+        : null;
+  const showLimbs = limbsConfig !== null;
 
   const gradientId = useId();
   const maskId = useId();
@@ -576,8 +616,12 @@ export function Mascot({
           </filter>
         </defs>
 
-        {/* Limbs first so the body covers the joints */}
-        {showLimbs ? <StudentLimbs /> : null}
+        {/* Limbs first so the body covers the joints. armStart anchors
+            are slightly inside the body silhouette so the arm appears to
+            grow out from under the body edge. */}
+        {showLimbs && limbsConfig ? (
+          <Limbs config={limbsConfig} armStart={{ left: 20, right: 180 }} />
+        ) : null}
 
         <g mask={`url(#${maskId})`}>
           <rect width="200" height="220" fill={`url(#${gradientId})`} />
