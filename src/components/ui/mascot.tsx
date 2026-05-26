@@ -73,6 +73,8 @@ interface MascotProps extends VariantProps<typeof wrapperVariants> {
   awake?: boolean;
   /** Horizontal pupil offset for "looking at" something. Positive = right. */
   lookOffsetX?: number;
+  /** Vertical pupil offset. Positive = down. Pairs with lookOffsetX. */
+  lookOffsetY?: number;
   /** Optional motion `animate` applied to the awake pupils — for a small
    *  tracking wobble synced to an external animation (e.g. a floating book). */
   pupilAnimate?: TargetAndTransition;
@@ -536,6 +538,7 @@ export function Mascot({
   withLimbs = false,
   awake = false,
   lookOffsetX = 0,
+  lookOffsetY = 0,
   pupilAnimate,
   pupilTransition,
   label,
@@ -694,8 +697,16 @@ export function Mascot({
                 animate={reduce ? undefined : pupilAnimate}
                 transition={pupilTransition}
               >
-                <circle cx={config.face.eyeLeftX + lookOffsetX} cy={config.face.eyeY - 2} r="4" />
-                <circle cx={config.face.eyeRightX + lookOffsetX} cy={config.face.eyeY - 2} r="4" />
+                <circle
+                  cx={config.face.eyeLeftX + lookOffsetX}
+                  cy={config.face.eyeY - 2 + lookOffsetY}
+                  r="4"
+                />
+                <circle
+                  cx={config.face.eyeRightX + lookOffsetX}
+                  cy={config.face.eyeY - 2 + lookOffsetY}
+                  r="4"
+                />
               </motion.g>
             </motion.g>
             <motion.path

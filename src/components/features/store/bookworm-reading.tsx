@@ -5,14 +5,14 @@ import { Mascot } from "@/components/ui/mascot";
 
 /**
  * BookwormReading — bookworm mascot reading a small open book held off
- * to one side of its body. The mascot's awake face is pinned on and the
- * pupils wobble in lock-step with the book's float so the eyes visibly
- * track what it's reading.
+ * to one side of its body. The pages of the open book face the
+ * bookworm (away from the viewer), so we see the BACKS of the two
+ * open covers in a soft V with the spine running down the middle.
+ * Page edges peek out along the open side at the bottom.
  *
- * The OpenBookSVG is a classic front-on open-book illustration: two
- * cream pages spread in a soft V, dark spine in the middle, brand
- * cover-stripes peeking on the outer edges, faint text lines on each
- * page. Recognisable as a book at a glance.
+ * The mascot's awake face is pinned on. Pupils are nudged right + down
+ * so the eyes look toward the book, and wobble in lock-step with the
+ * book's float so the gaze visibly tracks what it's reading.
  *
  * Respects useReducedMotion (book + pupils all static when reduced).
  */
@@ -48,20 +48,20 @@ export function BookwormReading({ className, size = "md" }: BookwormReadingProps
         size={size}
         hideCoupon
         awake
-        lookOffsetX={6}
+        lookOffsetX={7}
+        lookOffsetY={6}
         pupilAnimate={PUPIL_FLOAT}
         pupilTransition={FLOAT_TRANSITION}
       />
 
-      {/* Open book — held slightly to the right of the bookworm and
-          raised closer to the face so it reads as something being
-          read, not something floating away. */}
+      {/* Open book — held to the right of the bookworm and slightly
+          below face height so eyes have to look down + right. */}
       <motion.div
         aria-hidden="true"
         className="pointer-events-none absolute"
         style={{
-          bottom: "34%",
-          left: "68%",
+          bottom: "26%",
+          left: "70%",
           translateX: "-50%",
         }}
         animate={reduce ? undefined : BOOK_FLOAT}
@@ -74,103 +74,111 @@ export function BookwormReading({ className, size = "md" }: BookwormReadingProps
 }
 
 function OpenBookSVG() {
-  // ViewBox 90 × 60. Two cream pages meet at a central spine, gentle V
-  // shape. Brand cover-stripes peek at the outer edges (so it reads as
-  // an actual book with covers, not just sheets of paper). Faint text
-  // lines and a centre crease shadow sell the depth.
+  // ViewBox 90 × 60. We are looking at the BACK of an open book — the
+  // bookworm holds it with the pages facing itself, so we see two
+  // back-cover panels in a soft V meeting at a vertical spine. Cream
+  // page edges peek out along the bottom (where the book is open).
   return (
     <svg
       width="96"
       height="64"
       viewBox="0 0 90 60"
       xmlns="http://www.w3.org/2000/svg"
-      className="drop-shadow-[0_4px_8px_rgba(0,0,0,0.18)]"
+      className="drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)]"
     >
       <defs>
-        <linearGradient id="bw-page-left" x1="100%" y1="0%" x2="0%" y2="0%">
-          <stop offset="0%" stopColor="oklch(0.92 0.012 78)" />
-          <stop offset="60%" stopColor="oklch(0.97 0.008 78)" />
-          <stop offset="100%" stopColor="oklch(0.95 0.012 78)" />
+        <linearGradient id="bw-cover-left" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--brand)" />
+          <stop offset="100%" stopColor="var(--brand-deep)" />
         </linearGradient>
-        <linearGradient id="bw-page-right" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="oklch(0.92 0.012 78)" />
-          <stop offset="60%" stopColor="oklch(0.97 0.008 78)" />
-          <stop offset="100%" stopColor="oklch(0.95 0.012 78)" />
+        <linearGradient id="bw-cover-right" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="var(--brand)" />
+          <stop offset="100%" stopColor="var(--brand-deep)" />
         </linearGradient>
       </defs>
 
-      {/* Outer cover stripes — narrow brand-coloured rectangles flanking
-          the pages, suggesting the book's bound covers. */}
-      <rect
-        x="4"
-        y="13"
-        width="4"
-        height="38"
-        rx="1.2"
-        fill="var(--brand-deep)"
-      />
-      <rect
-        x="82"
-        y="13"
-        width="4"
-        height="38"
-        rx="1.2"
-        fill="var(--brand-deep)"
-      />
-
-      {/* Left page */}
+      {/* Left back cover — narrower at the top (perspective), wider at
+          the bottom where it opens. */}
       <path
-        d="M 45 10
-           C 32 9 18 10 9 14
-           L 8 50
-           C 22 47 35 46 45 47 Z"
-        fill="url(#bw-page-left)"
-        stroke="oklch(0.78 0.01 78)"
-        strokeWidth="0.6"
+        d="M 45 8
+           L 14 12
+           L 10 50
+           L 45 47 Z"
+        fill="url(#bw-cover-left)"
+        stroke="oklch(0.20 0.04 280)"
+        strokeOpacity="0.45"
+        strokeWidth="0.8"
         strokeLinejoin="round"
       />
 
-      {/* Right page */}
+      {/* Right back cover — mirror. */}
       <path
-        d="M 45 10
-           C 58 9 72 10 81 14
-           L 82 50
-           C 68 47 55 46 45 47 Z"
-        fill="url(#bw-page-right)"
-        stroke="oklch(0.78 0.01 78)"
-        strokeWidth="0.6"
+        d="M 45 8
+           L 76 12
+           L 80 50
+           L 45 47 Z"
+        fill="url(#bw-cover-right)"
+        stroke="oklch(0.20 0.04 280)"
+        strokeOpacity="0.45"
+        strokeWidth="0.8"
         strokeLinejoin="round"
       />
 
-      {/* Centre spine — slim dark line + soft shadow for crease depth. */}
+      {/* Centre spine — the binding running top to bottom. */}
       <line
         x1="45"
-        y1="10"
+        y1="8"
         x2="45"
         y2="47"
-        stroke="oklch(0.30 0.02 280)"
-        strokeOpacity="0.55"
-        strokeWidth="1.2"
+        stroke="oklch(0.18 0.05 280)"
+        strokeOpacity="0.75"
+        strokeWidth="1.4"
         strokeLinecap="round"
       />
 
-      {/* Text lines — three per page, decreasing in length toward bottom. */}
-      <g
-        stroke="oklch(0.35 0.02 280)"
-        strokeOpacity="0.42"
-        strokeWidth="1"
-        strokeLinecap="round"
-      >
-        <line x1="14" y1="22" x2="40" y2="21" />
-        <line x1="14" y1="28" x2="37" y2="27" />
-        <line x1="14" y1="34" x2="38" y2="33" />
-        <line x1="14" y1="40" x2="33" y2="39" />
+      {/* Page edges peeking out along the bottom (the open side). Thin
+          cream slivers below each cover panel. */}
+      <path
+        d="M 10 50
+           L 45 47
+           L 45 51
+           L 12 53 Z"
+        fill="oklch(0.94 0.012 78)"
+        stroke="oklch(0.78 0.01 78)"
+        strokeWidth="0.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M 80 50
+           L 45 47
+           L 45 51
+           L 78 53 Z"
+        fill="oklch(0.94 0.012 78)"
+        stroke="oklch(0.78 0.01 78)"
+        strokeWidth="0.4"
+        strokeLinejoin="round"
+      />
 
-        <line x1="50" y1="21" x2="76" y2="22" />
-        <line x1="53" y1="27" x2="76" y2="28" />
-        <line x1="52" y1="33" x2="76" y2="34" />
-        <line x1="57" y1="39" x2="76" y2="40" />
-      </g>
+      {/* Tiny title-bar suggestion on each back cover — a faint
+          lighter stripe so the covers don't read as blank panels. */}
+      <rect
+        x="18"
+        y="22"
+        width="20"
+        height="3"
+        rx="0.8"
+        fill="white"
+        fillOpacity="0.16"
+      />
+      <rect
+        x="52"
+        y="22"
+        width="20"
+        height="3"
+        rx="0.8"
+        fill="white"
+        fillOpacity="0.16"
+      />
     </svg>
   );
 }
