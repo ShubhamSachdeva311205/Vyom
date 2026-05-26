@@ -3,37 +3,39 @@
 import { Mascot } from "@/components/ui/mascot";
 
 /**
- * Mascot scenes — composed positions of mascots interacting with the
- * layered book hero. Both `StudentHangingFromBook` and
- * `TeacherSittingOnBook` are absolute-positioned overlays meant to be
- * dropped inside <LayeredBookHero>.
+ * Mascot scene wrappers. Each renders the mascot positioned relative
+ * to its CLOSEST RELATIVE ANCESTOR — drop them inside the same wrapper
+ * that contains the centre book so positions track the book, not the
+ * outer hero container.
  *
- * Both characters get `withLimbs` so the legs/arms dangle naturally.
- * Coupon chip is visible on hover (the underlying Mascot keeps its
- * Easter-egg).
+ * Both use size="sm" (96 px) so the mascot reads as on/around the book
+ * rather than dwarfing it.
  */
 
-export function StudentHangingFromBook() {
-  // Bottom-centre of the centre book — student visible from the
-  // middle down, arms gripping the book edge above the head.
+export function TeacherSittingOnBook() {
+  // Teacher straddles the top edge of the book — bottom of the mascot
+  // overlaps the top of the book by ~30 px so the legs appear to dangle
+  // over the front cover edge.
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
-      style={{ bottom: "-40px" }}
+      style={{ bottom: "calc(100% - 30px)" }}
     >
-      <Mascot name="student" size="md" withLimbs label="Student companion" />
+      <Mascot name="teacher" size="sm" withLimbs label="Teacher companion" />
     </div>
   );
 }
 
-export function TeacherSittingOnBook() {
-  // Top-centre of the centre book — teacher sits with limbs hanging.
+export function StudentHangingFromBook() {
+  // Student hangs from the bottom of the book — top of the mascot
+  // overlaps the bottom of the book by ~24 px so the arms appear to
+  // grip the bottom edge.
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
-      style={{ top: "-140px" }}
+      style={{ top: "calc(100% - 24px)" }}
     >
-      <Mascot name="teacher" size="md" withLimbs label="Teacher companion" />
+      <Mascot name="student" size="sm" withLimbs label="Student companion" />
     </div>
   );
 }

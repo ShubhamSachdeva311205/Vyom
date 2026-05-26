@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import type { ReactNode } from "react";
 import type { Tables } from "@/lib/supabase/types";
 import { BookCard } from "./book-card";
 import { cn } from "@/lib/utils";
@@ -8,18 +9,16 @@ import { cn } from "@/lib/utils";
 type Book = Tables<"books">;
 
 /**
- * LayeredBookHero — center book on top, side books fanning out behind
- * in different z-layers with subtle rotateY + scale to suggest depth.
+ * LayeredBookHero — static 3D-layered arrangement. Centre book on top
+ * (size="xl"), side books fan out behind in different z-layers with
+ * rotateY + translateZ + scale + drop-shadow.
  *
- * Used directly on /ibdp and /igcse (no scroll-driven reveal). The
- * homepage wraps it in ScrollRevealHero which interpolates the same
- * positions based on scroll progress.
+ * The `children` slot is rendered INSIDE the centre book wrapper, so
+ * any absolutely-positioned mascot scenes inside it are positioned
+ * relative to the centre book itself (not the outer container).
  *
- * Layout shape:
- *   - left: 1-3 books fanned out to the left, each one further left + rotated
- *           more
- *   - center: 1 book elevated + slightly larger, on top
- *   - right: mirror of left
+ * Side book offsets push deeper books further out so all are visible
+ * even with several depth levels (was only ~3 visible at /ibdp before).
  */
 
 export interface LayeredBookHeroProps {
@@ -27,8 +26,8 @@ export interface LayeredBookHeroProps {
   left?: Book[];
   right?: Book[];
   className?: string;
-  /** Children rendered on top of the books (mascot scenes etc). */
-  children?: React.ReactNode;
+  /** Rendered inside the centre book wrapper (mascot scenes, etc). */
+  children?: ReactNode;
 }
 
 export function LayeredBookHero({
@@ -44,102 +43,38 @@ export function LayeredBookHero({
     <div
       className={cn(
         "relative mx-auto flex items-center justify-center",
-        "min-h-[520px] sm:min-h-[600px] lg:min-h-[680px]",
+        "min-h-[560px] sm:min-h-[640px] lg:min-h-[720px]",
         className,
       )}
       style={{ perspective: "1400px" }}
     >
-      {/* LEFT side books — fan outward + rotate inward */}
-      {left.map((book, i) => {
-        const total = left.length;
-        const depth = i + 1; // 1, 2, 3 (back-to-front for the left fan)
-        const offsetX = -depth * 64; // px translation outward
-        const offsetY = -depth * 8; // slightly higher as we go back
-        const rotateY = 22; // tilt facing center
-        const scale = 0.78 - depth * 0.04;
-        return (
-          <motion.div
-            key={book.id}
-            className="absolute"
-            initial={reduce ? false : { opacity: 0, x: 0, y: 0, rotateY: 0, scale: 0.6 }}
-            animate={
-              reduce
-                ? undefined
-                : {
-                    opacity: 1,
-                    x: offsetX,
-                    y: offsetY,
-                    rotateY,
-                    scale,
-                  }
-            }
-            style={{
-              x: reduce ? offsetX : undefined,
-              y: reduce ? offsetY : undefined,
-              rotateY: reduce ? rotateY : undefined,
-              scale: reduce ? scale : undefined,
-              zIndex: 10 - depth,
-              transformStyle: "preserve-3d",
-              filter: `drop-shadow(0 ${depth * 6}px ${depth * 12}px rgb(0 0 0 / 0.25)) brightness(${1 - depth * 0.06})`,
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 240,
-              damping: 28,
-              delay: 0.08 * (total - i),
-            }}
-          >
-            <BookCard book={book} size="md" showMeta={false} />
-          </motion.div>
-        );
-      })}
-
-      {/* RIGHT side books — mirrored */}
-      {right.map((book, i) => {
-        const total = right.length;
+      {[...left].map((book, i) => {
         const depth = i + 1;
-        const offsetX = depth * 64;
-        const offsetY = -depth * 8;
-        const rotateY = -22;
-        const scale = 0.78 - depth * 0.04;
         return (
-          <motion.div
+          <SideCard
             key={book.id}
-            className="absolute"
-            initial={reduce ? false : { opacity: 0, x: 0, y: 0, rotateY: 0, scale: 0.6 }}
-            animate={
-              reduce
-                ? undefined
-                : {
-                    opacity: 1,
-                    x: offsetX,
-                    y: offsetY,
-                    rotateY,
-                    scale,
-                  }
-            }
-            style={{
-              x: reduce ? offsetX : undefined,
-              y: reduce ? offsetY : undefined,
-              rotateY: reduce ? rotateY : undefined,
-              scale: reduce ? scale : undefined,
-              zIndex: 10 - depth,
-              transformStyle: "preserve-3d",
-              filter: `drop-shadow(0 ${depth * 6}px ${depth * 12}px rgb(0 0 0 / 0.25)) brightness(${1 - depth * 0.06})`,
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 240,
-              damping: 28,
-              delay: 0.08 * (total - i),
-            }}
-          >
-            <BookCard book={book} size="md" showMeta={false} />
-          </motion.div>
+            book={book}
+            side="left"
+            depth={depth}
+            reduce={reduce ?? false}
+          />
+        );
+      })}
+      {[...right].map((book, i) => {
+        const depth = i + 1;
+        return (
+          <SideCard
+            key={book.id}
+            book={book}
+            side="right"
+            depth={depth}
+            reduce={reduce ?? false}
+          />
         );
       })}
 
-      {/* CENTER book — elevated + on top */}
+      {/* Centre book wrapper — relative so children can position
+          themselves against the book. */}
       <motion.div
         className="relative"
         initial={reduce ? false : { opacity: 0, y: 20, scale: 0.92 }}
@@ -150,10 +85,49 @@ export function LayeredBookHero({
         }}
         transition={{ type: "spring", stiffness: 220, damping: 26 }}
       >
-        <BookCard book={center} size="lg" showMeta priority />
+        <BookCard book={center} size="xl" showMeta={false} asStatic priority />
+        {children}
       </motion.div>
-
-      {children}
     </div>
+  );
+}
+
+function SideCard({
+  book,
+  side,
+  depth,
+  reduce,
+}: {
+  book: Book;
+  side: "left" | "right";
+  depth: number;
+  reduce: boolean;
+}) {
+  const direction = side === "left" ? -1 : 1;
+  // Push deeper books much further out so all are visible.
+  const offsetX = direction * (90 + (depth - 1) * 65);
+  const offsetY = -depth * 8;
+  const rotateY = direction * -22; // tilt facing centre
+  const scale = 0.82 - depth * 0.05;
+  const finalState = { x: offsetX, y: offsetY, rotateY, scale, opacity: 1 };
+
+  return (
+    <motion.div
+      className="absolute"
+      initial={reduce ? false : { opacity: 0, x: 0, y: 0, rotateY: 0, scale: 0.6 }}
+      animate={reduce ? undefined : finalState}
+      style={{
+        x: reduce ? offsetX : undefined,
+        y: reduce ? offsetY : undefined,
+        rotateY: reduce ? rotateY : undefined,
+        scale: reduce ? scale : undefined,
+        zIndex: 10 - depth,
+        transformStyle: "preserve-3d",
+        filter: `drop-shadow(0 ${depth * 6}px ${depth * 12}px rgb(0 0 0 / 0.25)) brightness(${1 - depth * 0.08})`,
+      }}
+      transition={{ type: "spring", stiffness: 240, damping: 28, delay: 0.08 * depth }}
+    >
+      <BookCard book={book} size="lg" showMeta={false} asStatic />
+    </motion.div>
   );
 }
