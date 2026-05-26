@@ -1,18 +1,14 @@
-"use client";
-
 import Link from "next/link";
-import { Menu, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
+import { isAdminEmail } from "@/lib/auth/admin";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import { Mascot } from "@/components/ui/mascot";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { UserMenu } from "@/components/ui/user-menu";
 import { Container } from "@/components/layouts/container";
+import { MobileNavMenu } from "@/components/layouts/mobile-nav-menu";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -38,7 +34,19 @@ interface NavbarProps {
   className?: string;
 }
 
-export function Navbar({ className }: NavbarProps) {
+/**
+ * Mode A storefront navbar. Server component — fetches the Supabase
+ * user once so the signed-in/out chrome renders without a client-side
+ * roundtrip. The mobile menu trigger is a small client island.
+ */
+export async function Navbar({ className }: NavbarProps) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const admin = isAdminEmail(user?.email);
+
   return (
     <header
       className={cn(
@@ -52,7 +60,6 @@ export function Navbar({ className }: NavbarProps) {
         <div className="flex h-16 items-center justify-between gap-4">
           <LogoLockup />
 
-          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => (
               <Link
@@ -73,36 +80,14 @@ export function Navbar({ className }: NavbarProps) {
               <ShoppingBag />
             </Button>
             <ThemeToggle />
-
-            {/* Mobile menu */}
-            <Drawer>
-              <DrawerTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Open menu"
-                  className="md:hidden"
-                >
-                  <Menu />
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <DrawerHeader>
-                  <DrawerTitle>Menu</DrawerTitle>
-                </DrawerHeader>
-                <nav className="flex flex-col gap-1 px-6 pb-6">
-                  {NAV_LINKS.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="px-3 py-3 rounded-md text-base font-medium hover:bg-accent transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </nav>
-              </DrawerContent>
-            </Drawer>
+            {user ? (
+              <UserMenu user={user as User} isAdmin={admin} />
+            ) : (
+              <Button asChild variant="ghost" size="sm" shape="square" className="hidden sm:inline-flex">
+                <Link href="/sign-in">Sign in</Link>
+              </Button>
+            )}
+            <MobileNavMenu links={NAV_LINKS} signedIn={Boolean(user)} />
           </div>
         </div>
       </Container>
