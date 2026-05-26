@@ -722,9 +722,69 @@ covers. All 7 real book covers cropped + sized → `public/book-covers/`.
 | #18 | Teacher limbs + longer limbs | open · in progress |
 | #19 | Bookworm redesign (no headphones / glasses / floating book) | open · partial |
 | #20 | Student tie colour | open · in progress |
-| #21 | OCR + filename fallback | open · works via manual map for current batch |
-| #22 | Homepage scroll-reveal hero | open · pending Phase C |
-| #23 | Mascot names in customer UI | open · P3 decision |
+| #21 | OCR + filename fallback | closed (`cc42e72` → manual map works) |
+| #22 | Homepage scroll-reveal hero | closed (`c2a1c8a`) |
+| #23 | Mascot names in customer UI | closed (`c2a1c8a` — internal-only) |
+
+---
+
+## Phase 1.6 · Storefront hero
+
+**Status:** In progress (UI polished; cart wiring is Phase 3)
+**Date range:** 2026-05-26 → 2026-05-27
+
+### Commits
+
+| Commit | What |
+|--------|---|
+| `c2a1c8a` | scroll-reveal homepage + layered IBDP/IGCSE + BookCard + scenes |
+| `d8329b1` | hero polish + live admin overview from getAdminStats() |
+| `a7997a5` | navbar edges, side cards anchor fix, useSpring smoothing, curriculum tabs, /store listing |
+
+### Components shipped
+- `BookCard` — cover-first card primitive, sizes sm/md/lg/xl, `asStatic` + `showMeta` knobs for hero vs grid usage.
+- `LayeredBookHero` — static 3D-layered hero for /ibdp + /igcse. Each book wrapped in a full-bounds flex-centred overlay so framer's x/y translates from CENTRE, not top-left.
+- `ScrollRevealHero` — homepage. `useScroll` + `useSpring(scrollYProgress, {stiffness:120, damping:30, mass:0.4})` smooths the raw scroll signal before downstream `useTransform`s derive opacity + spread. Stages: 0-8% centre solo, 8-14% opacity in at centre, 14-55% fan out. Mascots intentionally absent here.
+- `mascot-scenes.tsx` — `StudentHangingFromBook` + `TeacherSittingOnBook`. Positioned via `bottom: calc(100% - 30px)` / `top: calc(100% - 30px)` so they overlap the book edge.
+- `BookwormReading` — Mascot + small inline SVG book that bobs (y±8) + rotates (±3°) on a 5s loop. Respects prefers-reduced-motion.
+- `CurriculumTabs` — three tabs (Order Books / Answer Keys / Listening Audio) on /ibdp + /igcse. Locked-state cards for content gated on physical-book ownership (Phase 4 streams the real PDFs/audio).
+- `StoreListing` — /store unified grid with curriculum filter chips (All / IBDP / IGCSE).
+
+### Server helpers
+- `src/lib/format.ts` — pure formatters split out so client components can `formatINR(paise)` without importing the server-only books query module.
+- `src/lib/queries/books.ts` — `getBooks({curriculum?})` + `getBookBySlug(slug)`.
+- `src/lib/queries/admin-stats.ts` — counter helpers (HEAD selects with `count: exact`): bookCount, lowStockCount, ordersNew/Packed/Shipped, pendingSubmissions, unreadFeedback.
+
+### Pages updated
+- `/` — ScrollRevealHero + BookwormReading vignette + three pillar cards.
+- `/ibdp` — LayeredBookHero (centre = HL Reading, 2L + 2R) + CurriculumTabs.
+- `/igcse` — LayeredBookHero (Paper 1 centre, Paper 2 right) + CurriculumTabs.
+- `/store` — StoreListing with curriculum filter.
+- `/admin` — live counts via getAdminStats(); empty state surfaces only when all order counts are zero.
+
+### Navbar
+- Dropped `Container size="wide"` (max-w-7xl) so navbar items hug the viewport edges with just `px-4 sm:px-6` padding.
+
+### Errors + lessons captured
+
+| Symptom | Root cause | Fix |
+|---|---|---|
+| Side books invisible on /ibdp | Absolute children default to top-left of parent. Negative `x` offset pushed them off-screen. | Wrap each in `inset-0 flex items-center justify-center` overlay → motion.div translates from centre. |
+| Books fade in but don't move (look like they're just fading) | Opacity + spread shared the same scroll range — by the time they were visible they were already at final position. | Decouple ranges: opacity 8-14%, spread 14-55%. |
+| Scroll-linked animation jittery | Raw `scrollYProgress` updates per-frame with input noise. | `useSpring(scrollYProgress, {stiffness:120, damping:30, mass:0.4})` before deriving transforms. |
+| Navbar logos not at edges | `Container` adds max-w-7xl + horizontal padding. On wide screens, items inset. | Drop Container; `w-full px-4 sm:px-6`. |
+| Limbs invisible in dark mode | Hardcoded FACE_STROKE (dark) against dark page bg. | Stroke switched to `var(--foreground)`. |
+| Many late commits had stale BUILD-JOURNAL | Edit() requires Read() first; missed several times. | Lesson: Read journal section before Edit. Discipline gap caught + flagged. |
+
+### Closed issues in this phase
+
+#1, #16, #17, #19, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #34, #35.
+
+### Open follow-ups
+- Mascot scenes still don't fully sell "sitting/hanging" — user acknowledged this is okay to defer.
+- Real PDF + audio streaming behind the locked tabs = Phase 4.
+- Order CTA wires up in Phase 3 (cart + Razorpay).
+- Inventory seed values are 0 → admin reports "7 titles below 5". Seed real stock numbers when convenient.
 
 ---
 
