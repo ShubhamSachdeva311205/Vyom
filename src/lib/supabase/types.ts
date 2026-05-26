@@ -34,6 +34,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_grants: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          revoked_at: string | null
+          source: Database["public"]["Enums"]["access_source"]
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          revoked_at?: string | null
+          source?: Database["public"]["Enums"]["access_source"]
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          revoked_at?: string | null
+          source?: Database["public"]["Enums"]["access_source"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_grants_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_grants_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_grants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       books: {
         Row: {
           audio_r2_key: string | null
@@ -167,6 +222,234 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "carts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_submissions: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["submission_kind"]
+          moderated_at: string | null
+          moderated_by: string | null
+          moderator_notes: string | null
+          status: Database["public"]["Enums"]["moderation_status"]
+          submitter_email: string
+          submitter_name: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["submission_kind"]
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderator_notes?: string | null
+          status?: Database["public"]["Enums"]["moderation_status"]
+          submitter_email: string
+          submitter_name: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["submission_kind"]
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderator_notes?: string | null
+          status?: Database["public"]["Enums"]["moderation_status"]
+          submitter_email?: string
+          submitter_name?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_submissions_moderated_by_fkey"
+            columns: ["moderated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          discount_paise: number
+          id: string
+          order_id: string
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          coupon_id: string
+          discount_paise: number
+          id?: string
+          order_id: string
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          coupon_id?: string
+          discount_paise?: number
+          id?: string
+          order_id?: string
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          applies_to_curriculum:
+            | Database["public"]["Enums"]["curriculum"]
+            | null
+          applies_to_format: Database["public"]["Enums"]["book_format"] | null
+          code: string
+          created_at: string
+          created_by: string | null
+          discount_percent: number
+          excludes_amazon: boolean
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          notes: string | null
+          type: Database["public"]["Enums"]["coupon_type"]
+          uses_count: number
+        }
+        Insert: {
+          applies_to_curriculum?:
+            | Database["public"]["Enums"]["curriculum"]
+            | null
+          applies_to_format?: Database["public"]["Enums"]["book_format"] | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          discount_percent: number
+          excludes_amazon?: boolean
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          notes?: string | null
+          type: Database["public"]["Enums"]["coupon_type"]
+          uses_count?: number
+        }
+        Update: {
+          applies_to_curriculum?:
+            | Database["public"]["Enums"]["curriculum"]
+            | null
+          applies_to_format?: Database["public"]["Enums"]["book_format"] | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          discount_percent?: number
+          excludes_amazon?: boolean
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          notes?: string | null
+          type?: Database["public"]["Enums"]["coupon_type"]
+          uses_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["feedback_kind"]
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          submitter_email: string | null
+          submitter_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["feedback_kind"]
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          submitter_email?: string | null
+          submitter_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["feedback_kind"]
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          submitter_email?: string | null
+          submitter_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -337,9 +620,18 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
+      access_source: "order" | "amazon" | "manual" | "refund_revoked"
       book_format: "physical" | "digital" | "bundle"
+      coupon_type: "global" | "single_use"
       curriculum: "ibdp" | "igcse" | "other"
+      feedback_kind:
+        | "bug"
+        | "feature_request"
+        | "content_request"
+        | "praise"
+        | "other"
       gst_class: "exempt" | "gst_0" | "gst_5" | "gst_12" | "gst_18"
+      moderation_status: "pending" | "approved" | "rejected"
       order_status:
         | "pending_payment"
         | "paid"
@@ -348,6 +640,7 @@ export type Database = {
         | "delivered"
         | "cancelled"
         | "refunded"
+      submission_kind: "poem" | "story" | "drama" | "essay" | "other"
       user_role: "customer" | "admin"
     }
     CompositeTypes: {
@@ -479,9 +772,19 @@ export const Constants = {
   },
   public: {
     Enums: {
+      access_source: ["order", "amazon", "manual", "refund_revoked"],
       book_format: ["physical", "digital", "bundle"],
+      coupon_type: ["global", "single_use"],
       curriculum: ["ibdp", "igcse", "other"],
+      feedback_kind: [
+        "bug",
+        "feature_request",
+        "content_request",
+        "praise",
+        "other",
+      ],
       gst_class: ["exempt", "gst_0", "gst_5", "gst_12", "gst_18"],
+      moderation_status: ["pending", "approved", "rejected"],
       order_status: [
         "pending_payment",
         "paid",
@@ -491,6 +794,7 @@ export const Constants = {
         "cancelled",
         "refunded",
       ],
+      submission_kind: ["poem", "story", "drama", "essay", "other"],
       user_role: ["customer", "admin"],
     },
   },
