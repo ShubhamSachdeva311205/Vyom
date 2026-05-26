@@ -124,11 +124,12 @@ function SideBook({
   spread: MotionValue<number>;
 }) {
   const direction = side === "left" ? -1 : 1;
-  // Wider spread so all 3 layers per side are clearly visible.
-  const finalX = direction * (240 + (depth - 1) * 120);
+  // Big spread + smaller side cards so every depth peeks clearly past
+  // the previous one. Side cards are size=md (192 px).
+  const finalX = direction * (260 + (depth - 1) * 150);
   const finalY = -depth * 6;
   const finalRotateY = direction * -22;
-  const finalScale = 0.86 - depth * 0.06;
+  const finalScale = 0.92 - depth * 0.05;
 
   const x = useTransform(spread, (v) => finalX * v);
   const y = useTransform(spread, (v) => finalY * v);
@@ -151,7 +152,7 @@ function SideBook({
           filter: `drop-shadow(0 ${depth * 8}px ${depth * 14}px rgb(0 0 0 / 0.28)) brightness(${1 - depth * 0.08})`,
         }}
       >
-        <BookCard book={book} size="lg" showMeta={false} asStatic />
+        <BookCard book={book} size="md" showMeta={false} asStatic />
       </motion.div>
     </div>
   );

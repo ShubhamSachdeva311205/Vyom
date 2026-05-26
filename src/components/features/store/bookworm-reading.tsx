@@ -58,68 +58,76 @@ export function BookwormReading({ className, size = "md" }: BookwormReadingProps
 }
 
 function OpenBookSVG() {
-  // 70×52 viewbox. Pages use var(--muted) — mid-tone that stays
-  // visible against both light and dark backgrounds. Covers use brand
-  // gradients so the book reads as part of the palette.
+  // 70x52 viewbox. Renders the BACK of an open book held by the
+  // bookworm — pages face the bookworm (away from camera), we see
+  // the back covers + a thin sliver of page edges along the bottom.
+  // Two cover panels in a soft V, joined at the spine line.
   return (
-    <svg width="64" height="48" viewBox="0 0 70 52" xmlns="http://www.w3.org/2000/svg">
+    <svg width="64" height="44" viewBox="0 0 70 52" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="bw-cover-left" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="var(--brand-soft)" />
+        <linearGradient id="bw-back-left" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--brand)" />
           <stop offset="100%" stopColor="var(--brand-deep)" />
         </linearGradient>
-        <linearGradient id="bw-cover-right" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="var(--brand)" />
+        <linearGradient id="bw-back-right" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--brand-soft)" />
           <stop offset="100%" stopColor="var(--brand-deep)" />
         </linearGradient>
       </defs>
 
-      {/* Left page — slight fan from spine outward */}
+      {/* Left back cover */}
       <path
-        d="M 35 8 L 35 48 L 6 46 L 4 12 Z"
-        fill="var(--muted)"
+        d="M 35 6 L 35 46 L 6 44 L 4 10 Z"
+        fill="url(#bw-back-left)"
         stroke="var(--foreground)"
-        strokeOpacity="0.35"
+        strokeOpacity="0.3"
         strokeWidth="0.8"
         strokeLinejoin="round"
       />
-      {/* Left cover (peeks behind the page) */}
-      <path d="M 4 12 L 6 46 L 2 46 L 0 12 Z" fill="url(#bw-cover-left)" />
-
-      {/* Right page */}
+      {/* Right back cover */}
       <path
-        d="M 35 8 L 35 48 L 64 46 L 66 12 Z"
-        fill="var(--muted)"
+        d="M 35 6 L 35 46 L 64 44 L 66 10 Z"
+        fill="url(#bw-back-right)"
         stroke="var(--foreground)"
-        strokeOpacity="0.35"
+        strokeOpacity="0.3"
         strokeWidth="0.8"
         strokeLinejoin="round"
       />
-      {/* Right cover */}
-      <path d="M 66 12 L 64 46 L 68 46 L 70 12 Z" fill="url(#bw-cover-right)" />
 
-      {/* Spine */}
+      {/* Spine line */}
       <line
         x1="35"
-        y1="8"
+        y1="6"
         x2="35"
-        y2="48"
+        y2="46"
         stroke="var(--foreground)"
-        strokeOpacity="0.5"
-        strokeWidth="1"
+        strokeOpacity="0.55"
+        strokeWidth="1.2"
       />
 
-      {/* Text lines — dashes on each page for readability */}
-      <g stroke="var(--foreground)" strokeOpacity="0.45" strokeWidth="0.8" strokeLinecap="round">
-        <line x1="10" y1="18" x2="30" y2="17" />
-        <line x1="10" y1="24" x2="30" y2="23" />
-        <line x1="10" y1="30" x2="26" y2="29" />
-        <line x1="10" y1="36" x2="30" y2="35" />
+      {/* Page edges peeking out along the bottom — thin slivers in
+          muted colour so they read as paper, not background. */}
+      <path
+        d="M 35 46 L 6 44 L 8 47 L 35 49 Z"
+        fill="var(--muted)"
+        stroke="var(--foreground)"
+        strokeOpacity="0.25"
+        strokeWidth="0.5"
+      />
+      <path
+        d="M 35 46 L 64 44 L 62 47 L 35 49 Z"
+        fill="var(--muted)"
+        stroke="var(--foreground)"
+        strokeOpacity="0.25"
+        strokeWidth="0.5"
+      />
 
-        <line x1="40" y1="17" x2="60" y2="18" />
-        <line x1="40" y1="23" x2="60" y2="24" />
-        <line x1="40" y1="29" x2="56" y2="30" />
-        <line x1="40" y1="35" x2="60" y2="36" />
+      {/* Subtle title/author lines on each back cover */}
+      <g stroke="white" strokeOpacity="0.5" strokeWidth="1" strokeLinecap="round">
+        <line x1="12" y1="20" x2="28" y2="19" />
+        <line x1="14" y1="26" x2="26" y2="25" />
+        <line x1="42" y1="19" x2="58" y2="20" />
+        <line x1="44" y1="25" x2="56" y2="26" />
       </g>
     </svg>
   );

@@ -57,7 +57,12 @@ export function BookCard({
           fill
           sizes="(min-width: 1024px) 240px, (min-width: 640px) 180px, 128px"
           priority={priority}
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          className={cn(
+            "object-cover",
+            // Only zoom on hover when the card is actually clickable.
+            // In hero contexts (asStatic) the zoom misleads users.
+            !asStatic && "transition-transform duration-500 group-hover:scale-[1.02]",
+          )}
         />
       </div>
       {showMeta ? (

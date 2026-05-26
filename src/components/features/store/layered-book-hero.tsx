@@ -104,12 +104,12 @@ function CentredSideCard({
   reduce: boolean;
 }) {
   const direction = side === "left" ? -1 : 1;
-  // Generous spread — bigger steps between depth levels so even the
-  // deepest book peeks past the centre on /ibdp.
-  const offsetX = direction * (140 + (depth - 1) * 90);
+  // Big spread. Side books are size=md (192 px); each depth needs
+  // ~150 px of additional offset so it clearly peeks past the prior.
+  const offsetX = direction * (260 + (depth - 1) * 160);
   const offsetY = -depth * 6;
   const rotateY = direction * -22;
-  const scale = 0.86 - depth * 0.06;
+  const scale = 0.92 - depth * 0.05;
 
   return (
     <div
@@ -140,7 +140,7 @@ function CentredSideCard({
           delay: 0.1 * depth,
         }}
       >
-        <BookCard book={book} size="lg" showMeta={false} asStatic />
+        <BookCard book={book} size="md" showMeta={false} asStatic />
       </motion.div>
     </div>
   );
