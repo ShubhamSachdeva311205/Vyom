@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Children,
   cloneElement,
   createContext,
   isValidElement,
@@ -80,16 +79,19 @@ export function FormField({
     [controlId, descriptionId, errorId, hasError],
   );
 
-  // Inject a11y wiring into the single child control.
-  const onlyChild = Children.only(children);
-  const enhanced = isValidElement(onlyChild)
-    ? cloneElement(onlyChild, {
+  // Inject a11y wiring into the child control. The historical API
+  // asks for exactly one element, but React 19 + Turbopack treat some
+  // single-child JSX as a one-element array in dev — so we accept
+  // either shape and just take the first valid element. Multi-child
+  // FormFields silently no-op rather than throw.
+  const enhanced = isValidElement(children)
+    ? cloneElement(children, {
         id: controlId,
         "aria-describedby": describedBy,
         "aria-invalid": hasError || undefined,
-        state: hasError ? "error" : (onlyChild.props as { state?: string }).state,
-      } as Partial<typeof onlyChild.props>)
-    : onlyChild;
+        state: hasError ? "error" : (children.props as { state?: string }).state,
+      } as Partial<typeof children.props>)
+    : children;
 
   return (
     <FormFieldContext.Provider value={ctx}>

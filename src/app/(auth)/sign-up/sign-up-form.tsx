@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { GoogleIcon } from "@/components/ui/google-icon";
+import { VerifyOtpForm } from "@/components/ui/verify-otp-form";
 import { Stack } from "@/components/layouts/stack";
 
 export function SignUpForm() {
@@ -29,13 +30,18 @@ export function SignUpForm() {
 
   if (submitted) {
     return (
-      <Stack gap={4} className="text-center">
-        <h2 className="text-headline">Check your inbox.</h2>
-        <p className="text-caption">
-          We sent a confirmation link to <span className="text-mono">{submitted}</span>.
-          Click it to finish creating your account.
-        </p>
-        <p className="text-caption text-muted-foreground">
+      <Stack gap={6}>
+        <Stack gap={3} className="text-center">
+          <h2 className="text-headline">Check your inbox.</h2>
+          <p className="text-caption">
+            We sent a confirmation link + 6-digit code to{" "}
+            <span className="text-mono">{submitted}</span>.
+          </p>
+        </Stack>
+
+        <VerifyOtpForm email={submitted} type="signup" redirectTo="/" />
+
+        <p className="text-caption text-muted-foreground text-center">
           Didn&rsquo;t arrive? Check spam, or{" "}
           <button
             type="button"

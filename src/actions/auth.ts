@@ -133,6 +133,47 @@ export async function signInWithGoogle(): Promise<void> {
 }
 
 /* -----------------------------------------------------------------
+ * Verify OTP — alternative to clicking the magic link / confirmation
+ * link. The 6-digit code appears in Mailpit (dev) and the real inbox
+ * (prod) alongside the link. Useful when the link gets eaten by
+ * email-client safety wrappers.
+ *
+ * `type` maps to Supabase's verifyOtp types:
+ *   - 'signup' → email signup confirmation
+ *   - 'email'  → magic-link / OTP login (customer + admin)
+ * ----------------------------------------------------------------- */
+const otpSchema = z.object({
+  email: emailSchema,
+  token: z.string().regex(/^\d{6}$/, "Code must be 6 digits"),
+  type: z.enum(["signup", "email", "recovery"]),
+});
+
+export async function verifyOtp(formData: FormData): Promise<ActionResult> {
+  const parsed = otpSchema.safeParse({
+    email: formData.get("email"),
+    token: formData.get("token"),
+    type: formData.get("type"),
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({
+    email: parsed.data.email,
+    token: parsed.data.token,
+    type: parsed.data.type,
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+/* -----------------------------------------------------------------
  * Sign out
  * ----------------------------------------------------------------- */
 export async function signOut(): Promise<void> {
