@@ -4,12 +4,15 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Mascot } from "@/components/ui/mascot";
 
 /**
- * BookwormReading — bookworm mascot + a small floating book that bobs
- * + rotates gently beside it. Decorative; drop anywhere in a Mode A
- * page that wants a reading-companion vibe.
+ * BookwormReading — bookworm mascot with a small floating OPEN book
+ * resting in front of him (overlay, not beside). Book gently bobs +
+ * tilts left/right like he's reading and flipping pages.
  *
- * The book is an inline SVG (no asset dependency) styled to match the
- * brand. Motion respects prefers-reduced-motion (static when reduced).
+ * Page colour uses var(--muted) so it stays visible against both light
+ * and dark page backgrounds; previously near-white pages were invisible
+ * in light mode.
+ *
+ * Respects useReducedMotion (static when reduced).
  */
 
 interface BookwormReadingProps {
@@ -21,55 +24,103 @@ export function BookwormReading({ className, size = "md" }: BookwormReadingProps
   const reduce = useReducedMotion();
 
   return (
-    <div className={"relative inline-flex items-center gap-2 " + (className ?? "")}>
+    <div className={"relative inline-flex items-center justify-center " + (className ?? "")}>
       <Mascot name="bookworm" size={size} hideCoupon />
 
+      {/* Open book overlaid on the bookworm — anchored to the lower
+          body so it reads as 'reading'. */}
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none"
+        className="pointer-events-none absolute"
+        style={{
+          bottom: "12%",
+          left: "50%",
+          translateX: "-50%",
+        }}
         animate={
           reduce
             ? undefined
             : {
-                y: [0, -8, 0],
+                y: [0, -4, 0],
                 rotate: [-3, 3, -3],
               }
         }
         transition={{
-          duration: 5,
+          duration: 4.5,
           repeat: Infinity,
           ease: "easeInOut",
         }}
       >
-        <FloatingBookSVG />
+        <OpenBookSVG />
       </motion.div>
     </div>
   );
 }
 
-function FloatingBookSVG() {
-  // Small stylised book — cover gradient + spine line + a few page
-  // lines. Uses brand vars so it tracks the active palette.
+function OpenBookSVG() {
+  // 70×52 viewbox. Pages use var(--muted) — mid-tone that stays
+  // visible against both light and dark backgrounds. Covers use brand
+  // gradients so the book reads as part of the palette.
   return (
-    <svg width="56" height="68" viewBox="0 0 56 68" xmlns="http://www.w3.org/2000/svg">
+    <svg width="64" height="48" viewBox="0 0 70 52" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="floating-book-cover" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="bw-cover-left" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="var(--brand-soft)" />
           <stop offset="100%" stopColor="var(--brand-deep)" />
         </linearGradient>
+        <linearGradient id="bw-cover-right" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--brand)" />
+          <stop offset="100%" stopColor="var(--brand-deep)" />
+        </linearGradient>
       </defs>
-      {/* Pages (white stack peeking out on the right) */}
-      <rect x="10" y="8" width="40" height="56" rx="2" fill="oklch(0.97 0.005 175)" />
-      <line x1="14" y1="14" x2="48" y2="14" stroke="oklch(0.85 0.005 175)" strokeWidth="0.6" />
-      <line x1="14" y1="18" x2="48" y2="18" stroke="oklch(0.85 0.005 175)" strokeWidth="0.6" />
-      <line x1="14" y1="22" x2="40" y2="22" stroke="oklch(0.85 0.005 175)" strokeWidth="0.6" />
-      {/* Cover */}
-      <rect x="4" y="6" width="44" height="58" rx="2" fill="url(#floating-book-cover)" />
-      {/* Spine highlight */}
-      <line x1="6" y1="8" x2="6" y2="62" stroke="white" strokeOpacity="0.35" strokeWidth="0.8" />
-      {/* Title accent — a single bright line */}
-      <line x1="14" y1="20" x2="32" y2="20" stroke="white" strokeOpacity="0.7" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="14" y1="26" x2="38" y2="26" stroke="white" strokeOpacity="0.5" strokeWidth="1" strokeLinecap="round" />
+
+      {/* Left page — slight fan from spine outward */}
+      <path
+        d="M 35 8 L 35 48 L 6 46 L 4 12 Z"
+        fill="var(--muted)"
+        stroke="var(--foreground)"
+        strokeOpacity="0.35"
+        strokeWidth="0.8"
+        strokeLinejoin="round"
+      />
+      {/* Left cover (peeks behind the page) */}
+      <path d="M 4 12 L 6 46 L 2 46 L 0 12 Z" fill="url(#bw-cover-left)" />
+
+      {/* Right page */}
+      <path
+        d="M 35 8 L 35 48 L 64 46 L 66 12 Z"
+        fill="var(--muted)"
+        stroke="var(--foreground)"
+        strokeOpacity="0.35"
+        strokeWidth="0.8"
+        strokeLinejoin="round"
+      />
+      {/* Right cover */}
+      <path d="M 66 12 L 64 46 L 68 46 L 70 12 Z" fill="url(#bw-cover-right)" />
+
+      {/* Spine */}
+      <line
+        x1="35"
+        y1="8"
+        x2="35"
+        y2="48"
+        stroke="var(--foreground)"
+        strokeOpacity="0.5"
+        strokeWidth="1"
+      />
+
+      {/* Text lines — dashes on each page for readability */}
+      <g stroke="var(--foreground)" strokeOpacity="0.45" strokeWidth="0.8" strokeLinecap="round">
+        <line x1="10" y1="18" x2="30" y2="17" />
+        <line x1="10" y1="24" x2="30" y2="23" />
+        <line x1="10" y1="30" x2="26" y2="29" />
+        <line x1="10" y1="36" x2="30" y2="35" />
+
+        <line x1="40" y1="17" x2="60" y2="18" />
+        <line x1="40" y1="23" x2="60" y2="24" />
+        <line x1="40" y1="29" x2="56" y2="30" />
+        <line x1="40" y1="35" x2="60" y2="36" />
+      </g>
     </svg>
   );
 }

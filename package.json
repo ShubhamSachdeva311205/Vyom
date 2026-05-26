@@ -7,11 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop",
-    "supabase:status": "supabase status",
-    "supabase:reset": "supabase db reset",
-    "supabase:types": "supabase gen types typescript --local > src/lib/supabase/types.ts"
+    "supabase:start": "./scripts/supabase-with-env.sh start",
+    "supabase:stop": "./scripts/supabase-with-env.sh stop",
+    "supabase:status": "./scripts/supabase-with-env.sh status",
+    "supabase:reset": "./scripts/supabase-with-env.sh db reset",
+    "supabase:types": "./scripts/supabase-with-env.sh gen types typescript --local > src/lib/supabase/types.ts"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

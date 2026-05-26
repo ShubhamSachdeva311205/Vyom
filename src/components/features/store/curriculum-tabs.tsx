@@ -104,10 +104,8 @@ function OrderBookCard({ book }: { book: Book }) {
           <Row gap={2} align="center" justify="between">
             <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
             {book.discount_eligible ? (
-              <Badge variant="success" size="sm">student10 / teacher10</Badge>
-            ) : (
-              <Badge variant="outline" size="sm">No coupons</Badge>
-            )}
+              <Badge variant="success" size="sm">10% off</Badge>
+            ) : null}
           </Row>
         </Stack>
         <Row gap={2}>

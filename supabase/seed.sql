@@ -52,7 +52,7 @@ insert into public.books (
     'मानक तथा उच्च स्तर',
     '978-93-5810-024-2',
     'ibdp', 'Hindi', 'Self (Seema Sachdeva)',
-    195000, false, true, false, true
+    195000, true, true, false, true
   ),
   -- ---- IGCSE ----
   (
@@ -69,5 +69,5 @@ insert into public.books (
     'New curriculum',
     '978-93-5813-838-2',
     'igcse', 'Hindi', 'Self (Seema Sachdeva)',
-    199900, false, true, false, true
+    199900, true, true, false, true
   );

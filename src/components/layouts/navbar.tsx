@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Mascot } from "@/components/ui/mascot";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { UserMenu } from "@/components/ui/user-menu";
-import { Container } from "@/components/layouts/container";
 import { MobileNavMenu } from "@/components/layouts/mobile-nav-menu";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +55,9 @@ export async function Navbar({ className }: NavbarProps) {
         className,
       )}
     >
-      <Container size="wide">
+      {/* Full-width navbar with tight edge-hugging padding so items
+          sit visibly on the viewport edges. */}
+      <div className="w-full px-3 sm:px-4">
         <div className="flex h-16 items-center justify-between gap-4">
           <LogoLockup />
 
@@ -90,7 +91,7 @@ export async function Navbar({ className }: NavbarProps) {
             <MobileNavMenu links={NAV_LINKS} signedIn={Boolean(user)} />
           </div>
         </div>
-      </Container>
+      </div>
     </header>
   );
 }

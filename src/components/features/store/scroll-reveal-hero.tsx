@@ -56,14 +56,18 @@ export function ScrollRevealHero({ center, left, right }: ScrollRevealHeroProps)
 
   const oneConst = useMotionValue(1);
 
-  const sideOpacityRaw = useTransform(smoothed, [0.08, 0.14], [0, 1]);
-  const sideSpreadRaw = useTransform(smoothed, [0.14, 0.55], [0, 1]);
+  // Slower fan-out (15–70% of scroll) + extended sticky region (300vh)
+  // so books linger fully expanded before the rest of the page comes
+  // into view. User asked: 'let the books expand fully and only after
+  // that scroll'.
+  const sideOpacityRaw = useTransform(smoothed, [0.08, 0.16], [0, 1]);
+  const sideSpreadRaw = useTransform(smoothed, [0.16, 0.70], [0, 1]);
 
   const sideOpacity = reduce ? oneConst : sideOpacityRaw;
   const sideSpread = reduce ? oneConst : sideSpreadRaw;
 
   return (
-    <div ref={ref} className="relative min-h-[220vh]">
+    <div ref={ref} className="relative min-h-[300vh]">
       <div className="sticky top-16 flex h-[calc(100vh-4rem)] items-center justify-center overflow-visible">
         <div
           className="relative mx-auto flex w-full items-center justify-center"
@@ -120,7 +124,8 @@ function SideBook({
   spread: MotionValue<number>;
 }) {
   const direction = side === "left" ? -1 : 1;
-  const finalX = direction * (160 + (depth - 1) * 100);
+  // Wider spread so all 3 layers per side are clearly visible.
+  const finalX = direction * (240 + (depth - 1) * 120);
   const finalY = -depth * 6;
   const finalRotateY = direction * -22;
   const finalScale = 0.86 - depth * 0.06;
