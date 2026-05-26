@@ -786,13 +786,15 @@ covers. All 7 real book covers cropped + sized → `public/book-covers/`.
 
 ### Closed issues in this phase
 
-#1, #16, #17, #19, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #34, #35, #46.
+#1, #16, #17, #19, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #34, #35, #46, #47, #48, #51.
 
-### Open (pending user visual sign-off)
-- **#47** — discount-badge removal shipped, awaiting user "looks good".
-- **#48** — bookworm round 4 shipped (book rotated 180° / nudged right+down, eyes shifted left, still tracking), awaiting user "looks good".
-- **#51** — hero re-click bug fix shipped (position via style, opacity-only animate). Awaiting user re-test of "navigate to /ibdp then click IBDP again — all books still visible".
-- **#7** — OAuth deferred to Phase 7. Secret confirmed in env + supabase restart shows no Google warning. User says sign-in still fails post-restart; needs a clean repro (the URL Google bounces to + auth container logs) before another debug pass.
+### Closed at end of Phase 1.6 (user-verified)
+- **#47** — discount badges gone from /store, /ibdp, /igcse.
+- **#48** — bookworm round 4 looks right.
+- **#51** — re-clicking same nav link no longer hides books.
+
+### Still open
+- **#7** — Google OAuth deferred to Phase 7. Secret in env + supabase restart clean, but end-to-end sign-in still fails. Needs clean repro before next attempt.
 
 ### Pre-Phase-3 audit (2026-05-27)
 Full codebase sweep before moving to cart + payments:
