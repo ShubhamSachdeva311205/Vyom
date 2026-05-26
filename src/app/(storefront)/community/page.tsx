@@ -41,7 +41,7 @@ export default function CommunityPage() {
                     <span className="text-eyebrow">Coming soon</span>
                     <CardTitle>Creative Corner</CardTitle>
                   </Stack>
-                  <Mascot name="star" size="sm" hideCoupon />
+                  <Mascot name="wisp" size="sm" hideCoupon />
                 </Row>
                 <CardDescription>
                   Submit poems, short stories, and dramas. Approved

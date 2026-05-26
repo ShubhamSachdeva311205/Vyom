@@ -24,7 +24,7 @@ function LogoLockup() {
       href="/"
       className="inline-flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-accent/50 transition-colors"
     >
-      <Mascot name="star" size="xs" hideCoupon />
+      <Mascot name="wisp" size="xs" hideCoupon />
       <span className="font-display text-base font-semibold tracking-[-0.02em]">Advaita</span>
     </Link>
   );

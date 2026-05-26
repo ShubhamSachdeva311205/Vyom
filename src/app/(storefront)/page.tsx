@@ -12,7 +12,7 @@ import { Row, Stack } from "@/components/layouts/stack";
 // scattered floating-companion treatment that lands in a later phase.
 const COMPANIONS: { name: MascotName; label: string }[] = [
   { name: "bookworm", label: "Reader" },
-  { name: "star", label: "Spark" },
+  { name: "wisp", label: "Wisp" },
 ];
 
 const PILLARS = [

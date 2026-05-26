@@ -55,13 +55,15 @@ import { Row, Stack } from "@/components/layouts/stack";
 import { Section } from "@/components/layouts/section";
 
 const FEATURED: readonly MascotName[] = ["student", "teacher"] as const;
-const DECORATIVE: readonly MascotName[] = ["bookworm", "star"] as const;
+const DECORATIVE: readonly MascotName[] = ["bookworm", "wisp", "star", "triangle"] as const;
 
 const BLURBS: Record<MascotName, string> = {
-  student: "Round, white V-collar, cool emerald gradient. Carries student10.",
-  teacher: "Slightly taller, glasses, warm emerald with amber lift. Carries teacher10.",
-  bookworm: "Tall vertical capsule, violet-shifted gradient. Decorative.",
-  star: "Wide asymmetric pebble, warm amber→emerald. Decorative.",
+  student: "Round, white collar + school tie, emerald. Carries student10. Opt-in stick limbs.",
+  teacher: "Oval, glasses, warm amber gradient. Carries teacher10.",
+  bookworm: "Tall capsule, over-ear headphones, violet-blue gradient.",
+  wisp: "Wide pebble, coral gradient (was named 'star').",
+  star: "5-point star silhouette, gold gradient (NEW).",
+  triangle: "Rounded triangle, teal gradient (NEW).",
 };
 
 export const metadata: Metadata = {
@@ -157,6 +159,23 @@ export default function DesignTokensPage() {
                     </Card>
                   ))}
                 </div>
+
+                <Card variant="surface" padding="lg">
+                  <Stack gap={4}>
+                    <Stack gap={1}>
+                      <span className="text-eyebrow">Stick limbs (opt-in via withLimbs)</span>
+                      <p className="text-caption">
+                        Student only, for now. Arms reach out from the body, 3-finger
+                        hands at the tips, legs hang from the bottom. Used in the
+                        homepage book-peek scene.
+                      </p>
+                    </Stack>
+                    <Row gap={6} align="end" wrap>
+                      <Mascot name="student" size="lg" withLimbs hideCoupon label="Student with limbs" />
+                      <Mascot name="student" size="lg" hideCoupon label="Student no limbs (default)" />
+                    </Row>
+                  </Stack>
+                </Card>
 
                 <Card variant="surface" padding="lg">
                   <Stack gap={4}>

@@ -19,7 +19,7 @@ export default async function SignInPage() {
   return (
     <Stack gap={8}>
       <Stack gap={3} align="center">
-        <Mascot name="star" size="sm" hideCoupon />
+        <Mascot name="wisp" size="sm" hideCoupon />
         <Stack gap={1} align="center">
           <h1 className="text-title text-center">Welcome back.</h1>
           <p className="text-caption text-center max-w-[28ch]">
