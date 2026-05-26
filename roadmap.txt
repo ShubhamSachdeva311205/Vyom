@@ -59,7 +59,9 @@ PHASE 2: DATABASE & AUTHENTICATION (The Brain)
 
 Goal: Secure user accounts and define the exact data structures and constraints.
 
-    [x] Customer Auth: Supabase Email + Google OAuth for buyers (with disposable-email blocklist).
+    [x] Customer Auth (email + password) + disposable-email blocklist (canonical 10k list + curated extras + regex). OTP entry + magic-link verification work in dev (Mailpit).
+
+    [ ] Google OAuth — DEFERRED to Phase 7 (Issue #7). Secret pasted into .env.local + supabase restarted (no more unset-env warning), but sign-in still fails post-Cloud-Console-step verification. Need a clean reproduction with the actual error URL + auth container logs before fixing.
 
     [x] Admin Auth: separate magic-link-only flow with a hardcoded email allowlist. Admin and customer share no session shape; gated by middleware.
 
@@ -216,6 +218,8 @@ Note: receipt email fires in Phase 3.2 already; this phase is the rest.
     [ ] Weekly business summary to Mom: orders shipped, revenue, low-stock list.
 
     [ ] Newsletter / waitlist signup on storefront (collects email pre-launch; uses Resend audiences or a separate provider — decision pending).
+
+    [ ] Google OAuth end-to-end (carried over from Phase 2 — Issue #7). Diagnose redirect_uri_mismatch with real reproduction: capture the URL Google bounces to + supabase_auth_advaita docker logs during a sign-in attempt. Verify http://localhost:54321/auth/v1/callback is the only thing missing in Google Cloud Console → Authorized redirect URIs.
 
 PHASE 8: POLISH & LAUNCH READINESS (NEW)
 

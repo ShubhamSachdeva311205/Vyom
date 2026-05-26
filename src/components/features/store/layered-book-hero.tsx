@@ -76,13 +76,15 @@ export function LayeredBookHero({
       <div className="absolute inset-0 flex items-center justify-center">
         <motion.div
           className="relative"
-          initial={reduce ? false : { opacity: 0, y: 20, scale: 0.92 }}
-          animate={reduce ? undefined : { opacity: 1, y: 0, scale: 1 }}
+          // Same idempotent pattern as side books: opacity-only animate
+          // so re-renders never strand the book at opacity 0. Issue #51.
+          initial={reduce ? false : { opacity: 0 }}
+          animate={reduce ? undefined : { opacity: 1 }}
           style={{
             zIndex: 20,
             filter: "drop-shadow(0 30px 50px rgb(0 0 0 / 0.4))",
           }}
-          transition={{ type: "spring", stiffness: 220, damping: 26 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <BookCard book={center} size="xl" showMeta={false} asStatic priority />
           {children}
@@ -118,27 +120,25 @@ function CentredSideCard({
       style={{ zIndex: 10 - depth }}
     >
       <motion.div
-        // Inside this flex-centred wrapper, the motion div sits at the
-        // centre by default. Framer's x/y/rotateY/scale build off that.
-        initial={reduce ? false : { opacity: 0, x: 0, y: 0, rotateY: 0, scale: 0.6 }}
-        animate={
-          reduce
-            ? undefined
-            : { opacity: 1, x: offsetX, y: offsetY, rotateY, scale }
-        }
+        // Position is set via `style` (no animation) so the books are
+        // ALWAYS visible at their final spread, even after a same-route
+        // re-click that re-renders the page without remounting framer.
+        // Only opacity is tweened — a soft fade-in on first mount, and
+        // a no-op on re-renders (opacity stays at 1). Issue #51.
+        initial={reduce ? false : { opacity: 0 }}
+        animate={reduce ? undefined : { opacity: 1 }}
         style={{
-          x: reduce ? offsetX : undefined,
-          y: reduce ? offsetY : undefined,
-          rotateY: reduce ? rotateY : undefined,
-          scale: reduce ? scale : undefined,
+          x: offsetX,
+          y: offsetY,
+          rotateY,
+          scale,
           transformStyle: "preserve-3d",
           filter: `drop-shadow(0 ${depth * 8}px ${depth * 14}px rgb(0 0 0 / 0.28)) brightness(${1 - depth * 0.08})`,
         }}
         transition={{
-          type: "spring",
-          stiffness: 220,
-          damping: 28,
-          delay: 0.1 * depth,
+          duration: 0.55,
+          ease: "easeOut",
+          delay: 0.08 * depth,
         }}
       >
         <BookCard book={book} size="lg" showMeta={false} asStatic />

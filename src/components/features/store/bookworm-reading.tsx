@@ -48,20 +48,21 @@ export function BookwormReading({ className, size = "md" }: BookwormReadingProps
         size={size}
         hideCoupon
         awake
-        lookOffsetX={7}
+        lookOffsetX={3}
         lookOffsetY={6}
         pupilAnimate={PUPIL_FLOAT}
         pupilTransition={FLOAT_TRANSITION}
       />
 
-      {/* Open book — held to the right of the bookworm and slightly
-          below face height so eyes have to look down + right. */}
+      {/* Open book — nudged further right and lower, plus a 180°
+          flip on the SVG so the V opens upward (covers fanning up,
+          page edges along the top edge). */}
       <motion.div
         aria-hidden="true"
         className="pointer-events-none absolute"
         style={{
-          bottom: "26%",
-          left: "70%",
+          bottom: "18%",
+          left: "76%",
           translateX: "-50%",
         }}
         animate={reduce ? undefined : BOOK_FLOAT}
@@ -96,6 +97,11 @@ function OpenBookSVG() {
           <stop offset="100%" stopColor="var(--brand-deep)" />
         </linearGradient>
       </defs>
+
+      {/* All paths wrapped in a 180° rotation about the viewbox centre
+          (45, 30) so the V mouth points UP instead of down and page
+          edges sit along the top edge. */}
+      <g transform="rotate(180 45 30)">
 
       {/* Left back cover — narrower at the top (perspective), wider at
           the bottom where it opens. */}
@@ -179,6 +185,7 @@ function OpenBookSVG() {
         fill="white"
         fillOpacity="0.16"
       />
+      </g>
     </svg>
   );
 }
