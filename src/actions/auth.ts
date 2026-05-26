@@ -57,11 +57,7 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   const { email, password, fullName } = parsed.data;
 
   if (isDisposableEmail(email)) {
-    return {
-      success: false,
-      error:
-        "Nice try, smarty pants — we can spot a throwaway email a mile off 😎 Use your real address so we can actually send you your books.",
-    };
+    return { success: false, error: "Nice try, smarty pants." };
   }
 
   const supabase = await createClient();

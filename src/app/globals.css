@@ -106,7 +106,8 @@
   --success: oklch(0.72 0.16 152);
   --success-foreground: oklch(0.15 0.02 152);
   --warning: oklch(0.82 0.17 75);
-  --warning-foreground: oklch(0.20 0.05 75);
+  /* Bright amber for dark mode — dark brown on faded yellow is unreadable. */
+  --warning-foreground: oklch(0.88 0.16 80);
   --pending: oklch(0.68 0.18 250);
   --pending-foreground: oklch(0.15 0.03 250);
   --destructive: oklch(0.66 0.21 22);
