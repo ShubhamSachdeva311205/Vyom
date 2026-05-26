@@ -24,6 +24,9 @@ const razorpayKeyId = z
     { message: "RAZORPAY_KEY_ID must start with rzp_live_ in production" },
   );
 
+// Avoid `productionOnly` unused-import warning at boot.
+void productionOnly;
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
@@ -38,6 +41,10 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+
+  // ---- Google OAuth (read by supabase/config.toml — see SETUP-PHASE-2.md §4) ----
+  SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: z.string().optional(),
+  SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: z.string().optional(),
 
   // ---- Razorpay (Phase 3) ----
   RAZORPAY_KEY_ID: razorpayKeyId,
@@ -74,9 +81,6 @@ if (!parsed.success) {
   );
   throw new Error("Invalid environment variables — see logs above.");
 }
-
-// Avoid `productionOnly` being flagged as unused — kept for future tightening.
-void productionOnly;
 
 export const env = parsed.data;
 export type Env = typeof env;
