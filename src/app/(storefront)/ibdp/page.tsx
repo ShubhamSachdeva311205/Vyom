@@ -1,19 +1,47 @@
-import { ShellPage } from "@/components/layouts/shell-page";
+import { LayeredBookHero } from "@/components/features/store/layered-book-hero";
+import { StudentHangingFromBook, TeacherSittingOnBook } from "@/components/features/store/mascot-scenes";
+import { Container } from "@/components/layouts/container";
+import { Section } from "@/components/layouts/section";
+import { Stack } from "@/components/layouts/stack";
+import { getBooks } from "@/lib/queries/books";
 
 export const metadata = {
   title: "IBDP",
   description: "Resources built for the IB Diploma Programme.",
 };
 
-export default function IBDPPage() {
+export default async function IBDPPage() {
+  const books = await getBooks({ curriculum: "ibdp" });
+
+  // Centre is IBDP HL Reading (flagship). 2 left + 2 right of the remaining 4.
+  const centre = books.find((b) => b.slug === "ibdp-hindi-b-hl-reading") ?? books[0];
+  const rest = books.filter((b) => b.slug !== centre?.slug);
+  const left = rest.slice(0, 2);
+  const right = rest.slice(2, 4);
+
   return (
-    <ShellPage
-      eyebrow="Curriculum"
-      title="Built for the IB Diploma."
-      description="Subject guides, audio summaries, and worked past papers aligned to the current IBDP syllabus. Targeted at Year 11 and 12 students."
-      emptyTitle="Subject pages on the way"
-      emptyDescription="We're assembling materials by subject right now. Subscribe and we'll let you know when the first guides drop."
-      mascot="bookworm"
-    />
+    <Section spacing="default">
+      <Container>
+        <Stack gap={10}>
+          <Stack gap={3}>
+            <span className="text-eyebrow">Curriculum · IBDP</span>
+            <h1 className="text-display">Built for the IB Diploma.</h1>
+            <p className="text-body-lg text-muted-foreground max-w-2xl">
+              Five Hindi B titles spanning HL and SL — reading editions,
+              the moukhik (oral) companion books, and the listening
+              support edition. Audio + answer keys are bundled free with
+              the physical book.
+            </p>
+          </Stack>
+
+          {centre ? (
+            <LayeredBookHero center={centre} left={left} right={right}>
+              <TeacherSittingOnBook />
+              <StudentHangingFromBook />
+            </LayeredBookHero>
+          ) : null}
+        </Stack>
+      </Container>
+    </Section>
   );
 }

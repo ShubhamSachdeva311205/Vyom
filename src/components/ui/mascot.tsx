@@ -282,8 +282,11 @@ function Limbs({ config, armStart }: { config: LimbsConfig; armStart: { left: nu
   const { armAnchorY, armEndX, armEndY, legAnchorY, legSpread, legEndY } = config;
   const leftArmEndX = armEndX;
   const rightArmEndX = 200 - armEndX;
+  // Use --foreground so limbs adapt to theme (dark in light mode,
+  // near-white in dark mode). FACE_STROKE was always dark and
+  // disappeared against the dark page background.
   return (
-    <g stroke={FACE_STROKE} strokeWidth="2.8" strokeLinecap="round" fill="none">
+    <g stroke="var(--foreground)" strokeWidth="2.8" strokeLinecap="round" fill="none">
       {/* Left arm — quadratic curve so it hangs naturally */}
       <path d={`M ${armStart.left} ${armAnchorY} Q ${leftArmEndX + 6} ${armAnchorY + 24} ${leftArmEndX} ${armEndY}`} />
       {fingerLines(leftArmEndX, armEndY, 6)}

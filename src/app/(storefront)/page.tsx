@@ -1,19 +1,13 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { BookwormReading } from "@/components/features/store/bookworm-reading";
+import { ScrollRevealHero } from "@/components/features/store/scroll-reveal-hero";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { KineticHeading } from "@/components/ui/kinetic-heading";
-import { Mascot, type MascotName } from "@/components/ui/mascot";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Row, Stack } from "@/components/layouts/stack";
-
-// Homepage companions are decorative only — coupons live with the
-// scattered floating-companion treatment that lands in a later phase.
-const COMPANIONS: { name: MascotName; label: string }[] = [
-  { name: "bookworm", label: "Reader" },
-  { name: "wisp", label: "Wisp" },
-];
+import { getBooks } from "@/lib/queries/books";
 
 const PILLARS = [
   {
@@ -23,8 +17,8 @@ const PILLARS = [
     cta: "Browse the catalog",
   },
   {
-    title: "Digital companions",
-    body: "Watermarked PDFs and streaming audio for IBDP and IGCSE subjects. Never exposes a raw URL.",
+    title: "Free support material",
+    body: "Watermarked PDFs and streaming audio for IBDP and IGCSE — bundled with the physical book, never sold separately.",
     href: "/ibdp",
     cta: "See the curricula",
   },
@@ -36,15 +30,39 @@ const PILLARS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const books = await getBooks();
+
+  // Centre is IGCSE Paper 1 — flagship per user. Other 6 fan out
+  // around it (3 left, 3 right).
+  const centre = books.find((b) => b.slug === "igcse-hindi-paper-1");
+  const others = books.filter((b) => b.slug !== "igcse-hindi-paper-1");
+  const left = others.slice(0, 3);
+  const right = others.slice(3, 6);
+
   return (
     <>
+      {/* Scroll-reveal hero — 200vh of scroll real estate with the books
+          sticky in view. Stages: centre solo → side books fan out →
+          mascots arrive (student hanging, teacher sitting). */}
+      {centre ? (
+        <ScrollRevealHero center={centre} left={left} right={right} />
+      ) : (
+        <Section spacing="default">
+          <Container>
+            <p className="text-caption">
+              Catalogue isn&rsquo;t loaded. Run <code>supabase db reset</code> to seed.
+            </p>
+          </Container>
+        </Section>
+      )}
+
       <Section spacing="loose">
         <Container>
           <Stack gap={12}>
-            <Stack gap={6}>
+            <Stack gap={4}>
               <span className="text-eyebrow">Premium study resources · Bangalore</span>
-              <KineticHeading emphasize={1}>Study, slowly.</KineticHeading>
+              <h2 className="text-display">Study, slowly.</h2>
               <p className="text-body-lg text-muted-foreground max-w-2xl">
                 Advaita makes carefully edited books, papers, and audio
                 companions for students preparing for the IB Diploma and
@@ -63,16 +81,10 @@ export default function HomePage() {
             </Stack>
 
             <Stack gap={4} align="center">
-              <Row gap={10} wrap justify="center">
-                {COMPANIONS.map((c) => (
-                  <Stack key={c.name} gap={2} align="center">
-                    <Mascot name={c.name} size="md" hideCoupon />
-                    <span className="text-mono-tag">{c.label}</span>
-                  </Stack>
-                ))}
-              </Row>
-              <p className="text-caption">
-                Companions hide in the corners of the site. Keep an eye out.
+              <BookwormReading size="lg" />
+              <p className="text-caption text-center max-w-md">
+                Companions hidden around the site carry small Easter-egg
+                discount codes. This one prefers the quiet.
               </p>
             </Stack>
           </Stack>
