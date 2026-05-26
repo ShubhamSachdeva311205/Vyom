@@ -4,7 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import { Headphones, Lock, BookOpenCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Row, Stack } from "@/components/layouts/stack";
 import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
@@ -71,7 +72,13 @@ export function CurriculumTabs({ books }: CurriculumTabsProps) {
 
 function OrderBooksList({ books }: { books: Book[] }) {
   if (books.length === 0) {
-    return <p className="text-caption">No titles in this curriculum yet.</p>;
+    return (
+      <EmptyState
+        icon={ShoppingBag}
+        title="No titles yet"
+        description="This curriculum doesn't have any books listed right now. Check back soon — we add new editions every term."
+      />
+    );
   }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -114,10 +121,17 @@ function OrderBookCard({ book }: { book: Book }) {
 
 function AccessList({ books, kind }: { books: Book[]; kind: "audio" | "answer_key" }) {
   if (books.length === 0) {
+    const isAudio = kind === "audio";
     return (
-      <p className="text-caption">
-        No {kind === "audio" ? "audio companions" : "answer keys"} for this curriculum.
-      </p>
+      <EmptyState
+        icon={isAudio ? Headphones : BookOpenCheck}
+        title={isAudio ? "No audio companions" : "No answer keys"}
+        description={
+          isAudio
+            ? "None of this curriculum's books ship with a listening companion yet."
+            : "None of this curriculum's books have a downloadable answer key yet."
+        }
+      />
     );
   }
   return (

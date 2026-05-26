@@ -1,11 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Stack } from "@/components/layouts/stack";
 
 export const metadata = {

@@ -20,7 +20,12 @@
  */
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { motion, useReducedMotion } from "framer-motion";
+import {
+  motion,
+  useReducedMotion,
+  type TargetAndTransition,
+  type Transition,
+} from "framer-motion";
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CouponChip } from "./coupon-chip";
@@ -68,6 +73,11 @@ interface MascotProps extends VariantProps<typeof wrapperVariants> {
   awake?: boolean;
   /** Horizontal pupil offset for "looking at" something. Positive = right. */
   lookOffsetX?: number;
+  /** Optional motion `animate` applied to the awake pupils — for a small
+   *  tracking wobble synced to an external animation (e.g. a floating book). */
+  pupilAnimate?: TargetAndTransition;
+  /** Transition for `pupilAnimate`. */
+  pupilTransition?: Transition;
   label?: string;
   className?: string;
 }
@@ -526,6 +536,8 @@ export function Mascot({
   withLimbs = false,
   awake = false,
   lookOffsetX = 0,
+  pupilAnimate,
+  pupilTransition,
   label,
   size,
   className,
@@ -676,8 +688,15 @@ export function Mascot({
         {!isSad ? (
           <>
             <motion.g variants={happyOpenMotion} fill={FACE_STROKE}>
-              <circle cx={config.face.eyeLeftX + lookOffsetX} cy={config.face.eyeY - 2} r="4" />
-              <circle cx={config.face.eyeRightX + lookOffsetX} cy={config.face.eyeY - 2} r="4" />
+              {/* Nested motion.g lets callers add a tracking wobble on the
+                  pupils independent of the variants-driven open/close. */}
+              <motion.g
+                animate={reduce ? undefined : pupilAnimate}
+                transition={pupilTransition}
+              >
+                <circle cx={config.face.eyeLeftX + lookOffsetX} cy={config.face.eyeY - 2} r="4" />
+                <circle cx={config.face.eyeRightX + lookOffsetX} cy={config.face.eyeY - 2} r="4" />
+              </motion.g>
             </motion.g>
             <motion.path
               variants={happyGrinMotion}

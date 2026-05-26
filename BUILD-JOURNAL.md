@@ -744,6 +744,7 @@ covers. All 7 real book covers cropped + sized → `public/book-covers/`.
 | `e5fb59e` | book-facing fix, no-zoom hero cards, side cards md + bigger spread |
 | `0007920` | follow-up #4 — bring books closer on z-axis (Issue #46): side cards back to lg, offsetX 200+(d-1)*100 (layered) / 220+(d-1)*110 (scroll), rotateY -15, scale 0.94−depth*0.04 |
 | _next_     | follow-up #5 — strip discount badges + bookworm polish (Issues #47 #48). BookCard / StoreListing / CurriculumTabs drop the "10% elig." / "10% off" / "No coupons" success-badges (looked cheap). Mascot gains `awake` + `lookOffsetX` props so the awake face can pin on without hover and the pupils can be nudged toward something. BookwormReading: book offset to right (`left: 78%`), bumped to 84×58 (was 64×44), rotated 180° via `<g transform="rotate(180 35 26)">`, mascot rendered `awake lookOffsetX={8}` so eyes track the book. |
+| _next_     | follow-up #6 — bookworm rebuild + lint sweep + audit polish (Issues #48 retry / #49 / #50 filed). New OpenBookSVG: viewBox 90×60, two cream pages in a soft V, dark spine, brand cover-stripes, faint text lines per page — reads as a real open book. Book raised (`bottom: 34%`) + tucked closer to body (`left: 68%`). Mascot extended with `pupilAnimate` + `pupilTransition` (typed via framer's `TargetAndTransition` / `Transition`) so the awake pupils get a small wobble synced to the book's float; eyes visibly track the book. Lint fixes: theme-toggle.tsx uses `useSyncExternalStore` (replaces `useState + useEffect`-set-state pattern that violated react-hooks/set-state-in-effect under React 19). Unused `CardHeader` imports pruned from legal/page.tsx + curriculum-tabs.tsx. CurriculumTabs empty states upgraded from raw `<p>` to proper `<EmptyState>` (CLAUDE.md §11 compliance). |
 
 ### Components shipped
 - `BookCard` — cover-first card primitive, sizes sm/md/lg/xl, `asStatic` + `showMeta` knobs for hero vs grid usage.
@@ -787,7 +788,26 @@ covers. All 7 real book covers cropped + sized → `public/book-covers/`.
 
 ### Open (pending user visual sign-off)
 - **#47** — discount-badge removal shipped, awaiting user "looks good".
-- **#48** — bookworm vignette polish shipped, awaiting user "looks good".
+- **#48** — bookworm rebuild (round 2) shipped, awaiting user "looks good".
+
+### Pre-Phase-3 audit (2026-05-27)
+Full codebase sweep before moving to cart + payments:
+- ✅ tsc strict clean. ✅ eslint clean (after fixes below).
+- ✅ Zero `any` / `as any` in src/.
+- ✅ Zero `React.Children.only()` (React 19 / Turbopack landmine).
+- ✅ Zero Framer in operational/admin route trees.
+- ✅ Zero `tailwind.config.*` files (Tailwind v4 CSS-first respected).
+- ✅ Zero hard-coded `sk_` / `rzp_live_` / `Bearer` literals.
+- ✅ All 14 tables have RLS + at least one policy. 33 policies total.
+- ✅ All `next/image` calls have `sizes` prop.
+- ✅ Server Actions return discriminated union, no throws on user paths.
+- ✅ Middleware gates /admin, /dashboard, /checkout.
+- ✅ `ai@gravity.fast` only appears in git config — ADMIN_EMAILS uses shubhamhelpseries@gmail.com.
+- 🟡 False alarm: agent flagged books_public_select RLS as broken (`published` vs `is_active`). Migration 20260526163830 drops the old policy on line 36 before renaming the column, then recreates with `is_active`. Order is correct.
+- Fixed: theme-toggle.tsx React 19 `set-state-in-effect` lint error → useSyncExternalStore.
+- Fixed: unused CardHeader imports in legal/page.tsx + curriculum-tabs.tsx.
+- Fixed: CurriculumTabs empty states upgraded to `<EmptyState>` (§11).
+- Deferred (filed): #49 unify console.error in query helpers (Phase 8). #50 migrate middleware → proxy naming (Phase 9).
 
 ### Workflow lesson (2026-05-27, captured to memory)
 Don't auto-close issues with `Closes #N` in commit messages until the
