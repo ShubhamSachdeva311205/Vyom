@@ -59,7 +59,13 @@ const envSchema = z.object({
   ADMIN_EMAILS: z.string().optional(),
 });
 
-const parsed = envSchema.safeParse(process.env);
+// Coerce blank strings to undefined so .optional() catches them; otherwise
+// `KEY=` in .env.local would fail .url() etc. before the schema sees it.
+const cleaned = Object.fromEntries(
+  Object.entries(process.env).map(([k, v]) => [k, v === "" ? undefined : v]),
+);
+
+const parsed = envSchema.safeParse(cleaned);
 
 if (!parsed.success) {
   console.error(
