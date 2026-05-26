@@ -104,12 +104,13 @@ function CentredSideCard({
   reduce: boolean;
 }) {
   const direction = side === "left" ? -1 : 1;
-  // Big spread. Side books are size=md (192 px); each depth needs
-  // ~150 px of additional offset so it clearly peeks past the prior.
-  const offsetX = direction * (260 + (depth - 1) * 160);
+  // Side books are size=lg (288 px). Pulled in closer + less tilt so
+  // they read as part of the same stage as the centre book, not far
+  // back on the z-axis. (Issue #46.)
+  const offsetX = direction * (200 + (depth - 1) * 100);
   const offsetY = -depth * 6;
-  const rotateY = direction * -22;
-  const scale = 0.92 - depth * 0.05;
+  const rotateY = direction * -15;
+  const scale = 0.94 - depth * 0.04;
 
   return (
     <div
@@ -140,7 +141,7 @@ function CentredSideCard({
           delay: 0.1 * depth,
         }}
       >
-        <BookCard book={book} size="md" showMeta={false} asStatic />
+        <BookCard book={book} size="lg" showMeta={false} asStatic />
       </motion.div>
     </div>
   );

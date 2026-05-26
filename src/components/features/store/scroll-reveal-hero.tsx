@@ -124,12 +124,13 @@ function SideBook({
   spread: MotionValue<number>;
 }) {
   const direction = side === "left" ? -1 : 1;
-  // Big spread + smaller side cards so every depth peeks clearly past
-  // the previous one. Side cards are size=md (192 px).
-  const finalX = direction * (260 + (depth - 1) * 150);
+  // Side cards are size=lg (288 px). Tighter spread + less tilt brings
+  // them closer to the centre book on the z-axis so the whole stage
+  // reads as one tableau, not foreground + distant rear. (Issue #46.)
+  const finalX = direction * (220 + (depth - 1) * 110);
   const finalY = -depth * 6;
-  const finalRotateY = direction * -22;
-  const finalScale = 0.92 - depth * 0.05;
+  const finalRotateY = direction * -15;
+  const finalScale = 0.94 - depth * 0.04;
 
   const x = useTransform(spread, (v) => finalX * v);
   const y = useTransform(spread, (v) => finalY * v);
@@ -152,7 +153,7 @@ function SideBook({
           filter: `drop-shadow(0 ${depth * 8}px ${depth * 14}px rgb(0 0 0 / 0.28)) brightness(${1 - depth * 0.08})`,
         }}
       >
-        <BookCard book={book} size="md" showMeta={false} asStatic />
+        <BookCard book={book} size="lg" showMeta={false} asStatic />
       </motion.div>
     </div>
   );
