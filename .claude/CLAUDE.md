@@ -142,3 +142,23 @@ Empty states must never feel broken. Every empty state must:
 - Never leave `// TODO` or `// FIXME` in committed code.
 - Unbuilt features get an explicit UI shell with a visible "Coming soon" state.
 - Never submit code with `console.log` statements in production paths.
+
+---
+
+## 13. GITHUB ISSUES = WORK TRACKING (decided 2026-05-26)
+- **Every bug** the user reports gets filed as a GitHub Issue using the
+  `bug-report.yml` template (`.github/ISSUE_TEMPLATE/`).
+- **Every feature request** — from the user OR from you when proposing
+  something to defer — gets filed using the `feature-request.yml` template.
+- **`roadmap.txt`** is the long-range strategic plan; the per-phase
+  checkboxes stay there. Granular tracked work (the specific issues
+  blocking a phase, individual bugs) lives on GitHub Issues.
+- **Workflow:**
+  1. User says "do X later" or "this is a bug" → `gh issue create` with
+     the right template, link the relevant phase + priority.
+  2. When picking up work in a new session, `gh issue list --state open`
+     is the first thing to check (alongside the roadmap phase).
+  3. PRs / commits that close an issue reference it via
+     `Closes #N` in the commit body.
+- Issue templates are at `.github/ISSUE_TEMPLATE/`. Don't create blank
+  issues — pick a template.

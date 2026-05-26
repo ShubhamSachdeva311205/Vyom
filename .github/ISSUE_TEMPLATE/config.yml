@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Roadmap
+    url: https://github.com/ShubhamSachdeva311205/Advaita/blob/main/roadmap.txt
+    about: For long-range plans, check the roadmap first.
+  - name: Build journal
+    url: https://github.com/ShubhamSachdeva311205/Advaita/blob/main/BUILD-JOURNAL.md
+    about: For history of what shipped and what broke along the way.

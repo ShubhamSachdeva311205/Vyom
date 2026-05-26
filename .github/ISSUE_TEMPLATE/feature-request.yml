@@ -1,0 +1,55 @@
+name: Feature request
+description: New capability or enhancement to ship.
+title: "[Feature] "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What's the feature?
+      description: One sentence. The thing that should exist.
+      placeholder: "Floating book SVGs drift behind the hero on storefront pages."
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it matter?
+      description: The user problem this solves or the brand goal it serves.
+      placeholder: "Hero feels static. Reference sites use ambient motion to add personality without distraction."
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: Rough shape
+      description: How might this work? Optional — don't lock the design in early.
+      placeholder: |
+        - 3-5 book SVGs randomly positioned
+        - Slow parallax drift on scroll, plus subtle bob
+        - Respects prefers-reduced-motion
+        - Only on /, /store, /ibdp, /igcse
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 — launch blocker
+        - P1 — should ship before public launch
+        - P2 — nice to have, can wait
+        - P3 — far-future / aspirational
+      default: 2
+
+  - type: input
+    id: phase
+    attributes:
+      label: Roadmap phase
+      description: Which roadmap phase does this slot into?
+      placeholder: "Phase 8.5 (Ambient brand decoration)"
+
+  - type: textarea
+    id: links
+    attributes:
+      label: References / inspiration
+      description: Sites, screenshots, links.

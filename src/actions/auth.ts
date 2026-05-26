@@ -60,7 +60,7 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     return {
       success: false,
       error:
-        "We don't accept temporary or throwaway email addresses. Please use your real email.",
+        "Nice try, smarty pants — we can spot a throwaway email a mile off 😎 Use your real address so we can actually send you your books.",
     };
   }
 

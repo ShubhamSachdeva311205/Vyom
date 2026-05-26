@@ -1,0 +1,55 @@
+name: Bug report
+description: Something is broken or behaves incorrectly.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: One or two sentences. What did you do, and what went wrong?
+      placeholder: "I tried to sign up with a temp email and it accepted it instead of rejecting."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened?
+      placeholder: "Signup should reject the address with the smarty-pants message."
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered list. Include URLs, inputs, anything I'd need to reproduce.
+      placeholder: |
+        1. Go to /sign-up
+        2. Enter "test@temomail.org"
+        3. Submit
+        4. Account is created instead of rejected
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How blocking is this?
+      options:
+        - P0 — blocking launch / data loss / security
+        - P1 — visible to customers, no easy workaround
+        - P2 — visible but workaround exists
+        - P3 — minor / cosmetic
+      default: 2
+
+  - type: input
+    id: phase
+    attributes:
+      label: Related phase
+      description: Which phase from roadmap.txt does this touch?
+      placeholder: "Phase 2.4"
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Screenshots, logs, env, browser — optional.
