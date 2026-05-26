@@ -9,16 +9,19 @@ import { cn } from "@/lib/utils";
 type Book = Tables<"books">;
 
 /**
- * LayeredBookHero — static 3D-layered arrangement. Centre book on top
- * (size="xl"), side books fan out behind in different z-layers with
- * rotateY + translateZ + scale + drop-shadow.
+ * LayeredBookHero — static 3D-layered arrangement.
  *
- * The `children` slot is rendered INSIDE the centre book wrapper, so
- * any absolutely-positioned mascot scenes inside it are positioned
- * relative to the centre book itself (not the outer container).
+ * Positioning model:
+ *   - Each book renders inside a full-bounds (`inset-0`) flex-centred
+ *     overlay, so the inner motion.div translates from the CENTRE of
+ *     the hero container, not from its top-left corner. This is the
+ *     fix for "side books not visible on /ibdp + /igcse" — previously
+ *     the absolute children defaulted to (0,0) and the negative x
+ *     offset pushed them off-screen.
+ *   - Z-order: side books behind, centre book on top.
  *
- * Side book offsets push deeper books further out so all are visible
- * even with several depth levels (was only ~3 visible at /ibdp before).
+ * Children render inside the centre book's relative wrapper so mascot
+ * scenes (Teacher / Student) anchor to the book.
  */
 
 export interface LayeredBookHeroProps {
@@ -26,7 +29,6 @@ export interface LayeredBookHeroProps {
   left?: Book[];
   right?: Book[];
   className?: string;
-  /** Rendered inside the centre book wrapper (mascot scenes, etc). */
   children?: ReactNode;
 }
 
@@ -42,57 +44,55 @@ export function LayeredBookHero({
   return (
     <div
       className={cn(
-        "relative mx-auto flex items-center justify-center",
-        "min-h-[560px] sm:min-h-[640px] lg:min-h-[720px]",
+        "relative mx-auto",
+        // Plenty of vertical room for the bigger centre book + the
+        // mascot overlays above/below it.
+        "min-h-[680px] sm:min-h-[760px] lg:min-h-[840px]",
         className,
       )}
-      style={{ perspective: "1400px" }}
+      style={{ perspective: "1600px" }}
     >
-      {[...left].map((book, i) => {
-        const depth = i + 1;
-        return (
-          <SideCard
-            key={book.id}
-            book={book}
-            side="left"
-            depth={depth}
-            reduce={reduce ?? false}
-          />
-        );
-      })}
-      {[...right].map((book, i) => {
-        const depth = i + 1;
-        return (
-          <SideCard
-            key={book.id}
-            book={book}
-            side="right"
-            depth={depth}
-            reduce={reduce ?? false}
-          />
-        );
-      })}
+      {left.map((book, i) => (
+        <CentredSideCard
+          key={book.id}
+          book={book}
+          side="left"
+          depth={i + 1}
+          reduce={reduce ?? false}
+        />
+      ))}
+      {right.map((book, i) => (
+        <CentredSideCard
+          key={book.id}
+          book={book}
+          side="right"
+          depth={i + 1}
+          reduce={reduce ?? false}
+        />
+      ))}
 
-      {/* Centre book wrapper — relative so children can position
-          themselves against the book. */}
-      <motion.div
-        className="relative"
-        initial={reduce ? false : { opacity: 0, y: 20, scale: 0.92 }}
-        animate={reduce ? undefined : { opacity: 1, y: 0, scale: 1 }}
-        style={{
-          zIndex: 20,
-          filter: "drop-shadow(0 24px 40px rgb(0 0 0 / 0.35))",
-        }}
-        transition={{ type: "spring", stiffness: 220, damping: 26 }}
-      >
-        <BookCard book={center} size="xl" showMeta={false} asStatic priority />
-        {children}
-      </motion.div>
+      {/* Centre book — flex-centred inside the hero. Children
+          (mascot scenes) live inside its relative wrapper. */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <motion.div
+          className="relative"
+          initial={reduce ? false : { opacity: 0, y: 20, scale: 0.92 }}
+          animate={reduce ? undefined : { opacity: 1, y: 0, scale: 1 }}
+          style={{
+            zIndex: 20,
+            filter: "drop-shadow(0 30px 50px rgb(0 0 0 / 0.4))",
+          }}
+          transition={{ type: "spring", stiffness: 220, damping: 26 }}
+        >
+          <BookCard book={center} size="xl" showMeta={false} asStatic priority />
+          {children}
+        </motion.div>
+      </div>
     </div>
   );
 }
 
-function SideCard({
+function CentredSideCard({
   book,
   side,
   depth,
@@ -104,30 +104,44 @@ function SideCard({
   reduce: boolean;
 }) {
   const direction = side === "left" ? -1 : 1;
-  // Push deeper books much further out so all are visible.
-  const offsetX = direction * (90 + (depth - 1) * 65);
-  const offsetY = -depth * 8;
-  const rotateY = direction * -22; // tilt facing centre
-  const scale = 0.82 - depth * 0.05;
-  const finalState = { x: offsetX, y: offsetY, rotateY, scale, opacity: 1 };
+  // Generous spread — bigger steps between depth levels so even the
+  // deepest book peeks past the centre on /ibdp.
+  const offsetX = direction * (140 + (depth - 1) * 90);
+  const offsetY = -depth * 6;
+  const rotateY = direction * -22;
+  const scale = 0.86 - depth * 0.06;
 
   return (
-    <motion.div
-      className="absolute"
-      initial={reduce ? false : { opacity: 0, x: 0, y: 0, rotateY: 0, scale: 0.6 }}
-      animate={reduce ? undefined : finalState}
-      style={{
-        x: reduce ? offsetX : undefined,
-        y: reduce ? offsetY : undefined,
-        rotateY: reduce ? rotateY : undefined,
-        scale: reduce ? scale : undefined,
-        zIndex: 10 - depth,
-        transformStyle: "preserve-3d",
-        filter: `drop-shadow(0 ${depth * 6}px ${depth * 12}px rgb(0 0 0 / 0.25)) brightness(${1 - depth * 0.08})`,
-      }}
-      transition={{ type: "spring", stiffness: 240, damping: 28, delay: 0.08 * depth }}
+    <div
+      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+      style={{ zIndex: 10 - depth }}
     >
-      <BookCard book={book} size="lg" showMeta={false} asStatic />
-    </motion.div>
+      <motion.div
+        // Inside this flex-centred wrapper, the motion div sits at the
+        // centre by default. Framer's x/y/rotateY/scale build off that.
+        initial={reduce ? false : { opacity: 0, x: 0, y: 0, rotateY: 0, scale: 0.6 }}
+        animate={
+          reduce
+            ? undefined
+            : { opacity: 1, x: offsetX, y: offsetY, rotateY, scale }
+        }
+        style={{
+          x: reduce ? offsetX : undefined,
+          y: reduce ? offsetY : undefined,
+          rotateY: reduce ? rotateY : undefined,
+          scale: reduce ? scale : undefined,
+          transformStyle: "preserve-3d",
+          filter: `drop-shadow(0 ${depth * 8}px ${depth * 14}px rgb(0 0 0 / 0.28)) brightness(${1 - depth * 0.08})`,
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 220,
+          damping: 28,
+          delay: 0.1 * depth,
+        }}
+      >
+        <BookCard book={book} size="lg" showMeta={false} asStatic />
+      </motion.div>
+    </div>
   );
 }

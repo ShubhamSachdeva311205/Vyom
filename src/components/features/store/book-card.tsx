@@ -14,9 +14,9 @@ const cardVariants = cva(
     variants: {
       size: {
         sm: "w-32",
-        md: "w-44",
-        lg: "w-60",
-        xl: "w-72 sm:w-80",
+        md: "w-48",
+        lg: "w-72",
+        xl: "w-80 sm:w-96 lg:w-[28rem]",
       },
     },
     defaultVariants: { size: "md" },

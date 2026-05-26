@@ -6,28 +6,31 @@ import {
   useTransform,
   useReducedMotion,
   useMotionValue,
+  useSpring,
   type MotionValue,
 } from "framer-motion";
 import { useRef } from "react";
 import type { Tables } from "@/lib/supabase/types";
 import { BookCard } from "./book-card";
-import { StudentHangingFromBook, TeacherSittingOnBook } from "./mascot-scenes";
 
 type Book = Tables<"books">;
 
 /**
  * ScrollRevealHero — homepage staging:
+ *   0–8%   : centre book solo.
+ *   8–14%  : side books appear at CENTRE (opacity 0 → 1).
+ *   14–55% : side books fan OUT from centre to final positions.
  *
- *   0–10%  : centre book solo.
- *   10–15% : side books appear at CENTRE (opacity 0 → 1, position still 0).
- *   15–50% : side books fan OUT from centre to their final positions.
- *   55–85% : mascots arrive (teacher sits on top, student hangs below).
+ * Mascots on the homepage hero are intentionally REMOVED (per user
+ * 2026-05-27). They stay on /ibdp + /igcse where the position fix is
+ * verified. Below the hero the BookwormReading vignette still anchors
+ * the brand.
  *
- * Splitting opacity from spread fixes the "they're just fading in"
- * complaint — now you see the books materialise at centre then move
- * outward.
- *
- * Reduced-motion users get the final state via constant MotionValues.
+ * Positioning model (same as LayeredBookHero):
+ *   - Each book lives inside a full-bounds flex-centred overlay so
+ *     framer's x/y motion translates from CENTRE, not top-left.
+ *   - Scroll-driven transforms run through useSpring for smoothness —
+ *     raw useTransform output is jittery on direct mouse-wheel input.
  */
 
 interface ScrollRevealHeroProps {
@@ -35,6 +38,8 @@ interface ScrollRevealHeroProps {
   left: Book[];
   right: Book[];
 }
+
+const SCROLL_SPRING = { stiffness: 120, damping: 30, mass: 0.4 };
 
 export function ScrollRevealHero({ center, left, right }: ScrollRevealHeroProps) {
   const reduce = useReducedMotion();
@@ -45,31 +50,25 @@ export function ScrollRevealHero({ center, left, right }: ScrollRevealHeroProps)
     offset: ["start start", "end start"],
   });
 
+  // Smoothing layer — turns the raw scroll progress into a damped
+  // signal so derived transforms don't jitter.
+  const smoothed = useSpring(scrollYProgress, SCROLL_SPRING);
+
   const oneConst = useMotionValue(1);
-  const zeroConst = useMotionValue(0);
 
-  // Opacity comes in first (10-15%), then the spread happens (15-50%).
-  const sideOpacityAnim = useTransform(scrollYProgress, [0.10, 0.15], [0, 1]);
-  const sideSpreadAnim = useTransform(scrollYProgress, [0.15, 0.50], [0, 1]);
+  const sideOpacityRaw = useTransform(smoothed, [0.08, 0.14], [0, 1]);
+  const sideSpreadRaw = useTransform(smoothed, [0.14, 0.55], [0, 1]);
 
-  // Mascots arrive last.
-  const mascotOpacityAnim = useTransform(scrollYProgress, [0.55, 0.85], [0, 1]);
-  const mascotScaleAnim = useTransform(scrollYProgress, [0.55, 0.85], [0.6, 1]);
-
-  const sideOpacity = reduce ? oneConst : sideOpacityAnim;
-  const sideSpread = reduce ? oneConst : sideSpreadAnim;
-  const mascotOpacity = reduce ? oneConst : mascotOpacityAnim;
-  const mascotScale = reduce ? oneConst : mascotScaleAnim;
+  const sideOpacity = reduce ? oneConst : sideOpacityRaw;
+  const sideSpread = reduce ? oneConst : sideSpreadRaw;
 
   return (
     <div ref={ref} className="relative min-h-[220vh]">
-      {/* Sticky stage — books stay in view while page scrolls. */}
       <div className="sticky top-16 flex h-[calc(100vh-4rem)] items-center justify-center overflow-visible">
         <div
           className="relative mx-auto flex w-full items-center justify-center"
-          style={{ perspective: "1400px" }}
+          style={{ perspective: "1600px" }}
         >
-          {/* Side books — render before centre so they sit behind in DOM order. */}
           {left.map((book, i) => (
             <SideBook
               key={book.id}
@@ -91,28 +90,15 @@ export function ScrollRevealHero({ center, left, right }: ScrollRevealHeroProps)
             />
           ))}
 
-          {/* Centre book + mascots inside its relative wrapper. The
-              mascots become visible (mascotOpacity) at the end of the
-              scroll; their position is anchored to this wrapper. */}
+          {/* Centre book — flex-centred. Mascots intentionally removed. */}
           <motion.div
             className="relative"
             style={{
               zIndex: 20,
-              filter: "drop-shadow(0 24px 40px rgb(0 0 0 / 0.4))",
+              filter: "drop-shadow(0 30px 50px rgb(0 0 0 / 0.45))",
             }}
           >
             <BookCard book={center} size="xl" showMeta={false} asStatic priority />
-
-            <motion.div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                opacity: mascotOpacity,
-                scale: mascotScale,
-              }}
-            >
-              <TeacherSittingOnBook />
-              <StudentHangingFromBook />
-            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -134,33 +120,34 @@ function SideBook({
   spread: MotionValue<number>;
 }) {
   const direction = side === "left" ? -1 : 1;
-  // Wider spread so all 3 layers are visible (was depth*80 → now grows).
-  const finalX = direction * (110 + (depth - 1) * 70);
-  const finalY = -depth * 10;
+  const finalX = direction * (160 + (depth - 1) * 100);
+  const finalY = -depth * 6;
   const finalRotateY = direction * -22;
-  const finalScale = 0.82 - depth * 0.05;
+  const finalScale = 0.86 - depth * 0.06;
 
   const x = useTransform(spread, (v) => finalX * v);
   const y = useTransform(spread, (v) => finalY * v);
   const rotateY = useTransform(spread, (v) => finalRotateY * v);
-  // Scale stays close to 1 until they fan out (so they don't look tiny at centre).
   const scale = useTransform(spread, (v) => 1 - (1 - finalScale) * v);
 
   return (
-    <motion.div
-      className="absolute"
-      style={{
-        opacity,
-        x,
-        y,
-        rotateY,
-        scale,
-        zIndex: 10 - depth,
-        transformStyle: "preserve-3d",
-        filter: `drop-shadow(0 ${depth * 6}px ${depth * 12}px rgb(0 0 0 / 0.25)) brightness(${1 - depth * 0.08})`,
-      }}
+    <div
+      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+      style={{ zIndex: 10 - depth }}
     >
-      <BookCard book={book} size="lg" showMeta={false} asStatic />
-    </motion.div>
+      <motion.div
+        style={{
+          opacity,
+          x,
+          y,
+          rotateY,
+          scale,
+          transformStyle: "preserve-3d",
+          filter: `drop-shadow(0 ${depth * 8}px ${depth * 14}px rgb(0 0 0 / 0.28)) brightness(${1 - depth * 0.08})`,
+        }}
+      >
+        <BookCard book={book} size="lg" showMeta={false} asStatic />
+      </motion.div>
+    </div>
   );
 }

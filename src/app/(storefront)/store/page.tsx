@@ -1,29 +1,34 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ShellPage } from "@/components/layouts/shell-page";
+import { StoreListing } from "@/components/features/store/store-listing";
+import { Container } from "@/components/layouts/container";
+import { Section } from "@/components/layouts/section";
+import { Stack } from "@/components/layouts/stack";
+import { getBooks } from "@/lib/queries/books";
 
 export const metadata = {
   title: "Store",
-  description: "Browse Advaita's catalog of physical and digital study resources.",
+  description: "Browse Advaita's catalog of IBDP and IGCSE Hindi titles.",
 };
 
-export default function StorePage() {
+export default async function StorePage() {
+  const books = await getBooks();
+
   return (
-    <ShellPage
-      eyebrow="Catalog"
-      title="The store opens soon."
-      description="Hand-picked books, audio companions, and past papers for IBDP and IGCSE. Physical editions ship from Bangalore."
-      emptyTitle="Catalog launches with Phase 2"
-      emptyDescription="We're seeding inventory now. Until then, peek at the community or read about IBDP / IGCSE coverage."
-      mascot="star"
-      action={
-        <Button asChild size="sm" variant="outline">
-          <Link href="/community">
-            Visit the community <ArrowRight />
-          </Link>
-        </Button>
-      }
-    />
+    <Section spacing="default">
+      <Container>
+        <Stack gap={8}>
+          <Stack gap={3}>
+            <span className="text-eyebrow">Catalog</span>
+            <h1 className="text-display">All titles.</h1>
+            <p className="text-body-lg text-muted-foreground max-w-2xl">
+              Seven editions across IBDP Hindi B and IGCSE Hindi as a
+              Second Language. Audio + answer keys ship free with the
+              physical book — never sold separately.
+            </p>
+          </Stack>
+
+          <StoreListing books={books} />
+        </Stack>
+      </Container>
+    </Section>
   );
 }
