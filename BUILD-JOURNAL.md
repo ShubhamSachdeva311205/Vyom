@@ -740,6 +740,9 @@ covers. All 7 real book covers cropped + sized → `public/book-covers/`.
 | `c2a1c8a` | scroll-reveal homepage + layered IBDP/IGCSE + BookCard + scenes |
 | `d8329b1` | hero polish + live admin overview from getAdminStats() |
 | `a7997a5` | navbar edges, side cards anchor fix, useSpring smoothing, curriculum tabs, /store listing |
+| `3f5d585` | env wrapper for supabase CLI, all-books-eligible seed, wider hero spread, open-book vignette |
+| `e5fb59e` | book-facing fix, no-zoom hero cards, side cards md + bigger spread |
+| `0007920` | follow-up #4 — bring books closer on z-axis (Issue #46): side cards back to lg, offsetX 200+(d-1)*100 (layered) / 220+(d-1)*110 (scroll), rotateY -15, scale 0.94−depth*0.04 |
 
 ### Components shipped
 - `BookCard` — cover-first card primitive, sizes sm/md/lg/xl, `asStatic` + `showMeta` knobs for hero vs grid usage.
@@ -775,10 +778,11 @@ covers. All 7 real book covers cropped + sized → `public/book-covers/`.
 | Navbar logos not at edges | `Container` adds max-w-7xl + horizontal padding. On wide screens, items inset. | Drop Container; `w-full px-4 sm:px-6`. |
 | Limbs invisible in dark mode | Hardcoded FACE_STROKE (dark) against dark page bg. | Stroke switched to `var(--foreground)`. |
 | Many late commits had stale BUILD-JOURNAL | Edit() requires Read() first; missed several times. | Lesson: Read journal section before Edit. Discipline gap caught + flagged. |
+| Books read as "far back on z-axis" after spread bump (e5fb59e) | Side cards shrank to md + offsetX jumped to 260+(d-1)*160 + rotateY -22°. Combined effect: small + tilted + far. | Issue #46 (`0007920`): restore size=lg, offsetX 200+(d-1)*100 (layered) / 220+(d-1)*110 (scroll), rotateY -15, scale 0.94−depth*0.04. |
 
 ### Closed issues in this phase
 
-#1, #16, #17, #19, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #34, #35.
+#1, #16, #17, #19, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #34, #35, #46.
 
 ### Open follow-ups
 - Mascot scenes still don't fully sell "sitting/hanging" — user acknowledged this is okay to defer.
