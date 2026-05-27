@@ -1,490 +1,163 @@
-# Advaita — Session Handoff (2026-05-27, revised end-of-day)
+# Advaita — Session Handoff
 
-This file is for the **next Claude Code instance**. Read it end-to-end
-before touching any code. It captures decisions, conventions,
-gotchas, and state that aren't obvious from `git log` or the file tree.
-
-HEAD of `main` is currently the Phase 3.2 cart commit. Phase 1.6
-storefront-hero arc is done (#46 #47 #48 #51 all closed user-verified);
-Phase 3.2 cart shipped end-to-end (server actions, /cart page, navbar
-badge, auth-merge); Phase 3.1 Razorpay is the next deliverable
-(blocked on user pasting RAZORPAY_KEY_ID / SECRET / WEBHOOK_SECRET
-into `.env.local` — see SETUP-PHASE-3.md).
+For the **next Claude Code instance.** Read me end-to-end before
+touching code. I cover only what *isn't* already in
+`roadmap.txt`, `BUILD-JOURNAL.md`, `FULL_FEATURE_REFERENCE.md`,
+`.claude/CLAUDE.md`, or `memory/`. Skim those for what they cover;
+don't expect this file to repeat them.
 
 ---
 
-## 1. Project at a glance
+## Where to find things
 
-**Advaita** — premium study-resource e-commerce for IBDP and IGCSE
-Hindi books. Built by/for Seema Sachdeva (mom of the user). The user
-is **Shubham** — sole developer + product manager. Real catalogue of
-**7 physical books**; audio + answer keys are FREE support material
-bundled with the physical book (no digital-only or bundle SKUs).
+| Question | Look in |
+|---|---|
+| What's shipped, what's next, phase status | `roadmap.txt` |
+| Why a thing was built that way, errors hit + fixes, commit log narrative | `BUILD-JOURNAL.md` |
+| What the product is supposed to do (every page, every admin tool) | `FULL_FEATURE_REFERENCE.md` |
+| Architecture rules + coding standards | `.claude/CLAUDE.md` (read in full) |
+| Behavioural rules captured from the user | `memory/*.md` (loaded via index) |
+| Open work tracker | `gh issue list --state open` |
+| Security probe battery | `/security-audit` skill |
+| Razorpay onboarding for the user | `SETUP-PHASE-3.md` |
+| Phase 2 setup notes for the user | `SETUP-PHASE-2.md` |
+
+If a question is answered in one of those, link there — don't
+duplicate.
+
+---
+
+## Project at a glance
+
+**Advaita** — premium e-commerce for IBDP + IGCSE Hindi study books.
+Built by Shubham for his mom Seema Sachdeva (author / sole seller).
+Catalogue: 7 physical titles; audio + answer keys are FREE support
+material bundled with the physical book.
 
 ### Stack
-- Next.js 16 App Router + Turbopack
-- TypeScript strict
-- Tailwind v4 (CSS-first config in `globals.css`, no `tailwind.config.ts`)
-- Framer Motion (Mode A storefront only)
-- Supabase (local via Docker + CLI); 14 tables, all RLS-enabled
-- shadcn-style primitives hand-authored under `src/components/ui/`
-- pnpm, gh CLI, vercel pending
 
-### Top-level layout
-```
-src/
-  app/
-    (storefront)/   — Mode A pages (Navbar + Footer + NoiseLayer)
-    (operational)/  — Mode B pages (data-mode="operational", no mesh, no motion)
-    (auth)/         — clean centred card layout for sign-in/sign-up
-    auth/callback/  — OAuth code exchange route
-    design-tokens/  — internal calibration page (NOT customer-facing)
-  components/
-    ui/             — Button, Card, Input, Mascot, etc.
-    features/store/ — BookCard, LayeredBookHero, ScrollRevealHero, mascot-scenes, etc.
-    layouts/        — Navbar, Footer, Container, Stack, ShellPage, etc.
-  lib/
-    supabase/       — client/server/middleware/types
-    queries/        — getBooks, getAdminStats
-    auth/           — disposable email blocklist, admin allowlist helper
-    motion/         — tokens + primitives
-    format.ts       — pure formatters (formatINR)
-    env.ts          — zod env validator (throws at boot)
-  middleware.ts     — Supabase JWT refresh + route protection
-  styles/           — typography.css, backgrounds.css
-  actions/          — auth.ts, admin-auth.ts (Server Actions)
-supabase/           — config.toml, migrations/, seed.sql
-scripts/            — process-book-covers.py, supabase-with-env.sh
-book-covers/
-  book-covers-raw/  — user-dropped originals + covers-map.txt (filename→slug)
-public/book-covers/ — cropped fronts served as /book-covers/<slug>.webp
-image-prompts/      — folders for Kling AI generation handoff
-design/             — design-system-spec.md, roadmap-audit.md, feature-reference-diff.md
-review/             — user's screenshot uploads (do NOT delete)
-FULL_FEATURE_REFERENCE.md   — ground-truth spec (7-book catalogue, §A–§H)
-roadmap.txt         — phased execution plan
-BUILD-JOURNAL.md    — what-shipped-when, with errors + fixes captured
-SETUP-PHASE-2.md    — Docker/Supabase/Google OAuth setup steps for the user
-```
+Next.js 16 App Router (Turbopack) · TypeScript strict · Tailwind v4
+(CSS-first, **no `tailwind.config.ts`**) · Framer Motion (storefront
+only) · Supabase (local Docker + CLI; 14 tables, RLS on all) ·
+shadcn-style hand-authored primitives · Razorpay (test mode in dev) ·
+Shiprocket (queued for Phase 3.3) · pnpm · gh CLI.
+
+### Folder shape (only what's non-obvious)
+
+- `src/app/(storefront)/` — Mode A pages (Navbar + Footer + NoiseLayer)
+- `src/app/(operational)/` — Mode B (`data-mode="operational"`, no
+  Framer, no mesh)
+- `src/app/(auth)/` — clean centred card layout
+- `src/app/api/` — webhook + streaming routes ONLY
+- `src/actions/` — Server Actions, one file per domain
+- `src/lib/cart/`, `src/lib/razorpay/` — feature libs (server-only)
+- `scripts/supabase-with-env.sh` — wrapper that sources `.env.local`
+  before exec'ing supabase (CLI doesn't auto-read it)
+- `book-covers/book-covers-raw/` — user-dropped originals + manual
+  filename→slug map; `scripts/process-book-covers.py` crops them
+- `design/`, `review/` — design notes + user screenshot uploads
 
 ---
 
-## 2. Phases
+## Quick-start checklist
 
-| Phase | Status | Notes |
-|---|---|---|
-| 0 — Foundation | ✅ done | repo + CLAUDE.md + design-system-spec.md |
-| 1.1 — Tokens & primitives | ✅ done | |
-| 1.2 — Shared UI components | ✅ done | all form + state + overlay primitives |
-| 1.3 — Page shells | ✅ done | route groups, all 14 routes prerender |
-| 1.4 — Hardening | ✅ done | env validator, error/404, sitemap, OG image |
-| 1.5 — Mascot expansion + cover infra | ✅ done | 6 mascots; OCR script + manual map |
-| 1.6 — Storefront hero | ✅ done | scroll-reveal + layered hero + curriculum tabs + /store + bookworm vignette |
-| 2 — Database & Auth | ✅ done (Google OAuth deferred → Phase 7, Issue #7) | 14 tables, customer + admin auth, middleware |
-| 3.2 — Cart (server-backed) | ✅ done | carts/cart_items + Server Actions + /cart + navbar badge + auth-merge |
-| 3.1 — Razorpay + checkout | 🟡 next | Awaiting user to paste keys per SETUP-PHASE-3.md |
-| 3.3 — Shipping (Delhivery) | ⏳ after 3.1 | |
-| 3.5 — GST/tax | ⏳ after 3.1 | |
-| 4 — R2 + watermarked PDF + audio | ⏳ pending | |
-| 5 — Admin command center | ⏳ pending | + new 5.7 reports / 5.8 analytics / 5.9 Excel |
-| 6 — Community | ⏳ pending | |
-| 7 — Transactional emails (Resend) | ⏳ pending | + Google OAuth carry-over (Issue #7) |
-| 8 — Polish & launch readiness | ⏳ pending | + 8.7 security hardening sweep (Issue #76 umbrella) |
-| 9 — Deployment (Vercel + Cloudflare) | ⏳ pending | |
-| 10 — Future scaling | ⏳ deferred | local Ollama AI assistant (admin + customer), Issue #73 |
-
-See `roadmap.txt` for the full sub-phase list.
+1. `git log --oneline -15` — orient on recent work.
+2. `gh issue list --state open` — see what's tracked.
+3. Skim the LAST few sections of `BUILD-JOURNAL.md` — they cover
+   what just happened (especially the "Next up" list at the
+   bottom).
+4. `pnpm install` (idempotent).
+5. `pnpm supabase:start` (uses the env wrapper).
+6. `pnpm dev` → http://localhost:3000.
+7. If the user gave a specific task, do that. Otherwise pick the
+   top "Next up" item from the journal and confirm with the user
+   before starting.
 
 ---
 
-## 3. The 7-book catalogue (FFR §G)
+## Open user-action items
 
-| Slug | Title | Price (paise) | discount_eligible | has_audio | has_answer_key |
-|---|---|---|---|---|---|
-| `ibdp-hindi-b-hl-reading` | IBDP Hindi B HL — Reading | 195000 | true | false | true |
-| `ibdp-hindi-b-sl-reading` | IBDP Hindi B SL — Reading | 195000 | true | false | true |
-| `ibdp-hindi-b-sl-io` | IBDP Hindi B SL-IO (Moukhik) | 105000 | true | false | false |
-| `ibdp-hindi-b-hl-io` | IBDP Hindi B HL-IO (Moukhik) | 105000 | true | false | false |
-| `ibdp-hindi-b-shravan-lekhan` | IBDP Shravan Lekhan (Listening) | 195000 | true | true | false |
-| `igcse-hindi-paper-1` | IGCSE Hindi Paper 1 — Reading & Writing | 195000 | true | false | true |
-| `igcse-hindi-paper-2-listening` | IGCSE Hindi Paper 2 — Listening | 199900 | true | true | false |
-
-**Important business-rule overrides** (FFR §G says #5 + #7 are NOT
-discount-eligible, but the user overrode 2026-05-27 → all 7 are
-eligible). The seed reflects the override. If you regenerate the
-seed, keep all `discount_eligible = true`.
-
-The **homepage centerpiece** is **IGCSE Paper 1** (file (3) in the
-raw covers — user picked this). The IBDP page centerpiece is
-**IBDP Hindi B HL Reading**. The IGCSE page has Paper 1 centred,
-Paper 2 to the right.
-
-Real cover images live at `public/book-covers/<slug>.webp`. They
-were extracted from combined front+back scans the user dropped in
-`book-covers/book-covers-raw/` via
-`scripts/process-book-covers.py`. The script supports both OCR
-classification AND a manual `covers-map.txt` override file in the
-raw folder. The OCR was unreliable on Devanagari + low-res
-WhatsApp images, so the manual map is what got us the correct
-mapping. Re-run the script if covers change.
-
----
-
-## 4. The mascot system
-
-`src/components/ui/mascot.tsx` exports a single `<Mascot />` component
-with 6 characters. Each renders as an SVG blob with a gradient fill,
-internal grain (feTurbulence), and a sleeping closed-eye face that
-wakes up (eyes open + grin) on hover.
-
-| Name | Silhouette | Hue | Accessory | Default coupon |
-|---|---|---|---|---|
-| `student` | round irregular | emerald | school collar + navy tie | `student10` |
-| `teacher` | slightly oval | warm amber | rounded-rect glasses | `teacher10` |
-| `bookworm` | tall capsule | violet-blue | round glasses | — |
-| `wisp` | wide pebble | coral | — | — |
-| `star` | 5-point star | gold | — | — |
-| `triangle` | rounded triangle | teal | — | — |
-
-### Key props
-- `mood`: `"happy"` (default) or `"sad"`. Sad flips the smile to a
-  frown AND tints accent accessories destructive-red (404 page uses
-  `mascot="bookworm" mascotMood="sad"`).
-- `withLimbs`: stick arms + legs + 3-finger hands. Only honoured by
-  `student` and `teacher` (per Issue #18). Used in mascot scenes.
-- `hideCoupon`: suppress the chip even if a default code exists.
-- `size`: xs (36 px SVG) → sm (96 px) → md (160 px) → lg (224 px).
-
-### Accessory colour separation
-Hardware (band, frame, cup, cap, collar shape, glasses frame) ALWAYS
-uses the `FACE_STROKE` constant. Accent dots (cap tassel, glasses
-hinge, future LEDs) use `currentColor` which the SVG's `style.color`
-toggles between `var(--brand)` (happy) and `var(--destructive)` (sad).
-
-### Mascot scenes (in `src/components/features/store/mascot-scenes.tsx`)
-- `<TeacherSittingOnBook />` — absolute-positioned at
-  `bottom: calc(100% - 30px)` of its parent so it sits on the top
-  edge of whatever it's inside.
-- `<StudentHangingFromBook />` — absolute at
-  `top: calc(100% - 24px)` so it dangles from the bottom.
-- Both `size="sm"` so they read as on/around the book.
-- Both rendered as **children of LayeredBookHero** which slots them
-  inside the centre book's relative wrapper.
-- On the homepage scroll-reveal these are intentionally REMOVED per
-  user request 2026-05-27. They stay on /ibdp + /igcse.
-
-### Bookworm reading scene
-`src/components/features/store/bookworm-reading.tsx` — Mascot +
-inline `OpenBookSVG`. The book renders **the back of an open book**
-(spine + back covers in a V, page edges peeking at the bottom) so
-the pages face the bookworm not the viewer. Animated bob + slow
-rotation, respects `prefers-reduced-motion`. Used below the
-homepage hero only.
-
----
-
-## 5. The storefront hero system
-
-Two components, both in `src/components/features/store/`:
-
-### `LayeredBookHero` (static)
-Used on `/ibdp` and `/igcse`. Centre book on top (size `xl`), side
-books fan out behind (size `md`). Animation runs once on mount
-(spring transition).
-
-Each side card is wrapped in:
-```tsx
-<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-  <motion.div animate={{ x: offsetX, y, rotateY, scale }}>
-    <BookCard ... />
-  </motion.div>
-</div>
-```
-
-The `inset-0 flex items-center justify-center` wrapper is the
-**critical fix** for side books being visible. Without it, absolute
-children default to (0,0) top-left and negative x offsets push them
-off-screen. Don't break this pattern.
-
-Current side-book params (commit `e5fb59e`):
-- offsetX = direction * (260 + (depth-1) * 160)
-- rotateY = direction * -22
-- scale = 0.92 - depth * 0.05
-
-### `ScrollRevealHero` (homepage)
-- Sticky-container pattern: outer wrapper is `min-h-[300vh]`, inner
-  is `sticky top-16 h-[calc(100vh-4rem)]`. As user scrolls, books
-  stay in view while scroll progress drives the reveal.
-- `useScroll({ target: ref, offset: ["start start", "end start"] })`
-  → `useSpring({stiffness:120, damping:30, mass:0.4})` → derived
-  `useTransform` for opacity + spread.
-- **Two-stage reveal**: opacity 0→1 from 8-16% scroll (books appear
-  at centre), spread 0→1 from 16-70% scroll (books fan outward).
-  Don't recombine these — the user explicitly asked for "appear at
-  centre, then fan out" not "fade in at final position".
-- Mascots are NOT rendered here per user.
-
-### BookCard sizes (`src/components/features/store/book-card.tsx`)
-- sm: w-32 (128 px)
-- md: w-48 (192 px) — used for side cards in heroes
-- lg: w-72 (288 px) — used for /store grid + curriculum tabs
-- xl: w-80 sm:w-96 lg:w-[28rem] (320–448 px) — centre book in heroes
-
-### Hero card behaviour
-- `asStatic={true}` → renders as `<div>`, no Link, NO hover zoom.
-- `asStatic={false}` (default) → renders as Link to `/store/<slug>`
-  with the hover zoom enabled.
-- `showMeta={false}` → cover-only, no title/price/badge — used in
-  heroes per user feedback ('looks hella cheap').
-
----
-
-## 6. Workflow conventions (CRITICAL — read CLAUDE.md §13)
-
-### GitHub Issues are the work tracker
-- Every user-reported bug → `gh issue create` with the bug template.
-- Every deferred feature → feature-request template.
-- Every commit that resolves an issue references it with
-  `Closes #N` in the message body. The `gh` CLI auto-closes
-  matched issues on push.
-- Templates live at `.github/ISSUE_TEMPLATE/`.
-- Don't create blank issues — always use a template.
-- `gh issue list --state open` is the first thing to check at the
-  start of a session.
-
-### Email identity (CLAUDE.md §14)
-- `ai@gravity.fast` = Claude Code's git-config identity (commit
-  attribution only). NEVER use as ADMIN_EMAILS, in OAuth consent
-  screens, in customer copy, etc.
-- `shubhamhelpseries@gmail.com` = the actual business owner email
-  (Shubham's). Use this for ADMIN_EMAILS, Google Cloud Console
-  consent screen, anywhere customer-facing.
-- Fix on sight if you see `ai@gravity.fast` in any source/doc that
-  isn't literal git commit attribution.
-
-### BUILD-JOURNAL.md
-- Update at the end of every meaningful work batch.
-- Capture: what shipped, errors hit, lessons learned, commits.
-- `Edit()` requires a prior `Read()` of the same file. **This has
-  silently dropped journal updates multiple times.** Always Read
-  before Edit; verify by checking the journal length / a specific
-  word after.
-
-### Roadmap
-- `roadmap.txt` is the strategic long-range plan. Phase checkboxes
-  get ticked as subphases land. Per-phase changes (new subphases,
-  reorderings) get noted in `design/roadmap-audit.md`.
-
-### Edit-before-Read trap (HUGE)
-**Lesson learned multiple times this session**: when the harness
-rejects an `Edit()` because the file wasn't read first, the message
-goes by silently. The build keeps working because the OLD content
-is still there. You think you made the change; you didn't. Multiple
-commits have shipped with stale content this way.
-
-**Defence:**
-1. Always Read a file before editing it. Even if it seems obvious.
-2. After any non-trivial Edit, **grep the file for the new content**
-   to confirm it actually landed.
-3. If a build is suspiciously short or status quo after a change you
-   expected to be visible, suspect a phantom edit first.
-
----
-
-## 7. Auth + admin
-
-### Customer auth
-- Sign up + sign in: Google OAuth (primary) + email/password
-  (secondary).
-- `enable_confirmations = true` in `supabase/config.toml` → email
-  signup requires clicking the magic link OR pasting the 6-digit OTP
-  (Inbucket in dev, Mailpit at `localhost:54324`).
-- Disposable-email blocklist (`src/lib/auth/disposable.ts`):
-  3-layer check — canonical 10k list + curated extras (westecom.com,
-  etc.) + regex patterns (tempmail, temomail, throwaway, mailinator,
-  etc.). The user's "smarty pants" rejection message is intentional
-  copy.
-- OTP entry: `VerifyOtpForm` component allows pasting the 6-digit
-  code as an alternative to clicking the link.
-
-### Admin auth
-- Magic-link only. No password path for admin.
-- `ADMIN_EMAILS` env var (comma-separated, no spaces). Currently
-  just `shubhamhelpseries@gmail.com`.
-- Middleware at `src/middleware.ts` reads `ADMIN_EMAILS` and gates
-  `/admin/*` routes.
-- DB-side: `public.admin_emails` table is the source of truth for
-  the `is_admin()` SQL function. Phase 5.5 will build a UI to
-  CRUD this table from /admin.
-- Currently `is_admin()` reads `admin_emails ⨝ auth.users` (not
-  `users.role`). So adding someone to `admin_emails` immediately
-  promotes them. Adding them to ADMIN_EMAILS env still works as the
-  middleware check.
-
-### Supabase env wrapper (CRITICAL)
-`scripts/supabase-with-env.sh` sources `.env.local` before exec'ing
-supabase. The Supabase CLI doesn't auto-read .env.local (that's
-Next.js convention). All `pnpm supabase:*` scripts use this wrapper.
-If you bypass it (running `supabase` directly), config.toml env()
-substitutions like `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` won't
-resolve.
-
----
-
-## 8. Open user-action items
-
-These are blockers waiting on the user — call them out at the start
-of any session.
+Things the USER needs to do (not Claude). Surface at session start
+if they're still open.
 
 | # | Item | What user needs to do |
 |---|---|---|
-| **#7** | Google OAuth `redirect_uri_mismatch` | In Google Cloud Console → APIs & Services → Credentials → click Advaita OAuth client → ensure `http://localhost:54321/auth/v1/callback` is in Authorized redirect URIs. Save. Then `pnpm supabase:stop && pnpm supabase:start`. |
-| `.env.local` line 16 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=` is empty | Paste the rotated Google Client Secret on that line. Restart supabase. |
-
-Until both are done, **Google sign-in fails with redirect_uri_mismatch**.
-Email/password sign-up works.
+| #7 | Google OAuth still failing | (a) Confirm `http://localhost:54321/auth/v1/callback` is whitelisted in Google Cloud Console → Credentials. (b) Try Google sign-in + paste the bounce URL + auth container logs. Deferred to Phase 7. |
+| #81 | Shiprocket creds | Paste `SHIPROCKET_EMAIL` + `SHIPROCKET_PASSWORD` (dashboard login) into `.env.local`. Blocks Phase 3.3 implementation. |
 
 ---
 
-## 9. Open GitHub issues
+## Open-issues snapshot
 
-As of end-of-day 2026-05-27, there are ~30 open issues spanning the
-remaining phases. Most were filed by the end-of-day backlog sweep —
-21 feature requests covering FFR §A6–C10 + admin reports / analytics
-/ Excel / AI assistant (#53–#73), plus the security umbrella + P0s
-(#74 #75 #76), plus a few small chores. Pulled list is `gh issue
-list --state open`. Key items below:
+Run `gh issue list --state open` for the live list. Categories as of
+the most recent session:
 
-| # | Type | Title | Status |
-|---|---|---|---|
-| #2 | feature · P2 · phase/8 | Ambient brand decoration | Deferred to Phase 8.5 |
-| #3 | docs · P2 · phase/2 | Mailpit-vs-real-inbox confusion | Surface in SETUP-PHASE-2.md when convenient |
-| #5 | bug · P3 · phase/8 | Disposable email scale (Kickbox API) | Deferred to Phase 8 (see also #76 finding #8) |
-| #7 | docs · P2 · phase/7 | Google OAuth `redirect_uri_mismatch` | User action in GCP — deferred to Phase 7 |
-| #10 | feature · P1 · phase/2 | Admin allowlist UI | DB layer done, UI = Phase 5.5 |
-| #11 | feature · P3 · phase/8 | Theme switcher | Deferred to Phase 8 |
-| #53–#73 | feature · various | FFR sweep — PDP, checkout, dashboard, all admin sections, reports, analytics, Excel, AI assistant | Backlog for Phases 3–10 |
-| #74 #75 | bug · P1 · phase/2 | Admin gate drift + first-admin takeover (security P0s) | Must fix before Phase 9 launch |
-| #76 | bug · P1 · phase/8 | Security hardening umbrella (full 21-finding checklist) | Cross-cutting, run `/security-audit` to re-probe |
+- **Security P0s** — #74 admin gate drift, #75 first-admin takeover.
+  Tracker: #76 umbrella (full 21-finding checklist).
+- **FFR backlog** (#53–#73) — every FFR sub-section not yet shipped,
+  filed by the end-of-day backlog sweep. Includes PDP, customer
+  dashboard, all admin sections, transactional emails, the new
+  admin asks (sales reports #70, analytics #71, Excel #72), and
+  the local Ollama AI assistant (#73, Phase 10).
+- **Pending verify** — issues marked OPEN awaiting the user's
+  visual sign-off (per `memory/feedback_verify_before_closing.md`).
 
 ---
 
-## 10. Known gotchas
+## Known gotchas — defence against landmines we've already hit
 
-| Pitfall | What to do |
+| Pitfall | Defence |
 |---|---|
-| Edit before Read silently fails | Read first, grep after to verify. |
-| Supabase CLI doesn't read .env.local | Use `./scripts/supabase-with-env.sh` (or `pnpm supabase:*` scripts). |
-| `pnpm supabase:start` fails because secret blank | Tell user to paste in `.env.local`. |
-| React 19 + Turbopack jankifies `React.Children.only` | Already replaced in FormField — don't add new `Children.only` calls. |
-| `useTransform` doesn't accept union types | Always pass MotionValues; use `useMotionValue(1)` for reduced-motion constants. |
-| Mascot SVG uses currentColor for ACCENT only | Don't swap to currentColor for hardware paths — those need FACE_STROKE always. |
-| Tailwind v4 is CSS-first | Don't create `tailwind.config.ts`. All tokens live in `globals.css` `@theme`. |
-| Mode B routes must not import framer-motion | data-mode="operational" kills mesh/blur; admin should stay light, snappy. |
-| Books in heroes are NOT clickable | `asStatic={true}` + no hover zoom. Don't add Links to side cards. |
-| BUILD-JOURNAL drift | Always update at end of batch. |
-| `gh` auto-close via "Closes #N" | Can wrongly close issues if you reference the wrong number. Check `gh issue list` after every push. |
-| Foreground colour for limbs | `var(--foreground)` so visible in both modes. Don't hardcode FACE_STROKE. |
-| BookCard `asStatic` mode skips Link AND zoom | Hover effects only when truly clickable. |
-| Sub-pixel SVG motion looks jittery | Bump amplitude above ~2px or wrap pupil in repeatType:"reverse" single-target; `<g>` doesn't get GPU layer like a div. |
-| Service-role used in cart writes | Confine to admin/webhook paths long-term; switch cart to anon-client + RLS via set_config (security audit #9). |
-| Do NOT add `Co-Authored-By: Claude …` trailer | CLAUDE.md §14 updated 2026-05-27. Commits go as Shubham only. |
-| Service-role vs RLS gap | Code-level ownership check is the only defence in cart actions. Don't add a new path that forgets it. |
+| `Edit()` silently fails if the file wasn't `Read()` first | Read before Edit. After any non-trivial Edit, grep for the new content to confirm. |
+| Supabase CLI doesn't read `.env.local` | Use `./scripts/supabase-with-env.sh` (or `pnpm supabase:*` scripts). |
+| React 19 + Turbopack jankifies `React.Children.only` | Use `isValidElement + cloneElement` instead. |
+| `useTransform` doesn't accept union types | Pass MotionValues; use `useMotionValue(1)` for reduced-motion constants. |
+| Mascot SVG hardware = `FACE_STROKE`; accents = `currentColor` | Don't swap these. Hardware is the silhouette; accents shift red on sad mood. |
+| Tailwind v4 is CSS-first | All tokens live in `globals.css` `@theme`. Never create `tailwind.config.ts`. |
+| Mode B routes must not import Framer | `data-mode="operational"` zeroes mesh/blur; admin should stay snappy. |
+| Books in heroes are NOT clickable | `asStatic={true}`. No Links, no hover zoom. |
+| Service-role used in cart writes | Code-level ownership check is the ONLY defence. Don't add a code path that forgets it. Switch to anon-client + RLS via `set_config` long-term (audit #9). |
+| Sub-pixel SVG motion looks jittery | Bump amplitude above ~2px or use `repeatType: "reverse"` on a single target. SVG `<g>` doesn't get GPU layer like a div. |
+| `gh` `Closes #N` keyword auto-closes | Use `Refs #N` until user signs off visually (see `memory/feedback_verify_before_closing.md`). |
 
 ---
 
-## 11. User communication style
+## User communication style
 
-- **Wants momentum.** Short answers, decisive direction. Avoid
-  long-winded explanations of trade-offs unless asked.
-- **Files matter.** They want issues tracked, journal updated,
-  commits with `Closes #N`. Don't leave things untracked.
-- **Likes the mascots and brand voice.** "Cool but restrained" is
-  the bar. No AI-SaaS aesthetic — see CLAUDE.md §5.
-- **Reviews via screenshots.** They drop screenshots in `review/`
-  and tell you to check. Always look at the actual images via the
-  Read tool.
-- **Tolerates iteration.** Several rounds of "the mascot still
-  isn't right" were friendly, not annoyed. Keep going.
-- **Doesn't lecture you back.** When they correct something, fix it
-  + move on. Don't apologise excessively.
-- **Hates verbose copy.** They've explicitly cut my microcopy
-  ("looks hella cheap", "just nice try smarty pants"). When in
-  doubt, ship less text.
-- **Wants the journal accurate.** Don't claim fixes that didn't
-  land. (I burned trust here — phantom Edit commits. Grep verify.)
+- **Wants momentum.** Short decisive answers. No long trade-off essays.
+- **Files matter.** Issues, journal updates, roadmap ticks. Don't leave
+  things untracked. Per `memory/feedback_roadmap_and_journal_per_commit.md`,
+  the journal + roadmap update lands in the same commit as the code.
+- **Reviews via screenshots in `review/`.** Always Read the actual
+  images.
+- **Tolerates iteration.** Several rounds of "still not right" are
+  friendly. Fix + move; don't apologise excessively.
+- **Hates verbose copy.** Cuts microcopy ruthlessly ("looks hella
+  cheap"). When in doubt, ship less text.
 - **Doesn't speak fluent design.** They describe outcomes ("books
-  are too far back on the z-axis") rather than specifying values.
-  Translate intent → concrete component changes.
+  are too far back on the z-axis"), not values. Translate intent
+  → concrete component changes.
+- **Wants the journal accurate.** Don't claim fixes that didn't
+  land. Grep-verify after Edit.
+- **Don't credit Claude in commits.** No `Co-Authored-By`, no
+  "Generated with Claude Code" footer. See
+  `memory/feedback_no_co_authored_by.md`.
+- **Wait for visual sign-off before closing issues.** See
+  `memory/feedback_verify_before_closing.md`.
 
 ---
 
-## 12. Recent commits (most → least recent)
+## Don't break these
 
-```
-e5fb59e phase-1.6 follow-up #3: book facing fixed, no-zoom hero, real spread bump
-3f5d585 phase-1.6 follow-up #2: env wrapper, all-books-eligible, wider spread, open book
-ffca4a0 docs: bring BUILD-JOURNAL up to date through Phase 1.6 follow-ups
-a7997a5 phase-1.6 follow-up: navbar edges, side cards, smoothing, tabs, /store
-d8329b1 phase-1.6 follow-up: hero polish + live admin overview
-c2a1c8a phase-1.6: storefront hero — scroll-reveal homepage + layered IBDP/IGCSE
-9249340 phase-1.4: hardening — env validator, 404/error, sitemap, OG image
-1c28b95 phase-2.5: admin auth + route middleware
-061673c phase-2.4: customer auth flows — Google + email + magic-link verify
-b2c1f19 phase-2.3: auxiliary schema — access_grants, coupons, community + RLS
-4e09e59 phase-2.2: core schema — users, books, orders, carts + RLS
-5bde065 phase-2.1: Supabase scaffolding + client helpers
-24e345c docs: SETUP-PHASE-2.md — manual setup needed before Phase 2 code
-```
-
----
-
-## 13. Immediate next bug (user-requested for the new session)
-
-**User's words (2026-05-27, end of previous session):**
-
-> the books are really far back on the z-axis bring them closer for
-> all the home page and ibdp and igcse, the home page right before
-> this one looked better
-
-**What this means:**
-The last commit (`e5fb59e`) reduced side-book size from `lg` (288 px) to
-`md` (192 px) AND increased horizontal spread to `260 + (d-1) * 160/150`.
-The combined effect made side books look small + far back. User
-wants them feeling closer + larger (the state before `e5fb59e`).
-
-**What to do:**
-1. File the bug as a GitHub issue using the bug-report template.
-2. Likely fix: revert side cards to `size="lg"` (288 px), reduce
-   spread back to roughly `200 + (d-1) * 100` for layered hero and
-   `220 + (d-1) * 110` for scroll-reveal. Reduce `rotateY` from -22°
-   to ~-15° (less perspective tilt = feels closer). Reduce scale
-   shrink rate (was 0.92 - depth*0.05; try 0.94 - depth*0.04).
-3. Affected files (use Read first, then Edit, then grep to verify):
-   - `src/components/features/store/layered-book-hero.tsx`
-   - `src/components/features/store/scroll-reveal-hero.tsx`
-4. Build + smoke test all three pages (`/`, `/ibdp`, `/igcse`).
-5. Commit with `Closes #<num>` and push. Update BUILD-JOURNAL.
-
-The "right before" state corresponds to commit `3f5d585` — `git diff
-3f5d585..e5fb59e -- src/components/features/store/` shows exactly
-what changed if useful.
-
----
-
-## 14. Quick start checklist for the new instance
-
-1. **Read this whole file.**
-2. `git log --oneline -15` to confirm you're on `e5fb59e`.
-3. `gh issue list --state open` to confirm the 6 deferred items.
-4. `pnpm install` (probably already done, but safe).
-5. `pnpm supabase:start` (via the wrapper — picks up `.env.local`).
-6. `pnpm dev` and open `http://localhost:3000`.
-7. Address the bug in §13 first.
-8. After fixing: file issue → fix → commit with `Closes #N` →
-   `git push origin main` → confirm `gh issue close` happened
-   automatically (or do it manually if not).
-9. Update `BUILD-JOURNAL.md` at the end of the batch. Verify by
-   `grep`-ing for a unique phrase from your additions.
+- The mascot colour separation (`FACE_STROKE` vs `currentColor`).
+- The Tailwind-v4 CSS-first config — never add `tailwind.config.ts`.
+- The `supabase-with-env.sh` wrapper.
+- `ai@gravity.fast` belongs nowhere except (historically) git commit
+  attribution. Anywhere else = bug. (Current git identity is
+  `shubhamsachdeva245@gmail.com`; production owner email is
+  `shubhamhelpseries@gmail.com` — see CLAUDE.md §14.)
+- The `(operational)` route group's no-Framer / no-mesh rule.
+- The print CSS on `/order/[id]/success` (drops nav/footer/buttons
+  so save-as-PDF looks like a clean receipt).
 
 Welcome to the project. Don't break the mascots.
