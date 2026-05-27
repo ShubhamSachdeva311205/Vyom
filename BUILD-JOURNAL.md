@@ -889,14 +889,92 @@ Shipped:
 - No "minicart" drawer yet — clicking the navbar bag goes straight
   to `/cart`. Drawer is a nice-to-have, defer until after 3.1 ships.
 
-### Next up (in order)
+### Phase 3.1 — Razorpay checkout (shipped 2026-05-27)
 
-1. 3.1 — Razorpay order-create Server Action + checkout flow.
-2. 3.1 — `/api/webhooks/razorpay` route + HMAC verify + unit tests.
-3. 3.1 — Coupon validation (student10, teacher10, vendor codes).
-4. 3.2 — `/order/[id]/success` confirmation page.
-5. 3.3 — Shipping logic (Delhivery + settings.free_shipping_enabled).
-6. 3.5 — GST/tax at checkout.
+End-to-end checkout flow with HMAC-verified payment + coupon
+redemption. User has Razorpay test keys in .env.local (23-char
+key_id + 24-char secret); webhook secret to be pasted after
+adding webhook in dashboard (SETUP-PHASE-3.md step 3).
+
+**Database (migration 20260527010000):**
+- SECURITY DEFINER `preview_coupon(code, user_id, eligible_subtotal_paise)`
+  — read-only validity + discount check used by checkout UI.
+- SECURITY DEFINER `redeem_coupon(code, user_id, order_id, eligible_subtotal_paise)`
+  — atomic redemption with `SELECT … FOR UPDATE`. Insert into
+  coupon_redemptions + bump `uses_count` in one transaction. Closes
+  security audit #6 (enumeration via public SELECT — that policy is
+  now DROPPED) and #7 (race condition).
+- Seeded `student10` + `teacher10` as global 10% coupons (one
+  redemption per user enforced via existing UNIQUE constraint).
+
+**Server-side:**
+- `src/lib/razorpay/client.ts` — lazy-instantiated Razorpay SDK
+  wrapper. Throws a clear "see SETUP-PHASE-3.md" error if keys are
+  missing.
+- `src/actions/checkout.ts` — `createRazorpayOrder` (auth gate,
+  cart lookup, totals math, pending_payment order insert,
+  order_items snapshot, atomic coupon redeem via RPC, Razorpay
+  order create, returns ids for client) + `verifyPaymentAndCompleteOrder`
+  (constant-time HMAC verify, flips order to 'paid', stamps
+  payment_id + signature, clears cart, revalidates).
+- `src/app/api/webhooks/razorpay/route.ts` — Razorpay webhook
+  receiver. Constant-time HMAC verify against raw body BEFORE
+  parsing JSON. Idempotent handlers for `payment.captured`,
+  `payment.failed`, `refund.processed`. Returns 503 if
+  WEBHOOK_SECRET not yet configured (loud failure beats silent
+  ignore), 401 for bad sig, 200 otherwise.
+
+**UI:**
+- `/checkout` page — auth gate (`redirect("/sign-in?next=/checkout")`
+  for guests), empty-cart EmptyState fallback, line-items summary,
+  CheckoutForm slot. Hard-coded ₹0 shipping + ₹0 GST until Phases
+  3.3 / 3.5.
+- `src/components/features/store/checkout-form.tsx` — client. Loads
+  `checkout.razorpay.com/v1/checkout.js` via next/script (lazyOnload),
+  coupon + pincode inputs, "Pay with Razorpay" button triggers
+  createRazorpayOrder → opens Razorpay modal → handler calls
+  verifyPaymentAndCompleteOrder → router.push to success page.
+- `/order/[id]/success` page — receipt-style summary, line items,
+  breakdown (subtotal / discount / shipping / GST / total), CTAs
+  back to /dashboard + /store.
+
+**Errors hit during 3.1:**
+
+| Symptom | Fix |
+|---|---|
+| TS error: `Stack gap={0.5}` not in CVA scale | Changed to `gap={1}`. Should add `0.5` to scale if we use it more. |
+| TS error: FormField has no `htmlFor` / `helper` props | FormField uses `description` (not `helper`) and auto-generates ids via `useId`. Dropped htmlFor + renamed prop. |
+| `pnpm build` failed: "RAZORPAY_KEY_ID must start with rzp_live_ in production" | Local `pnpm build` runs with NODE_ENV=production, but we're using test keys. Tightened the validator refinement to gate on `VERCEL_ENV === "production"` instead of `NODE_ENV === "production"` — local CI/build passes, real Vercel prod deploy still enforces rzp_live_. |
+
+**Manual test path (for user):**
+1. `pnpm dev` (already running in bg).
+2. Visit /store → add a book → /cart.
+3. Click /cart → "Checkout — coming with Razorpay" button is now
+   replaced with a real link via the navbar bag → /checkout.
+4. /checkout shows cart summary + coupon input + pincode input +
+   "Pay with Razorpay" button.
+5. (Optional) Type `student10` in the coupon field.
+6. Click Pay → Razorpay test modal opens.
+7. Use a test card from https://razorpay.com/docs/payments/payments/test-card-details/
+   (e.g. 4111 1111 1111 1111, any future expiry, any CVV).
+8. On success → redirect to /order/<id>/success with receipt.
+
+**Not yet wired (deferred):**
+- Webhook secret in .env.local + Razorpay dashboard webhook URL
+  (SETUP-PHASE-3.md step 3). Local checkout works without it —
+  the inline verify is the primary path; webhook is the backup.
+- Cart link on /cart page itself (still says "Checkout — coming
+  with Razorpay" — needs a follow-up edit to link to /checkout).
+  Files: src/app/(storefront)/cart/page.tsx.
+
+### Next up
+
+1. Wire /cart's disabled "Checkout" button to link to /checkout (quick).
+2. 3.3 — Shipping logic (Delhivery + settings.free_shipping_enabled).
+3. 3.5 — GST/tax at checkout.
+4. 3.4 — Refund webhook expansion + admin refund button.
+5. Phase 4 — R2 + watermarked PDF + audio streaming.
+6. Phase 5 — Admin command center (orders kanban + inventory + reports).
 
 Phase 5 admin command center follows after 3.x lands.
 

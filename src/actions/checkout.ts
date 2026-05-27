@@ -1,0 +1,340 @@
+"use server";
+
+/**
+ * Checkout Server Actions — Phase 3.1.
+ *
+ * Two actions:
+ *   - createRazorpayOrder({ couponCode?, pincode? })
+ *       Validates the signed-in user has a non-empty cart, optionally
+ *       redeems a coupon (atomic via redeem_coupon RPC), inserts a
+ *       pending_payment order + order_items snapshot, creates a
+ *       Razorpay order via SDK, returns the ids the Checkout JS modal
+ *       needs.
+ *   - verifyPaymentAndCompleteOrder({ razorpay_order_id, razorpay_payment_id, razorpay_signature })
+ *       Constant-time HMAC verify, flips our order to 'paid', stamps
+ *       the payment id, returns our order id so the client can
+ *       redirect to /order/[id]/success.
+ *
+ * Both follow CLAUDE.md §4: discriminated-union return shape, no
+ * throws on user-facing paths.
+ *
+ * Shipping is hard-coded to ₹0 here. Phase 3.3 wires Delhivery and
+ * settings.free_shipping_enabled. GST stays ₹0 until Phase 3.5.
+ */
+
+import crypto from "node:crypto";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { findCartForOwner, getCartWithItems, resolveCartOwner } from "@/lib/cart/queries";
+import { env } from "@/lib/env";
+import { getRazorpayClient } from "@/lib/razorpay/client";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+
+type ActionResult<T = undefined> =
+  | { success: true; data?: T }
+  | { success: false; error: string };
+
+const PINCODE_REGEX = /^[1-9][0-9]{5}$/;
+const COUPON_REGEX = /^[A-Za-z0-9-_]{3,40}$/;
+
+const createOrderInput = z.object({
+  couponCode: z.string().regex(COUPON_REGEX).optional().or(z.literal("")),
+  pincode: z.string().regex(PINCODE_REGEX).optional().or(z.literal("")),
+});
+
+const verifyInput = z.object({
+  razorpay_order_id: z.string().min(1),
+  razorpay_payment_id: z.string().min(1),
+  razorpay_signature: z.string().min(1),
+});
+
+export interface CreatedOrderPayload {
+  /** Our internal orders.id — used for success-page redirect. */
+  orderId: string;
+  /** Order number (ADV-YYYYMMDD-XXXXX) — shown on receipt. */
+  orderNumber: string;
+  /** Razorpay-side order id (order_XXXX) — the Checkout JS modal needs this. */
+  razorpayOrderId: string;
+  /** Amount in paise as Razorpay sees it. */
+  amountPaise: number;
+  /** ISO currency. Always "INR" for us. */
+  currency: string;
+  /** Razorpay public key id for the Checkout modal. */
+  razorpayKeyId: string;
+  /** Computed breakdown for client-side display. */
+  breakdown: {
+    subtotalPaise: number;
+    discountPaise: number;
+    shippingPaise: number;
+    taxPaise: number;
+    totalPaise: number;
+    couponApplied: string | null;
+  };
+}
+
+/* -----------------------------------------------------------------
+ * createRazorpayOrder
+ * ----------------------------------------------------------------- */
+export async function createRazorpayOrder(
+  formData: FormData,
+): Promise<ActionResult<CreatedOrderPayload>> {
+  const parsed = createOrderInput.safeParse({
+    couponCode: formData.get("couponCode")?.toString().trim() || "",
+    pincode: formData.get("pincode")?.toString().trim() || "",
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: "Coupon or pincode format looks invalid." };
+  }
+
+  const couponCode = parsed.data.couponCode || null;
+  const pincode = parsed.data.pincode || null;
+
+  // 1. Require signed-in user (FFR §A6: guest checkout NOT supported).
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "Please sign in to check out." };
+  }
+
+  // 2. Resolve cart + items.
+  const owner = await resolveCartOwner();
+  if (!owner || owner.kind !== "user" || owner.userId !== user.id) {
+    return { success: false, error: "Could not find your cart." };
+  }
+  const cart = await findCartForOwner(owner);
+  if (!cart) return { success: false, error: "Your cart is empty." };
+
+  const cartWithItems = await getCartWithItems(cart.id);
+  if (!cartWithItems || cartWithItems.items.length === 0) {
+    return { success: false, error: "Your cart is empty." };
+  }
+
+  // 3. Compute totals.
+  const subtotalPaise = cartWithItems.items.reduce(
+    (sum, it) => sum + it.book.price_paise * it.quantity,
+    0,
+  );
+  const eligibleSubtotalPaise = cartWithItems.items.reduce(
+    (sum, it) =>
+      sum + (it.book.discount_eligible ? it.book.price_paise * it.quantity : 0),
+    0,
+  );
+
+  const shippingPaise = 0; // Phase 3.3 will wire Delhivery.
+  const taxPaise = 0; // Phase 3.5 will compute GST.
+
+  // 4. Insert pending order WITHOUT coupon first so we have order_id for
+  //    the atomic redeem_coupon call. discount_paise gets patched after.
+  const service = createServiceClient();
+  const orderNumber = generateOrderNumber();
+
+  const { data: orderRow, error: orderErr } = await service
+    .from("orders")
+    .insert({
+      order_number: orderNumber,
+      user_id: user.id,
+      status: "pending_payment",
+      subtotal_paise: subtotalPaise,
+      discount_paise: 0,
+      shipping_paise: shippingPaise,
+      tax_paise: taxPaise,
+      total_paise: subtotalPaise + shippingPaise + taxPaise,
+      shipping_pincode: pincode,
+    })
+    .select("id, order_number")
+    .single();
+
+  if (orderErr || !orderRow) {
+    return { success: false, error: "Could not open an order. Try again." };
+  }
+
+  // 5. Snapshot order items.
+  const itemRows = cartWithItems.items.map((it) => ({
+    order_id: orderRow.id,
+    book_id: it.book.id,
+    quantity: it.quantity,
+    unit_price_paise: it.book.price_paise,
+  }));
+  const { error: itemsErr } = await service.from("order_items").insert(itemRows);
+  if (itemsErr) {
+    await service.from("orders").delete().eq("id", orderRow.id);
+    return { success: false, error: "Could not snapshot cart items." };
+  }
+
+  // 6. Redeem coupon atomically (SECURITY DEFINER RPC; race-safe).
+  let discountPaise = 0;
+  let couponApplied: string | null = null;
+  if (couponCode) {
+    const { data: redeem, error: redeemErr } = await service.rpc("redeem_coupon", {
+      p_code: couponCode,
+      p_user_id: user.id,
+      p_order_id: orderRow.id,
+      p_eligible_subtotal_paise: eligibleSubtotalPaise,
+    });
+    if (redeemErr) {
+      await service.from("orders").delete().eq("id", orderRow.id);
+      return { success: false, error: "Could not apply coupon. Try again." };
+    }
+    const row = Array.isArray(redeem) ? redeem[0] : redeem;
+    if (!row?.success) {
+      await service.from("orders").delete().eq("id", orderRow.id);
+      return { success: false, error: row?.reason ?? "Coupon is not valid." };
+    }
+    discountPaise = row.discount_paise ?? 0;
+    couponApplied = couponCode;
+  }
+
+  // 7. Patch order with discount + final total.
+  const totalPaise = Math.max(0, subtotalPaise - discountPaise + shippingPaise + taxPaise);
+  await service
+    .from("orders")
+    .update({ discount_paise: discountPaise, total_paise: totalPaise })
+    .eq("id", orderRow.id);
+
+  // 8. Create Razorpay order. Receipt field gets our order_number.
+  let rzpOrder;
+  try {
+    const razorpay = getRazorpayClient();
+    rzpOrder = await razorpay.orders.create({
+      amount: totalPaise,
+      currency: "INR",
+      receipt: orderRow.order_number,
+      notes: { dbOrderId: orderRow.id, userId: user.id },
+    });
+  } catch {
+    await service.from("orders").delete().eq("id", orderRow.id);
+    return { success: false, error: "Razorpay refused the order. Try again." };
+  }
+
+  // 9. Stamp the razorpay_order_id on our row.
+  await service
+    .from("orders")
+    .update({ razorpay_order_id: rzpOrder.id })
+    .eq("id", orderRow.id);
+
+  return {
+    success: true,
+    data: {
+      orderId: orderRow.id,
+      orderNumber: orderRow.order_number,
+      razorpayOrderId: rzpOrder.id,
+      amountPaise: totalPaise,
+      currency: "INR",
+      razorpayKeyId: env.RAZORPAY_KEY_ID ?? "",
+      breakdown: {
+        subtotalPaise,
+        discountPaise,
+        shippingPaise,
+        taxPaise,
+        totalPaise,
+        couponApplied,
+      },
+    },
+  };
+}
+
+/* -----------------------------------------------------------------
+ * verifyPaymentAndCompleteOrder
+ * ----------------------------------------------------------------- */
+export async function verifyPaymentAndCompleteOrder(
+  input: z.infer<typeof verifyInput>,
+): Promise<ActionResult<{ orderId: string }>> {
+  const parsed = verifyInput.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid payment payload." };
+  }
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = parsed.data;
+
+  if (!env.RAZORPAY_KEY_SECRET) {
+    return { success: false, error: "Razorpay secret missing on server." };
+  }
+
+  // Constant-time HMAC verify per Razorpay docs: SHA256(order_id|payment_id, secret).
+  const expected = crypto
+    .createHmac("sha256", env.RAZORPAY_KEY_SECRET)
+    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+    .digest("hex");
+
+  const sigOk = safeEqualHex(expected, razorpay_signature);
+  if (!sigOk) {
+    return { success: false, error: "Payment signature did not verify." };
+  }
+
+  // Find our order by razorpay_order_id (service-role: we only trust the
+  // verified signature above to authorize the flip).
+  const service = createServiceClient();
+  const { data: order, error: orderErr } = await service
+    .from("orders")
+    .select("id, status, user_id")
+    .eq("razorpay_order_id", razorpay_order_id)
+    .maybeSingle();
+
+  if (orderErr || !order) {
+    return { success: false, error: "Order not found." };
+  }
+
+  // Verify the signed-in user owns this order — defense in depth.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || user.id !== order.user_id) {
+    return { success: false, error: "Order does not belong to you." };
+  }
+
+  // Idempotent: if already paid (e.g. webhook beat us here), short-circuit.
+  if (order.status !== "pending_payment") {
+    return { success: true, data: { orderId: order.id } };
+  }
+
+  const { error: updErr } = await service
+    .from("orders")
+    .update({
+      status: "paid",
+      razorpay_payment_id,
+      razorpay_signature,
+      paid_at: new Date().toISOString(),
+    })
+    .eq("id", order.id);
+
+  if (updErr) {
+    return { success: false, error: "Could not finalise the order." };
+  }
+
+  // Clear the cart now that payment captured.
+  const ownerCart = await findCartForOwner({ kind: "user", userId: user.id });
+  if (ownerCart) {
+    await service.from("cart_items").delete().eq("cart_id", ownerCart.id);
+  }
+
+  revalidatePath("/cart");
+  revalidatePath("/dashboard");
+
+  return { success: true, data: { orderId: order.id } };
+}
+
+/* -----------------------------------------------------------------
+ * helpers
+ * ----------------------------------------------------------------- */
+function generateOrderNumber(): string {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(now.getUTCDate()).padStart(2, "0");
+  // 5 random base36 chars — collision-resistant enough at our volume,
+  // and short enough to read aloud on a support call.
+  const suffix = crypto.randomBytes(4).toString("base64url").slice(0, 5).toUpperCase();
+  return `ADV-${y}${m}${d}-${suffix}`;
+}
+
+function safeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
+  } catch {
+    return false;
+  }
+}

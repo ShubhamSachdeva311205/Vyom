@@ -82,8 +82,11 @@ export default async function CartPage() {
                     Shipping + any coupons apply at checkout. Bangalore + small
                     orders ship free; everywhere else uses Delhivery rates.
                   </p>
-                  <Button size="md" disabled className="w-full">
-                    Checkout — coming with Razorpay
+                  <Button asChild size="md" className="w-full">
+                    <Link href="/checkout">
+                      Checkout
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </Link>
                   </Button>
                 </Stack>
               </Card>

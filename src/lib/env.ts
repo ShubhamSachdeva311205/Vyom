@@ -15,12 +15,16 @@ const productionOnly = (msg: string) =>
     message: msg,
   });
 
+// Only refuse rzp_test_ on Vercel production deploys, not on local
+// `pnpm build` (which also runs with NODE_ENV=production but shouldn't
+// require live keys — local dev + CI use test keys).
+const isProdDeploy = process.env.VERCEL_ENV === "production";
+
 const razorpayKeyId = z
   .string()
   .optional()
   .refine(
-    (val) =>
-      process.env.NODE_ENV !== "production" || !val || val.startsWith("rzp_live_"),
+    (val) => !isProdDeploy || !val || val.startsWith("rzp_live_"),
     { message: "RAZORPAY_KEY_ID must start with rzp_live_ in production" },
   );
 

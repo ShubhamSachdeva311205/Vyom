@@ -717,6 +717,31 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
+      preview_coupon: {
+        Args: {
+          p_code: string
+          p_eligible_subtotal_paise: number
+          p_user_id: string
+        }
+        Returns: {
+          discount_paise: number
+          reason: string
+          valid: boolean
+        }[]
+      }
+      redeem_coupon: {
+        Args: {
+          p_code: string
+          p_eligible_subtotal_paise: number
+          p_order_id: string
+          p_user_id: string
+        }
+        Returns: {
+          discount_paise: number
+          reason: string
+          success: boolean
+        }[]
+      }
     }
     Enums: {
       access_source: "order" | "amazon" | "manual" | "refund_revoked"
