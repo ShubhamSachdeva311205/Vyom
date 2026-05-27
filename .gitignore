@@ -46,6 +46,13 @@ razorpay_*.csv
 *-credentials.json
 *-service-account*.json
 
+# user-uploaded sample invoices / receipts / personal docs dropped
+# into the repo root for inspection. Move to review/ if you want
+# them tracked OR leave at root and they'll be ignored.
+Sale_*.pdf
+Invoice_*.pdf
+*.invoice.pdf
+
 # vercel
 .vercel
 
