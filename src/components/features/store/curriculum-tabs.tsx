@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Row, Stack } from "@/components/layouts/stack";
+import { AddToCartButton } from "@/components/features/store/add-to-cart-button";
 import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
@@ -109,11 +110,7 @@ function OrderBookCard({ book }: { book: Book }) {
           ) : null}
           <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
         </Stack>
-        <Row gap={2}>
-          <Button size="sm" className="flex-1" disabled>
-            Order — coming soon
-          </Button>
-        </Row>
+        <AddToCartButton bookId={book.id} bookTitle={book.title} block />
       </Stack>
     </Card>
   );

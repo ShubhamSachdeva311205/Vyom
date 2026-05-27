@@ -830,8 +830,72 @@ so future sessions inherit the rule.
 
 ---
 
-## Phase 3+ · Pending
+## Phase 3 · Payments, discounts, shipping
 
-Per `design/feature-reference-diff.md` decisions: cart + Razorpay +
-order confirmation + shipping logic + GST. Phase 5 admin command
-center follows.
+**Status:** In progress — 3.2 cart shipped, Razorpay/discount/shipping pending.
+
+### Phase 3.2 — cart Server Actions + /cart shell (commit `_pending_`)
+
+Decisions locked with the user before code: cart lives in the
+**Supabase carts table** (not localStorage); merge guest cart into
+user cart on sign-in (not replace, not prompt); add-to-cart buttons
+**inline on existing cards** (no PDP detail pages for v1).
+
+Shipped:
+
+- `src/lib/cart/session.ts` — anonymous-session cookie helper
+  (`adv_cart_session`, HttpOnly, 1-year max-age, secure in prod).
+- `src/lib/cart/queries.ts` — `resolveCartOwner` (user_id beats anon
+  cookie when both present), `findCartForOwner`,  `getOrCreateCart`,
+  `getCartWithItems`, `getCurrentCart`, `getCurrentCartItemCount`.
+  Uses the service-role client + explicit ownership checks (anon
+  RLS would need a `set_config` per request).
+- `src/actions/cart.ts` — `addToCart` (upserts on collisions, caps
+  at qty 99), `updateCartItemQuantity` (0 removes), `removeCartItem`,
+  `mergeAnonymousCartIntoUserCart` (re-attaches or merges line by
+  line, deletes anon cart, clears cookie). All return the project
+  discriminated union per CLAUDE.md §4.
+- `src/components/features/store/add-to-cart-button.tsx` —
+  client button with pending / just-added / default states and a
+  sonner toast on error.
+- `src/components/features/store/cart-line-row.tsx` — qty stepper
+  (+/− with tabular-nums display) + trash button + per-line subtotal.
+- `src/app/(storefront)/cart/page.tsx` — `/cart` page. Empty state
+  via `<EmptyState>` (§11). Hydrated list, subtotal, disabled
+  Checkout button pending Phase 3.1 Razorpay wiring.
+- Wiring: `StoreListing` and `CurriculumTabs` `OrderBookCard` now
+  use `<AddToCartButton>` instead of the disabled
+  "Order — coming soon" placeholder. Navbar cart icon links to
+  `/cart` + shows a brand-coloured count badge (server-fetched once
+  per render via `getCurrentCartItemCount`).
+- Auth hooks: `/auth/callback/route.ts` and `src/actions/auth.ts`
+  signIn both call `mergeAnonymousCartIntoUserCart` post-auth. Best-
+  effort — caught and swallowed so a merge failure can't block
+  sign-in (idempotent on retry).
+
+### Errors hit during 3.2
+
+| Symptom | Fix |
+|---|---|
+| TS error inserting into `carts` with a discriminated-union literal | Widen explicitly to `{ user_id: string \| null; anonymous_session_id: string \| null }`. The DB CHECK constraint still enforces exactly one is non-null. |
+| Stale "Order — coming soon" disabled `Button` in CurriculumTabs leaves `Button` import as the last user → still needed for `LockedAccessCard`'s Locked button. No prune needed. | n/a |
+
+### Open follow-ups for 3.2
+
+- Inventory `stock_count` is not yet decremented on `addToCart` —
+  we hold stock at payment-success time only. This means cart count
+  could exceed available stock. Need to add a pre-checkout availability
+  check + a "low stock" badge on the cart line. File when wiring 3.1.
+- No "minicart" drawer yet — clicking the navbar bag goes straight
+  to `/cart`. Drawer is a nice-to-have, defer until after 3.1 ships.
+
+### Next up (in order)
+
+1. 3.1 — Razorpay order-create Server Action + checkout flow.
+2. 3.1 — `/api/webhooks/razorpay` route + HMAC verify + unit tests.
+3. 3.1 — Coupon validation (student10, teacher10, vendor codes).
+4. 3.2 — `/order/[id]/success` confirmation page.
+5. 3.3 — Shipping logic (Delhivery + settings.free_shipping_enabled).
+6. 3.5 — GST/tax at checkout.
+
+Phase 5 admin command center follows after 3.x lands.

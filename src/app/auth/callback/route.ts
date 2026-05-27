@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { mergeAnonymousCartIntoUserCart } from "@/actions/cart";
 import { createClient } from "@/lib/supabase/server";
 
 /**
  * OAuth + email-confirmation callback. Exchanges the `code` query param
- * for a session, sets the auth cookies, and redirects.
+ * for a session, sets the auth cookies, merges any anonymous cart into
+ * the user's cart, and redirects.
  *
  * Both Google OAuth and email signup confirmations land here:
  *   - Google: code from Supabase's /auth/v1/callback after Google redirect.
@@ -18,6 +20,12 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Best-effort cart merge — never block the redirect if it fails.
+      // The merge is idempotent (no-op if there's no anon cookie or
+      // no anon cart on the server) so a retry on next sign-in would
+      // recover anyway.
+      await mergeAnonymousCartIntoUserCart().catch(() => undefined);
+
       const safeNext = next.startsWith("/") ? next : "/";
       return NextResponse.redirect(`${origin}${safeNext}`);
     }

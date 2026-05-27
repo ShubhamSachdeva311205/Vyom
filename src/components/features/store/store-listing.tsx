@@ -3,9 +3,9 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Row, Stack } from "@/components/layouts/stack";
+import { AddToCartButton } from "@/components/features/store/add-to-cart-button";
 import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
@@ -96,9 +96,7 @@ function StoreBookCard({ book }: { book: Book }) {
           ) : null}
           <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
         </Stack>
-        <Button size="sm" className="w-full" disabled>
-          Order — coming soon
-        </Button>
+        <AddToCartButton bookId={book.id} bookTitle={book.title} block />
       </Stack>
     </Card>
   );

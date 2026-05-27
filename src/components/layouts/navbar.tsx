@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { getCurrentCartItemCount } from "@/lib/cart/queries";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Mascot } from "@/components/ui/mascot";
@@ -40,9 +41,12 @@ interface NavbarProps {
  */
 export async function Navbar({ className }: NavbarProps) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user },
+    },
+    cartItemCount,
+  ] = await Promise.all([supabase.auth.getUser(), getCurrentCartItemCount()]);
 
   const admin = isAdminEmail(user?.email);
 
@@ -77,8 +81,32 @@ export async function Navbar({ className }: NavbarProps) {
           </nav>
 
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" aria-label="Cart">
-              <ShoppingBag />
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              aria-label={
+                cartItemCount > 0 ? `Cart, ${cartItemCount} items` : "Cart"
+              }
+              className="relative"
+            >
+              <Link href="/cart">
+                <ShoppingBag />
+                {cartItemCount > 0 ? (
+                  <span
+                    className={cn(
+                      "absolute -top-0.5 -right-0.5",
+                      "min-w-[18px] h-[18px] px-1 rounded-full",
+                      "bg-brand text-brand-foreground",
+                      "text-[10px] font-semibold leading-[18px] text-center",
+                      "tabular-nums tracking-tight",
+                    )}
+                    aria-hidden="true"
+                  >
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </span>
+                ) : null}
+              </Link>
             </Button>
             <ThemeToggle />
             {user ? (

@@ -9,6 +9,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { mergeAnonymousCartIntoUserCart } from "@/actions/cart";
 import { isDisposableEmail } from "@/lib/auth/disposable";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -98,6 +99,9 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { success: false, error: error.message };
   }
+
+  // Best-effort cart merge — never block sign-in success on it.
+  await mergeAnonymousCartIntoUserCart().catch(() => undefined);
 
   return { success: true };
 }
