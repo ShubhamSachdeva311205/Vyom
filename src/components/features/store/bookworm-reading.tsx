@@ -22,21 +22,21 @@ interface BookwormReadingProps {
   size?: "sm" | "md" | "lg";
 }
 
-const FLOAT_DURATION = 4.5;
-const BOOK_FLOAT = {
-  y: [0, -5, 0],
-  rotate: [-3, 3, -3],
-};
-// Same period, much smaller amplitude — eyes "follow" the book.
-const PUPIL_FLOAT = {
-  x: [-1, 1.5, -1],
-  y: [0, -0.8, 0],
-};
+const FLOAT_DURATION = 5;
+// Repeat-reverse on a single target gives a sinusoidal in-out that
+// keeps the motion continuous instead of stepping through 3 keyframes.
+// Bigger amplitude on the pupils too — sub-1px motion was rendering
+// as flicker on the SVG sub-element (no GPU layer like a div wrapper
+// gets). Issue #52.
+const BOOK_FLOAT = { y: -6, rotate: 3 };
+const PUPIL_FLOAT = { x: 3, y: -2 };
 const FLOAT_TRANSITION = {
-  duration: FLOAT_DURATION,
+  duration: FLOAT_DURATION / 2,
   repeat: Infinity,
+  repeatType: "reverse" as const,
   ease: "easeInOut" as const,
 };
+const BOOK_INITIAL = { y: 0, rotate: -3 };
 
 export function BookwormReading({ className, size = "md" }: BookwormReadingProps) {
   const reduce = useReducedMotion();
@@ -65,6 +65,7 @@ export function BookwormReading({ className, size = "md" }: BookwormReadingProps
           left: "76%",
           translateX: "-50%",
         }}
+        initial={reduce ? false : BOOK_INITIAL}
         animate={reduce ? undefined : BOOK_FLOAT}
         transition={FLOAT_TRANSITION}
       >

@@ -185,6 +185,28 @@ Subphase 5.5: Admin Allowlist Management (Issue #10)
 
     [ ] Guards: can't remove yourself, can't reduce list below one admin.
 
+Subphase 5.7: Sales reports + financial dashboard (Issue #70)
+
+    [ ] /admin/reports route with date-range picker (today / week / month / 3m / 6m / YTD / year / custom).
+
+    [ ] KPI cards: gross revenue, net revenue, shipping collected, refunds, net profit, order count, AOV, repeat rate.
+
+    [ ] Per-order expense breakdown (COGS, Delhivery cost, Razorpay fee, net profit columns).
+
+    [ ] Combined weekly/monthly/3m/6m/yearly stacked charts.
+
+Subphase 5.8: Data analytics dashboards (Issue #71)
+
+    [ ] /admin/analytics route. Sales by pincode/city/curriculum/book/coupon, top sellers, time-of-day, repeat-rate cohort, conversion funnel.
+
+    [ ] Charts rendered server-side (recharts or SVG-only). All aggregations Supabase-side.
+
+Subphase 5.9: Excel exports (Issue #72)
+
+    [ ] "Download as Excel" button on every admin list view (orders/customers/coupons/grants/audit/reports).
+
+    [ ] Server Action streams .xlsx via exceljs. Log exports to admin_audit_logs with row count.
+
 Subphase 5.6: Admin Mobile QA
 
 Subphase 5.4: Admin Mobile QA
@@ -281,7 +303,7 @@ PHASE 9: DEPLOYMENT (split from old Phase 7)
 
 PHASE 10: FUTURE SCALING
 
-    [ ] Local Ollama chatbot for syllabus queries via Cloudflare Tunnel.
+    [ ] AI assistant on local Ollama — Gemma3-class model on Shubham's home PC (i5, 8GB), Cloudflare Tunnel. Two surfaces: admin chat for mom (orders/drafts/summaries) + storefront widget for customers (syllabus + grammar Q&A only). Issue #73.
 
     [ ] Wishlist + reviews/ratings.
 
@@ -292,3 +314,31 @@ PHASE 10: FUTURE SCALING
     [ ] Author/contributor profiles for Creative Corner.
 
     [ ] Print-on-demand workflow for low-stock SKUs.
+
+PHASE 8.7: Security hardening sweep (Issue #76 umbrella)  [added 2026-05-27]
+
+Cross-cutting hardening pass before launch. Audit findings dated 2026-05-27 in BUILD-JOURNAL.md "Pre-Phase-3 security audit" section. Run `/security-audit` skill any time to re-probe.
+
+    [ ] P0: Admin gate drift — middleware reads ADMIN_EMAILS env, is_admin() reads DB. Replace isAdminEmail() with SECURITY DEFINER RPC. Issue #74.
+
+    [ ] P0: First-admin takeover — magic-link fires for any address in env without DB verification. Require admin_emails ⨝ auth.users before OTP. Issue #75.
+
+    [ ] P1: Open redirect — `//evil.com` bypasses `startsWith("/")` filter in callback + middleware.
+
+    [ ] P1: Cart cookie unsigned bearer — HMAC-sign, shorten TTL, add __Host- prefix.
+
+    [ ] P1: CSRF — add experimental.serverActions.allowedOrigins to next.config.ts.
+
+    [ ] P1: Coupon public SELECT lets anon enumerate codes — drop policy, gate via redeem_coupon() RPC.
+
+    [ ] P1: Coupon race condition — implement redeem_coupon() with SELECT … FOR UPDATE.
+
+    [ ] P1: Disposable-email bypass — canonicalize Gmail, punycode-normalize domains, reject mixed-script local-parts.
+
+    [ ] P1: Service-role in cart user-facing path — refactor to anon client + RLS via set_config.
+
+    [ ] P1: Sign-in error oracle — collapse all auth errors to one user-facing string.
+
+    [ ] P1: Security headers absent — CSP, HSTS, X-Frame-Options, etc. in next.config.ts.
+
+    [ ] P1: No rate limiting — add in-process token bucket per IP until Cloudflare lands.

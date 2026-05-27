@@ -362,6 +362,69 @@ Desktop: sidebar nav. Mobile: bottom tab bar or hamburger.
 - Filterable by action type
 - Read-only
 
+## C11. Sales Reports + Financial Dashboard (`/admin/reports`)  [added 2026-05-27]
+- Time-range picker: today / this week / this month / last 30d /
+  last 90d / last 6m / YTD / last year / custom range.
+- KPI cards across the top: gross revenue, net revenue (after
+  discounts), shipping collected, refunds, **net profit**
+  (gross − COGS − shipping cost − refunds − transaction fees),
+  order count, average order value, repeat customer rate.
+- Per-order expense breakdown: each order row in the orders table
+  gains COGS, shipping cost paid to Delhivery, Razorpay fee,
+  and net profit columns.
+- Combined views: weekly / monthly / 3m / 6m / yearly stacked
+  charts (revenue + profit overlay).
+- Each KPI clicks through to a filtered order list backing it.
+- Drives the data analytics dashboard (§C12) — same date-range
+  picker, same data source.
+- Tracked: Issue #70.
+
+## C12. Data Analytics Dashboards (`/admin/analytics`)  [added 2026-05-27]
+- **Sales demographics**: orders by pincode, by city, by curriculum
+  (IBDP vs IGCSE), by book, by discount-code used vs unused.
+- **Top-selling books**: ranked by units + by revenue, per period.
+- **Time-of-day / day-of-week patterns**: hour-of-day heatmap +
+  weekday bar.
+- **Cohort + repeat-rate**: customers who placed > 1 order; days
+  between first and second order.
+- **Conversion funnel**: store visits → add-to-cart → checkout
+  start → payment success (uses PostHog from Phase 8.2 once that
+  lands; until then, server-side counters on orders + carts).
+- All views read from Supabase aggregations (no client-side
+  number crunching). Charts rendered server-side via a small
+  charting lib (e.g. `recharts` if shipping the bundle is OK,
+  otherwise SVG-only `<polyline>` for the simple ones).
+- Tracked: Issue #71.
+
+## C13. Excel Exports (`.xlsx`)  [added 2026-05-27]
+- Every admin list view (orders / customers / coupons / access
+  grants / audit log / reports) gains a "Download as Excel" button
+  in the page header.
+- Server Action streams a `.xlsx` (via `exceljs` or equivalent),
+  filename pattern: `advaita-<view>-<YYYYMMDD>.xlsx`.
+- Reports view downloads include the full per-order expense
+  breakdown so Seema can hand it to the accountant.
+- All downloads logged to `admin_audit_logs` with the row count
+  exported.
+- Tracked: Issue #72.
+
+## C14. AI Assistant — Local Ollama (deferred to Phase 10)  [added 2026-05-27]
+- Runs on Shubham's home PC (i5, 8GB RAM, 24×7 uptime). Model:
+  Gemma3-class or similar small open-weight model. Exposed via
+  Cloudflare Tunnel.
+- **Admin-facing surface** (mom's panel): chat sidebar in /admin.
+  Can answer "how many IGCSE Paper 1 sold this week", "draft a
+  shipping-delay email to <customer>", "summarise today's
+  activity", "find the order with tracking number X".
+- **Customer-facing surface** (storefront widget): syllabus +
+  grammar Q&A, "which book should I buy?" recommendations.
+  Strictly tutoring questions — never order status / payment /
+  personal-data queries (those go through the normal flow).
+- Both surfaces hit the same model via a `POST /api/ollama` proxy
+  with API-key auth. Storefront widget is gated behind a feature
+  flag so it can be toggled off if the home PC is down.
+- Tracked: Issue #73.
+
 ---
 
 # SECTION D — TRANSACTIONAL EMAILS (Resend)

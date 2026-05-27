@@ -899,3 +899,88 @@ Shipped:
 6. 3.5 — GST/tax at checkout.
 
 Phase 5 admin command center follows after 3.x lands.
+
+---
+
+## Backlog expansion (2026-05-27)
+
+Spawned two background agents to widen the issue tracker before
+Phase 3.1 starts:
+
+**FFR sweep (21 new issues, #53–#73)** — every FFR sub-section that
+isn't already shipped/tracked got an issue:
+- A5/A6 storefront PDP + checkout flow (#53, #54)
+- A7/A8 community + feedback forms (#55, #56)
+- B1–B4 customer dashboard (#57, #58, #59)
+- C2–C10 admin command center (#60–#68)
+- Phase 7 transactional emails umbrella (#69)
+- New user asks: sales reports (#70), analytics (#71), Excel
+  export (#72), local Ollama AI assistant (#73)
+- Created missing labels phase/3, phase/4, phase/6, phase/10.
+
+**Pre-Phase-3 security audit (21 findings, 2 P0 + 11 P1 + 5 P2 + 3
+P3-deferred)** — full report below; tracking via umbrella #76 plus
+individual #74 #75 for the P0s. Re-runnable any time via the
+`/security-audit` skill (`.claude/skills/security-audit/SKILL.md`).
+
+### Pre-Phase-3 security audit (2026-05-27) — findings table
+
+| # | Sev | Category | What's exploitable |
+|---|-----|----------|-----|
+| 1 | **P0** | Admin gate drift | middleware reads ADMIN_EMAILS env; `is_admin()` reads admin_emails DB → stale-env adds/revokes don't propagate. Issue #74. |
+| 2 | **P0** | First-admin takeover | OTP fires for any env-listed email without DB verification. Issue #75. |
+| 3 | P1 | Cart cookie | UUIDv4 acts as unsigned bearer token, 1-year TTL, no rotation. |
+| 4 | P1 | CSRF | No explicit `experimental.serverActions.allowedOrigins`; SameSite=Lax on cart cookie. |
+| 5 | P1 | Open redirect | `next=//evil.com` bypasses `startsWith("/")` in callback + middleware. |
+| 6 | P1 | Coupon enumeration | Public SELECT on `coupons` lets anon dump every active code. |
+| 7 | P1 | Coupon race | No SECURITY DEFINER `redeem_coupon()` — parallel POSTs can exceed `max_uses`. |
+| 8 | P1 | Disposable email | Gmail dots/+suffix not canonicalized; IDN lookalikes pass. |
+| 9 | P1 | Service-role in cart | All cart writes use service-role + code-level ownership check — no RLS backstop. |
+| 10 | P1 | Sign-in error oracle | Raw Supabase errors forwarded to UI = account enumeration. |
+| 11 | P1 | Headers absent | No CSP / HSTS / X-Frame-Options / etc. in next.config.ts. |
+| 12 | P1 | No rate limiting | Sign-in / sign-up / OTP / addToCart all unthrottled. |
+| 13 | P2 | Anon cookie hardening | `__Host-` prefix + rotation-on-auth missing. |
+| 14 | P2 | Site URL trust | `resolveSiteUrl()` falls back to client-controlled Host header. |
+| 15 | P2 | Mass assignment | signUp passes whole formData → auth.users.raw_user_meta_data. |
+| 16 | P2 | content_submissions wide-open | Anon insert with `with check (true)`; no length cap, no captcha. |
+| 17 | P2 | users.role dead code | Column writeable but no longer read by `is_admin()`. |
+| 18 | P3 | Razorpay HMAC | Phase 3.1 — verify X-Razorpay-Signature in constant time + idempotency. |
+| 19 | P3 | Streaming + watermark | Phase 4 — short-TTL signed URLs, per-request watermark. |
+| 20 | P3 | File uploads | Phase 5.3 — MIME by magic-bytes, EXIF strip, store outside webroot. |
+| 21 | P3 | Env exposure | Currently clean; keep `SERVICE_ROLE` out of `.next/static/**`. |
+
+### Clean (no findings)
+- ✅ No SQL injection surface (Supabase client parameterized throughout).
+- ✅ No `dangerouslySetInnerHTML` anywhere.
+- ✅ No `eval` / `new Function`.
+- ✅ HttpOnly + Secure (prod) + SameSite=Lax on anon-cart cookie.
+
+### `/security-audit` skill
+
+`.claude/skills/security-audit/SKILL.md` defines the re-runnable
+probe battery. Ten Python scripts (header check, open-redirect probe,
+admin-gate bypass, SQLi, cart IDOR, coupon brute-force, disposable-
+email bypass, rate-limit probe, dot-file exposure, XSS placeholder).
+Default target localhost:3000. Refuses non-localhost / non-allowlist
+hosts without explicit user confirmation. Output convention: one
+line per probe with `OK` / `MISS` / `FAIL` / `LEAK` / `BYPASS` /
+`SLOW` / `RACE` token; `grep -E '^  (FAIL|LEAK|BYPASS|RACE)'` gives
+a clean exploit summary.
+
+### Bookworm jitter (Issue #52)
+
+Pupil amplitudes were sub-pixel (`x: [-1, 1.5, -1]`) on an SVG
+sub-element that doesn't get the GPU layer a div wrapper gets →
+visible flicker. Replaced 3-point keyframes with single-target
++ `repeatType: "reverse"`, bumped amplitude (`x: 3, y: -2` for
+pupils; `y: -6, rotate: 3` for book) and pulled the book's
+`initial` to `{ y: 0, rotate: -3 }` so the reverse motion starts
+clean. Smoother sinusoidal feel, no jitter.
+
+### Commit attribution rule change (2026-05-27)
+
+Per user: drop the `Co-Authored-By: Claude …` trailer from commits
++ no "🤖 Generated with Claude Code" footer on PR bodies. Commits
+already attribute to Shubham via the local git config; the trailer
+just added noise. CLAUDE.md §14 updated; rule saved to memory at
+`memory/feedback_no_co_authored_by.md`.

@@ -165,17 +165,21 @@ Empty states must never feel broken. Every empty state must:
 
 ---
 
-## 14. EMAIL IDENTITIES (decided 2026-05-26)
-- **`ai@gravity.fast`** is the Claude Code git-config identity. It exists
-  only so commits attribute correctly. **It is NEVER the production
-  admin, customer, support, or operations email.** Don't use it in
-  `ADMIN_EMAILS`, docs, mascot copy, OAuth consent screens, or anywhere
-  else customer-facing.
-- **`shubhamhelpseries@gmail.com`** is the actual business owner email.
-  Use this for:
+## 14. EMAIL IDENTITIES + COMMIT ATTRIBUTION (decided 2026-05-26, revised 2026-05-27)
+- The local git identity is **Shubham**
+  (`shubhamsachdeva245@gmail.com` / `ShubhamSachdeva311205`). All
+  commits attribute to him. Do not change this.
+- **`shubhamhelpseries@gmail.com`** is the actual business owner email
+  (separate from the git identity). Use it for:
   - `ADMIN_EMAILS` allowlist
   - Google Cloud Console OAuth consent screen (support + developer email)
   - SETUP docs (when showing example values)
   - Any production-touching identity field
-- Anywhere you see `ai@gravity.fast` in source / docs (other than
-  literal git commit attribution), it's a bug — fix on sight.
+- **`ai@gravity.fast`** is a legacy Claude Code attribution string. It
+  is NEVER the production admin, customer, support, or operations
+  email. Anywhere it shows up in source / docs (other than this note),
+  it's a bug — fix on sight.
+- **Do NOT add a `Co-Authored-By: Claude …` trailer to commit
+  messages.** Commits go in as Shubham only. (User asked 2026-05-27 —
+  they don't want Claude credited as a co-author.) Same rule for PR
+  bodies: no "🤖 Generated with Claude Code" footer.

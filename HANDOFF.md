@@ -1,11 +1,15 @@
-# Advaita — Session Handoff (2026-05-27)
+# Advaita — Session Handoff (2026-05-27, revised end-of-day)
 
 This file is for the **next Claude Code instance**. Read it end-to-end
 before touching any code. It captures decisions, conventions,
 gotchas, and state that aren't obvious from `git log` or the file tree.
 
-The earlier session is at ~99% context and being closed out. Pick up
-from commit `e5fb59e` (HEAD of `main`).
+HEAD of `main` is currently the Phase 3.2 cart commit. Phase 1.6
+storefront-hero arc is done (#46 #47 #48 #51 all closed user-verified);
+Phase 3.2 cart shipped end-to-end (server actions, /cart page, navbar
+badge, auth-merge); Phase 3.1 Razorpay is the next deliverable
+(blocked on user pasting RAZORPAY_KEY_ID / SECRET / WEBHOOK_SECRET
+into `.env.local` — see SETUP-PHASE-3.md).
 
 ---
 
@@ -75,16 +79,19 @@ SETUP-PHASE-2.md    — Docker/Supabase/Google OAuth setup steps for the user
 | 1.3 — Page shells | ✅ done | route groups, all 14 routes prerender |
 | 1.4 — Hardening | ✅ done | env validator, error/404, sitemap, OG image |
 | 1.5 — Mascot expansion + cover infra | ✅ done | 6 mascots; OCR script + manual map |
-| 1.6 — Storefront hero | 🟡 in progress | scroll-reveal + layered hero + curriculum tabs + /store |
-| 2 — Database & Auth | ✅ done | 14 tables, customer + admin auth, middleware |
-| 3 — Payments, Discounts, Shipping | ⏳ not started | next big phase |
+| 1.6 — Storefront hero | ✅ done | scroll-reveal + layered hero + curriculum tabs + /store + bookworm vignette |
+| 2 — Database & Auth | ✅ done (Google OAuth deferred → Phase 7, Issue #7) | 14 tables, customer + admin auth, middleware |
+| 3.2 — Cart (server-backed) | ✅ done | carts/cart_items + Server Actions + /cart + navbar badge + auth-merge |
+| 3.1 — Razorpay + checkout | 🟡 next | Awaiting user to paste keys per SETUP-PHASE-3.md |
+| 3.3 — Shipping (Delhivery) | ⏳ after 3.1 | |
+| 3.5 — GST/tax | ⏳ after 3.1 | |
 | 4 — R2 + watermarked PDF + audio | ⏳ pending | |
-| 5 — Admin command center | ⏳ pending | |
+| 5 — Admin command center | ⏳ pending | + new 5.7 reports / 5.8 analytics / 5.9 Excel |
 | 6 — Community | ⏳ pending | |
-| 7 — Transactional emails (Resend) | ⏳ pending | |
-| 8 — Polish & launch readiness | ⏳ pending | SEO, analytics, a11y, perf, backup drill |
+| 7 — Transactional emails (Resend) | ⏳ pending | + Google OAuth carry-over (Issue #7) |
+| 8 — Polish & launch readiness | ⏳ pending | + 8.7 security hardening sweep (Issue #76 umbrella) |
 | 9 — Deployment (Vercel + Cloudflare) | ⏳ pending | |
-| 10 — Future scaling | ⏳ deferred | Ollama chatbot, etc. |
+| 10 — Future scaling | ⏳ deferred | local Ollama AI assistant (admin + customer), Issue #73 |
 
 See `roadmap.txt` for the full sub-phase list.
 
@@ -339,16 +346,26 @@ Email/password sign-up works.
 
 ---
 
-## 9. Open GitHub issues (6, all deferred or pending user)
+## 9. Open GitHub issues
+
+As of end-of-day 2026-05-27, there are ~30 open issues spanning the
+remaining phases. Most were filed by the end-of-day backlog sweep —
+21 feature requests covering FFR §A6–C10 + admin reports / analytics
+/ Excel / AI assistant (#53–#73), plus the security umbrella + P0s
+(#74 #75 #76), plus a few small chores. Pulled list is `gh issue
+list --state open`. Key items below:
 
 | # | Type | Title | Status |
 |---|---|---|---|
-| #2 | feature · P2 · phase/8 | Ambient brand decoration (floating books + scattered companions) | Deferred to Phase 8.5 |
+| #2 | feature · P2 · phase/8 | Ambient brand decoration | Deferred to Phase 8.5 |
 | #3 | docs · P2 · phase/2 | Mailpit-vs-real-inbox confusion | Surface in SETUP-PHASE-2.md when convenient |
-| #5 | bug · P3 · phase/8 | Disposable email scale (Kickbox API) | Deferred to Phase 8 |
-| #7 | docs · P2 · phase/2 | Google OAuth `redirect_uri_mismatch` | User action in GCP |
+| #5 | bug · P3 · phase/8 | Disposable email scale (Kickbox API) | Deferred to Phase 8 (see also #76 finding #8) |
+| #7 | docs · P2 · phase/7 | Google OAuth `redirect_uri_mismatch` | User action in GCP — deferred to Phase 7 |
 | #10 | feature · P1 · phase/2 | Admin allowlist UI | DB layer done, UI = Phase 5.5 |
 | #11 | feature · P3 · phase/8 | Theme switcher | Deferred to Phase 8 |
+| #53–#73 | feature · various | FFR sweep — PDP, checkout, dashboard, all admin sections, reports, analytics, Excel, AI assistant | Backlog for Phases 3–10 |
+| #74 #75 | bug · P1 · phase/2 | Admin gate drift + first-admin takeover (security P0s) | Must fix before Phase 9 launch |
+| #76 | bug · P1 · phase/8 | Security hardening umbrella (full 21-finding checklist) | Cross-cutting, run `/security-audit` to re-probe |
 
 ---
 
@@ -369,6 +386,10 @@ Email/password sign-up works.
 | `gh` auto-close via "Closes #N" | Can wrongly close issues if you reference the wrong number. Check `gh issue list` after every push. |
 | Foreground colour for limbs | `var(--foreground)` so visible in both modes. Don't hardcode FACE_STROKE. |
 | BookCard `asStatic` mode skips Link AND zoom | Hover effects only when truly clickable. |
+| Sub-pixel SVG motion looks jittery | Bump amplitude above ~2px or wrap pupil in repeatType:"reverse" single-target; `<g>` doesn't get GPU layer like a div. |
+| Service-role used in cart writes | Confine to admin/webhook paths long-term; switch cart to anon-client + RLS via set_config (security audit #9). |
+| Do NOT add `Co-Authored-By: Claude …` trailer | CLAUDE.md §14 updated 2026-05-27. Commits go as Shubham only. |
+| Service-role vs RLS gap | Code-level ownership check is the only defence in cart actions. Don't add a new path that forgets it. |
 
 ---
 
