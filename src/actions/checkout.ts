@@ -18,7 +18,7 @@
  * Both follow CLAUDE.md §4: discriminated-union return shape, no
  * throws on user-facing paths.
  *
- * Shipping is hard-coded to ₹0 here. Phase 3.3 wires Delhivery and
+ * Shipping is hard-coded to ₹0 here. Phase 3.3 wires Shiprocket and
  * settings.free_shipping_enabled. GST stays ₹0 until Phase 3.5.
  */
 
@@ -123,7 +123,7 @@ export async function createRazorpayOrder(
     0,
   );
 
-  const shippingPaise = 0; // Phase 3.3 will wire Delhivery.
+  const shippingPaise = 0; // Phase 3.3 will wire Shiprocket.
   const taxPaise = 0; // Phase 3.5 will compute GST.
 
   // 4. Insert pending order WITHOUT coupon first so we have order_id for

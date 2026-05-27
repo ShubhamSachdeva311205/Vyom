@@ -55,6 +55,10 @@ const envSchema = z.object({
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
 
+  // ---- Shiprocket (Phase 3.3) ----
+  SHIPROCKET_EMAIL: z.string().email().optional(),
+  SHIPROCKET_PASSWORD: z.string().optional(),
+
   // ---- Cloudflare R2 (Phase 4) ----
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),

@@ -62,7 +62,7 @@ export default async function OrderSuccessPage({ params }: SuccessPageProps) {
               <h1 className="text-title">Thanks for the order.</h1>
               <p className="text-body text-muted-foreground">
                 We&apos;ll start packing it shortly. You&apos;ll get an email
-                the moment it ships with a Delhivery tracking link.
+                the moment it ships with a Shiprocket tracking link.
               </p>
             </Stack>
           </Stack>

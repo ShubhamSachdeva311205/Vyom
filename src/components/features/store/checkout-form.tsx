@@ -158,7 +158,7 @@ export function CheckoutForm({
           <Stack gap={4}>
             <FormField
               label="Coupon code"
-              description="student10 or teacher10. Vendor codes also accepted."
+              description="student10 or teacher10. Vendor codes also accepted. Codes apply on this website only — Amazon orders aren't eligible."
             >
               <Input
                 name="couponCode"
@@ -170,7 +170,7 @@ export function CheckoutForm({
 
             <FormField
               label="Shipping pincode"
-              description="Live Delhivery rates arrive in Phase 3.3 — shipping is ₹0 for now."
+              description="Live Shiprocket rates arrive in Phase 3.3 — shipping is ₹0 for now."
             >
               <Input
                 name="pincode"

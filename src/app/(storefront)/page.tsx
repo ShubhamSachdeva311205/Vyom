@@ -12,7 +12,7 @@ import { getBooks } from "@/lib/queries/books";
 const PILLARS = [
   {
     title: "Books, made with care",
-    body: "Physical editions printed in India, packed by hand from Bangalore, shipped via Delhivery.",
+    body: "Physical editions printed in India, packed by hand from Bangalore, shipped via Shiprocket.",
     href: "/store",
     cta: "Browse the catalog",
   },

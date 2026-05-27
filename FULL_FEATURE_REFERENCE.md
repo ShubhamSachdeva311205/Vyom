@@ -65,7 +65,7 @@ Sold by: Author / Seema Sachdeva for all titles.
 - Brief value proposition section (what the platform offers)
 - Product highlights: 2–3 featured book cards
 - Trust signals: brief "About" blurb about the author/teacher (Seema Sachdeva)
-- Shipping info callout: "Free shipping when Delhivery charges are under ₹100"
+- Shipping info callout: "Free shipping when Shiprocket charges are under ₹100"
 - Footer link to `/legal` (policies)
 
 ## A3. IBDP Section (`/ibdp`)
@@ -136,16 +136,16 @@ Same three-tab structure:
 - Pincode input → shipping cost display:
 
   ### Shipping rules (IMPORTANT — read carefully)
-  - Free shipping condition: Delhivery's calculated shipping fee for the order
-    is under ₹100 — NOT the order value. If Delhivery quotes ₹80 shipping,
-    it's free. If Delhivery quotes ₹150, customer pays ₹150.
+  - Free shipping condition: Shiprocket's calculated shipping fee for the order
+    is under ₹100 — NOT the order value. If Shiprocket quotes ₹80 shipping,
+    it's free. If Shiprocket quotes ₹150, customer pays ₹150.
   - Free shipping override toggle: admin can DISABLE free shipping site-wide
     from the admin panel (see C4b). When disabled, customer always pays the
-    Delhivery rate regardless of the fee amount.
+    Shiprocket rate regardless of the fee amount.
   - Use case for disabling: during promotions/sales where shipping subsidy
     would erode margins, or for large-quantity orders.
   - Bangalore pincode free shipping rule is REMOVED. Shipping is purely
-    based on Delhivery's quoted fee vs the ₹100 threshold.
+    based on Shiprocket's quoted fee vs the ₹100 threshold.
 
 - Order total breakdown: subtotal, discount, shipping, final total
 - Razorpay payment button (order created server-side before rendering)
@@ -178,7 +178,7 @@ Same three-tab structure:
 - No returns / no refunds — all sales final
 - All disputes via email: shubhamhelpseries@gmail.com
 - Amazon orders: no website discounts; Amazon's own return policy applies
-- Shipping policy: shipping cost shown at checkout; free when Delhivery
+- Shipping policy: shipping cost shown at checkout; free when Shiprocket
   quotes under ₹100 (subject to admin override during promotions)
 - Support material (audio, answer keys): provided free with physical book;
   access is non-transferable; view-only, no downloads
@@ -206,7 +206,7 @@ Same three-tab structure:
   - Line items, quantities, prices
   - Coupon applied
   - Shipping cost
-  - Delhivery tracking link (shows when status = shipped)
+  - Shiprocket tracking link (shows when status = shipped)
   - Status progress indicator
   - "Contact us" link for disputes (no returns CTA)
 
@@ -247,7 +247,7 @@ Desktop: sidebar nav. Mobile: bottom tab bar or hamburger.
 - Each row: order ID, customer name, items summary, total, timestamp, status
 - One-click status buttons:
   - New → "Mark as Packed"
-  - Packed → "Mark as Shipped" (opens modal requiring Delhivery tracking URL)
+  - Packed → "Mark as Shipped" (opens modal requiring Shiprocket tracking URL)
   - Shipped → "Mark as Delivered"
 - "Mark as Shipped" modal: tracking URL field (required) → confirm →
   updates status + fires Resend shipping email to customer
@@ -291,8 +291,8 @@ Desktop: sidebar nav. Mobile: bottom tab bar or hamburger.
 
 ### C4b. Shipping Settings
 - "Free Shipping Toggle" — global on/off switch
-- When ON: orders where Delhivery quotes < ₹100 ship free
-- When OFF: customer always pays full Delhivery rate (no free shipping)
+- When ON: orders where Shiprocket quotes < ₹100 ship free
+- When OFF: customer always pays full Shiprocket rate (no free shipping)
 - Current state displayed clearly: "Free shipping: ENABLED / DISABLED"
 - Stored in a `settings` table (key: `free_shipping_enabled`, value: boolean)
 - Use case: disable during sales/promotions to protect margins
@@ -370,7 +370,7 @@ Desktop: sidebar nav. Mobile: bottom tab bar or hamburger.
   (gross − COGS − shipping cost − refunds − transaction fees),
   order count, average order value, repeat customer rate.
 - Per-order expense breakdown: each order row in the orders table
-  gains COGS, shipping cost paid to Delhivery, Razorpay fee,
+  gains COGS, shipping cost paid to Shiprocket, Razorpay fee,
   and net profit columns.
 - Combined views: weekly / monthly / 3m / 6m / yearly stacked
   charts (revenue + profit overlay).
@@ -432,7 +432,7 @@ Desktop: sidebar nav. Mobile: bottom tab bar or hamburger.
 | Trigger | Recipient | Content |
 |---|---|---|
 | Payment captured | Customer | Confirmation, line items, total, order ID |
-| Order marked Shipped | Customer | Shipping notification + Delhivery tracking link |
+| Order marked Shipped | Customer | Shipping notification + Shiprocket tracking link |
 | Manual access grant | Customer | Magic link + what content is now accessible |
 | Inventory < 5 | Admin | Low stock alert: book name + current count |
 | New order placed | Admin | Brief notification (optional) |

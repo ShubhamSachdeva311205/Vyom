@@ -1015,13 +1015,38 @@ purchase has been made".
 - **#77** — receipt print/save-as-PDF
 - **#78** — coupon multi-use + redeem-on-payment
 
+### Phase 3.1 wrap-up — Amazon notice + Shiprocket swap (2026-05-28)
+
+Two follow-ups closed out the 3.1 box:
+
+- **Amazon notice (Issue #80):** subtle inline caption under the
+  coupon input on /checkout — "Codes apply on this website only —
+  Amazon orders aren't eligible." Always visible, no extra state.
+- **Shiprocket swap (Issue #81):** user confirmed they're on
+  Shiprocket, not Delhivery. Renamed every reference in code, env
+  vars, .env.example, FFR, roadmap, and storefront copy (legal/terms,
+  cart page, home pillars, success page, checkout-form helper). New
+  env vars: SHIPROCKET_EMAIL + SHIPROCKET_PASSWORD (Shiprocket mints
+  a 10-day JWT via /external/auth/login — no static API key).
+  Roadmap §3.3 rewritten around Shiprocket's API surface
+  (serviceability + rate quote, create order, AWB tracking).
+
+Phase 3.1 roadmap box is now fully ticked (Razorpay order create +
+HMAC webhook + global discounts + Amazon notice). 3.3 implementation
+(actual Shiprocket calls) is blocked on user providing dashboard
+email/password for the test sandbox.
+
 ### Next up
 
-1. 3.3 — Shipping logic (Delhivery + settings.free_shipping_enabled).
-2. 3.5 — GST/tax at checkout.
-3. 3.4 — Refund webhook expansion + admin refund button.
-4. Phase 4 — R2 + watermarked PDF + audio streaming.
-5. Phase 5 — Admin command center (orders kanban + inventory + reports / analytics / Excel exports).
+1. **3.3 Shiprocket integration** — blocked on user credentials.
+2. **Phase 5.1 Admin orders + inventory UI** — high priority now
+   that real orders are landing in the DB.
+3. **Phase 5.5 Admin allowlist UI** (Issue #10) — gets Mom off the
+   env-var dance.
+4. **3.5 GST/tax** at checkout.
+5. **3.4 Refund webhook expansion** + admin refund button.
+6. **Phase 4** — R2 + watermarked PDF + audio streaming.
+7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
 
 ---
 

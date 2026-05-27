@@ -80,7 +80,7 @@ export default async function CartPage() {
                   </Row>
                   <p className="text-caption">
                     Shipping + any coupons apply at checkout. Bangalore + small
-                    orders ship free; everywhere else uses Delhivery rates.
+                    orders ship free; everywhere else uses Shiprocket rates.
                   </p>
                   <Button asChild size="md" className="w-full">
                     <Link href="/checkout">

@@ -22,8 +22,9 @@ export default function TermsPage() {
         <ul className="list-disc pl-6 space-y-2 text-body">
           <li>Orders are accepted only after Razorpay confirms payment.</li>
           <li>
-            Shipping inside Bangalore is free for any order; outside
-            Bangalore, free under ₹100, Delhivery rates otherwise.
+            Shipping is free when the Shiprocket-quoted fee is under
+            ₹100; otherwise you pay the Shiprocket rate shown at
+            checkout. Admin may pause free shipping during sales.
           </li>
           <li>
             Digital access is granted via a single-use magic link tied to

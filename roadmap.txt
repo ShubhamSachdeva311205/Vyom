@@ -92,7 +92,7 @@ Subphase 3.1: Checkout & Discounts
 
     [x] Global Discount Logic: student10 + teacher10 seeded as multi-use-per-user via SECURITY DEFINER preview_coupon + redeem_coupon RPCs. Redemption fires only on payment.success (not at order-create). (commits 7a50966 + b62682d)
 
-    [ ] Amazon Logic: Document/display that Amazon purchases are exempt from website discounts.
+    [x] Amazon Logic: Subtle inline caption under the coupon input on /checkout — "Codes apply on this website only — Amazon orders aren't eligible." (commit pending — Issue #80)
 
 Subphase 3.2: Cart & Order Confirmation (NEW)
 
@@ -104,19 +104,25 @@ Subphase 3.2: Cart & Order Confirmation (NEW)
 
     [ ] Receipt email trigger fires here (uses Resend; see Phase 7).
 
-Subphase 3.3: Shipping Logic (REVISED per FULL_FEATURE_REFERENCE.md)
+Subphase 3.3: Shipping Logic — Shiprocket (REVISED 2026-05-28; Issue #81)
 
     [ ] Build pincode validation function at checkout.
 
-    [ ] Get Delhivery's quoted shipping fee for the cart + pincode.
+    [ ] Shiprocket auth: mint a 10-day JWT via /external/auth/login with SHIPROCKET_EMAIL + SHIPROCKET_PASSWORD env vars. Cache in memory / Supabase settings table; refresh before expiry.
+
+    [ ] Get Shiprocket's serviceability + rate quote via /external/courier/serviceability/ for the cart's pickup pincode → delivery pincode + weight.
 
     [ ] Read settings.free_shipping_enabled (server-side, never client).
 
-    [ ] If free_shipping_enabled = true AND Delhivery quote < ₹100 → Shipping Cost = 0.
+    [ ] If free_shipping_enabled = true AND Shiprocket quote < ₹100 → Shipping Cost = 0.
 
-    [ ] Otherwise → customer pays the Delhivery rate.
+    [ ] Otherwise → customer pays the Shiprocket rate.
 
-    [ ] Bangalore-pincode rule REMOVED. Pincode is only an input to Delhivery's quote.
+    [ ] Bangalore-pincode rule REMOVED. Pincode is only an input to Shiprocket's quote.
+
+    [ ] Order-creation step: once payment succeeds, POST /external/orders/create/adhoc to Shiprocket with order details + cart items. Stash the Shiprocket order_id + shipment_id on our orders row (add columns: shiprocket_order_id, shiprocket_shipment_id, shiprocket_awb_code).
+
+    [ ] Admin "Mark Shipped" modal (Phase 5.1) prompts for the AWB code (or auto-fetched from Shiprocket); tracking URL pattern is https://shiprocket.co/tracking/{awb}.
 
 Subphase 3.4: Refund / Chargeback (NEW)
 
@@ -191,7 +197,7 @@ Subphase 5.7: Sales reports + financial dashboard (Issue #70)
 
     [ ] KPI cards: gross revenue, net revenue, shipping collected, refunds, net profit, order count, AOV, repeat rate.
 
-    [ ] Per-order expense breakdown (COGS, Delhivery cost, Razorpay fee, net profit columns).
+    [ ] Per-order expense breakdown (COGS, Shiprocket cost, Razorpay fee, net profit columns).
 
     [ ] Combined weekly/monthly/3m/6m/yearly stacked charts.
 
