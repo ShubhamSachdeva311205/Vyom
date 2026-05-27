@@ -433,6 +433,7 @@ export type Database = {
           expires_at: string | null
           id: string
           max_uses: number | null
+          multi_use_per_user: boolean
           notes: string | null
           type: Database["public"]["Enums"]["coupon_type"]
           uses_count: number
@@ -446,6 +447,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           max_uses?: number | null
+          multi_use_per_user?: boolean
           notes?: string | null
           type: Database["public"]["Enums"]["coupon_type"]
           uses_count?: number
@@ -459,6 +461,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           max_uses?: number | null
+          multi_use_per_user?: boolean
           notes?: string | null
           type?: Database["public"]["Enums"]["coupon_type"]
           uses_count?: number
@@ -574,6 +577,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          coupon_code: string | null
           created_at: string
           discount_paise: number
           id: string
@@ -597,6 +601,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          coupon_code?: string | null
           created_at?: string
           discount_paise?: number
           id?: string
@@ -620,6 +625,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          coupon_code?: string | null
           created_at?: string
           discount_paise?: number
           id?: string

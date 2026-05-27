@@ -108,16 +108,27 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
 
 /* -----------------------------------------------------------------
  * Sign in with Google — kicks off OAuth, redirects user to Google.
- * The callback at /auth/callback exchanges the returned code.
+ * The callback at /auth/callback exchanges the returned code and
+ * forwards to the `next` param.
  * ----------------------------------------------------------------- */
-export async function signInWithGoogle(): Promise<void> {
+export async function signInWithGoogle(next?: string): Promise<void> {
   const supabase = await createClient();
   const siteUrl = await resolveSiteUrl();
+
+  // Same open-redirect guard as the client SignInForm.
+  const safeNext =
+    next &&
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    !next.startsWith("/\\")
+      ? next
+      : "/";
+  const callbackUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(safeNext)}`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${siteUrl}/auth/callback`,
+      redirectTo: callbackUrl,
       queryParams: {
         access_type: "offline",
         prompt: "consent",

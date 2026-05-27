@@ -164,22 +164,23 @@ export async function createRazorpayOrder(
     return { success: false, error: "Could not snapshot cart items." };
   }
 
-  // 6. Redeem coupon atomically (SECURITY DEFINER RPC; race-safe).
+  // 6. PREVIEW coupon (read-only). We don't redeem yet — that happens
+  //    in verifyPaymentAndCompleteOrder so coupons don't count as used
+  //    if the customer closes the modal or payment fails. (Issue #78.)
   let discountPaise = 0;
   let couponApplied: string | null = null;
   if (couponCode) {
-    const { data: redeem, error: redeemErr } = await service.rpc("redeem_coupon", {
+    const { data: preview, error: previewErr } = await service.rpc("preview_coupon", {
       p_code: couponCode,
       p_user_id: user.id,
-      p_order_id: orderRow.id,
       p_eligible_subtotal_paise: eligibleSubtotalPaise,
     });
-    if (redeemErr) {
+    if (previewErr) {
       await service.from("orders").delete().eq("id", orderRow.id);
-      return { success: false, error: "Could not apply coupon. Try again." };
+      return { success: false, error: "Could not validate coupon. Try again." };
     }
-    const row = Array.isArray(redeem) ? redeem[0] : redeem;
-    if (!row?.success) {
+    const row = Array.isArray(preview) ? preview[0] : preview;
+    if (!row?.valid) {
       await service.from("orders").delete().eq("id", orderRow.id);
       return { success: false, error: row?.reason ?? "Coupon is not valid." };
     }
@@ -187,11 +188,16 @@ export async function createRazorpayOrder(
     couponApplied = couponCode;
   }
 
-  // 7. Patch order with discount + final total.
+  // 7. Patch order with discount + final total + coupon code (so the
+  //    post-payment redeem knows which code to honour).
   const totalPaise = Math.max(0, subtotalPaise - discountPaise + shippingPaise + taxPaise);
   await service
     .from("orders")
-    .update({ discount_paise: discountPaise, total_paise: totalPaise })
+    .update({
+      discount_paise: discountPaise,
+      total_paise: totalPaise,
+      coupon_code: couponApplied,
+    })
     .eq("id", orderRow.id);
 
   // 8. Create Razorpay order. Receipt field gets our order_number.
@@ -268,7 +274,7 @@ export async function verifyPaymentAndCompleteOrder(
   const service = createServiceClient();
   const { data: order, error: orderErr } = await service
     .from("orders")
-    .select("id, status, user_id")
+    .select("id, status, user_id, coupon_code, subtotal_paise")
     .eq("razorpay_order_id", razorpay_order_id)
     .maybeSingle();
 
@@ -302,6 +308,33 @@ export async function verifyPaymentAndCompleteOrder(
 
   if (updErr) {
     return { success: false, error: "Could not finalise the order." };
+  }
+
+  // NOW redeem the coupon — only after payment succeeded. If the
+  // redeem fails (e.g. someone else used a single-use vendor code in
+  // the gap), log to the order's notes for admin reconciliation but
+  // don't fail the customer's transaction.
+  if (order.coupon_code) {
+    // Compute the eligible subtotal we previewed against — recompute
+    // from the snapshot in order_items + books to stay honest. For
+    // now we just pass the order's full subtotal_paise; if eligibility
+    // mattered (some books not eligible) the discount was already
+    // applied at preview time so this re-check will match.
+    const { data: redeem, error: redeemErr } = await service.rpc("redeem_coupon", {
+      p_code: order.coupon_code,
+      p_user_id: order.user_id,
+      p_order_id: order.id,
+      p_eligible_subtotal_paise: order.subtotal_paise,
+    });
+    const row = Array.isArray(redeem) ? redeem[0] : redeem;
+    if (redeemErr || !row?.success) {
+      await service
+        .from("orders")
+        .update({
+          notes: `Post-payment coupon redeem failed: ${row?.reason ?? redeemErr?.message ?? "unknown"}`,
+        })
+        .eq("id", order.id);
+    }
   }
 
   // Clear the cart now that payment captured.

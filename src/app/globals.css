@@ -247,3 +247,44 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* -----------------------------------------------------------------
+ * Print styles — strip chrome (nav, footer, mesh, noise, buttons)
+ * so /order/[id]/success looks like a clean receipt when saved to
+ * PDF. Component-level `print:hidden` Tailwind utilities handle
+ * specific buttons / mascots.
+ * ----------------------------------------------------------------- */
+@media print {
+  :root,
+  .dark,
+  [data-mode="operational"] {
+    --background: white;
+    --foreground: black;
+    --muted: #f5f5f5;
+    --muted-foreground: #555;
+    --border: #ddd;
+    --card: white;
+    --mesh-opacity: 0;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  header,
+  footer,
+  nav,
+  .noise-layer {
+    display: none !important;
+  }
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+  /* Tighter print margins + drop card shadows / borders for paper. */
+  main,
+  section,
+  article {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

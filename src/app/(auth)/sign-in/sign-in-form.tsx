@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { signIn, signInWithGoogle } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,19 @@ import { Input } from "@/components/ui/input";
 import { GoogleIcon } from "@/components/ui/google-icon";
 import { Stack } from "@/components/layouts/stack";
 
+// Open-redirect defense: only allow same-site relative paths through
+// the `next` param. Rejects `//evil.com`, `/\\evil.com`, full URLs.
+function safeNext(next: string | null): string {
+  if (!next) return "/";
+  if (!next.startsWith("/")) return "/";
+  if (next.startsWith("//") || next.startsWith("/\\")) return "/";
+  return next;
+}
+
 export function SignInForm() {
   const router = useRouter();
+  const search = useSearchParams();
+  const next = safeNext(search.get("next"));
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +30,7 @@ export function SignInForm() {
     startTransition(async () => {
       const result = await signIn(formData);
       if (result.success) {
-        router.push("/");
+        router.push(next);
         router.refresh();
       } else {
         setError(result.error);
@@ -29,7 +40,7 @@ export function SignInForm() {
 
   return (
     <Stack gap={4}>
-      <form action={() => signInWithGoogle().then(() => router.refresh())}>
+      <form action={() => signInWithGoogle(next).then(() => router.refresh())}>
         <Button type="submit" variant="outline" size="lg" className="w-full" disabled={pending}>
           <GoogleIcon className="size-4" />
           Continue with Google

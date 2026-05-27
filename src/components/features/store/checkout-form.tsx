@@ -91,12 +91,16 @@ export function CheckoutForm({
 
       const result = await createRazorpayOrder(formData);
       if (!result.success) {
+        // Mirror to console so the user can copy-paste the exact error
+        // text when reporting. (Issue #79.)
+        console.error("[checkout] createRazorpayOrder failed:", result.error);
         toast.error(result.error);
         return;
       }
 
       const order = result.data;
       if (!order) {
+        console.error("[checkout] createRazorpayOrder returned empty data");
         toast.error("Server returned an empty order. Try again.");
         return;
       }
@@ -114,6 +118,7 @@ export function CheckoutForm({
           startTransition(async () => {
             const verifyResult = await verifyPaymentAndCompleteOrder(response);
             if (!verifyResult.success) {
+                    console.error("[checkout] verify failed:", verifyResult.error, response);
               toast.error(verifyResult.error);
               return;
             }
