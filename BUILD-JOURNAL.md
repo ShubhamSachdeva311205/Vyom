@@ -967,16 +967,61 @@ adding webhook in dashboard (SETUP-PHASE-3.md step 3).
   with Razorpay" — needs a follow-up edit to link to /checkout).
   Files: src/app/(storefront)/cart/page.tsx.
 
+### Phase 3.1 follow-up — coupon timing + receipt + sign-in (commit `b62682d`)
+
+Triggered by user feedback after the first checkout test:
+"student10 and teacher10 are not a onetime use coupon code and also
+do not consider a coupon code to be used until and unless a
+purchase has been made".
+
+**Migration 20260527020000:**
+- Added `coupons.multi_use_per_user` boolean (default false).
+- Flagged `student10` + `teacher10` as multi-use per user.
+- Dropped `UNIQUE(coupon_id, user_id)` constraint on
+  `coupon_redemptions` (re-enforcement happens inside the RPC,
+  conditional on the new column).
+- Added `orders.coupon_code` so the post-payment redeem path knows
+  which code to honour.
+- Rewrote `preview_coupon` + `redeem_coupon` to skip the
+  "already redeemed" check for multi-use codes.
+
+**Code:**
+- `createRazorpayOrder` now calls `preview_coupon` (read-only) and
+  stashes the code on the order. No redemption row written yet.
+- `verifyPaymentAndCompleteOrder` calls `redeem_coupon` AFTER the
+  paid-flip. If post-payment redeem fails (race on single-use
+  vendor code), we log to `order.notes` for admin reconciliation
+  but don't fail the customer's transaction.
+- `PrintReceiptButton` + print CSS in `globals.css` give a clean
+  black-on-white receipt save-as-PDF path (Issue #77).
+- Sign-in next-param bug fixed: `sign-in-form.tsx` hard-coded
+  `router.push("/")` ignoring `?next=`. Now reads
+  `useSearchParams()` + `safeNext()` open-redirect guard. Also
+  threaded `next` through the Google OAuth path via
+  `signInWithGoogle(next)` + `redirectTo` query param. (Was the
+  actual cause of Issue #79 "Pay button fails for non-admin" —
+  non-admin user signed in then bounced to `/` instead of back
+  to `/checkout`.)
+- Added `console.error` debug logging in `checkout-form.tsx` so
+  future failures surface clearly in browser devtools.
+
+### Closed (user-verified)
+
+- **#79** — Pay button bug for non-admin (resolved by sign-in
+  next-param fix).
+
+### Awaiting user visual sign-off
+
+- **#77** — receipt print/save-as-PDF
+- **#78** — coupon multi-use + redeem-on-payment
+
 ### Next up
 
-1. Wire /cart's disabled "Checkout" button to link to /checkout (quick).
-2. 3.3 — Shipping logic (Delhivery + settings.free_shipping_enabled).
-3. 3.5 — GST/tax at checkout.
-4. 3.4 — Refund webhook expansion + admin refund button.
-5. Phase 4 — R2 + watermarked PDF + audio streaming.
-6. Phase 5 — Admin command center (orders kanban + inventory + reports).
-
-Phase 5 admin command center follows after 3.x lands.
+1. 3.3 — Shipping logic (Delhivery + settings.free_shipping_enabled).
+2. 3.5 — GST/tax at checkout.
+3. 3.4 — Refund webhook expansion + admin refund button.
+4. Phase 4 — R2 + watermarked PDF + audio streaming.
+5. Phase 5 — Admin command center (orders kanban + inventory + reports / analytics / Excel exports).
 
 ---
 

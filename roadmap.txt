@@ -86,21 +86,21 @@ PHASE 3: PAYMENTS, DISCOUNTS & SHIPPING LOGIC
 Goal: Secure money processing and automate localized logistics.
 Subphase 3.1: Checkout & Discounts
 
-    [ ] Integrate Razorpay order creation on the backend.
+    [x] Integrate Razorpay order creation on the backend. (commit 7a50966)
 
-    [ ] Implement webhook (payment.captured) with HMAC signature verification.
+    [x] Implement webhook (payment.captured) with HMAC signature verification. Also payment.failed + refund.processed. Idempotent against the inline verify path. (commit 7a50966)
 
-    [ ] Global Discount Logic: Program student10 and teacher10 for a flat 10% off physical/digital goods.
+    [x] Global Discount Logic: student10 + teacher10 seeded as multi-use-per-user via SECURITY DEFINER preview_coupon + redeem_coupon RPCs. Redemption fires only on payment.success (not at order-create). (commits 7a50966 + b62682d)
 
     [ ] Amazon Logic: Document/display that Amazon purchases are exempt from website discounts.
 
 Subphase 3.2: Cart & Order Confirmation (NEW)
 
-    [ ] Cart state wired to the carts table. Add/remove/update line items as Server Actions.
+    [x] Cart state wired to the carts table. addToCart / updateCartItemQuantity / removeCartItem / mergeAnonymousCartIntoUserCart Server Actions. Anonymous cart via adv_cart_session HttpOnly cookie. (commit 9555998)
 
-    [ ] /cart page with summary, coupon entry, shipping estimate.
+    [x] /cart page with summary, line-item stepper, anon merge on sign-in, navbar count badge. Coupon entry lives on /checkout (intentional — keeps /cart pure list). (commit 9555998)
 
-    [ ] Post-payment /order/[id]/success page rendered after Razorpay redirect. Inline receipt + "next steps" UX.
+    [x] Post-payment /order/[id]/success page with receipt-style breakdown + Print/save-as-PDF button. (commits 7a50966 + b62682d)
 
     [ ] Receipt email trigger fires here (uses Resend; see Phase 7).
 
