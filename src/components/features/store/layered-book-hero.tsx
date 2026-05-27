@@ -52,24 +52,29 @@ export function LayeredBookHero({
       )}
       style={{ perspective: "1600px" }}
     >
-      {left.map((book, i) => (
-        <CentredSideCard
-          key={book.id}
-          book={book}
-          side="left"
-          depth={i + 1}
-          reduce={reduce ?? false}
-        />
-      ))}
-      {right.map((book, i) => (
-        <CentredSideCard
-          key={book.id}
-          book={book}
-          side="right"
-          depth={i + 1}
-          reduce={reduce ?? false}
-        />
-      ))}
+      {/* Side books hidden below md — fixed-px offsets push them
+          off-screen on phones. Centre book stands alone on mobile.
+          Issue #82. */}
+      <div className="hidden md:contents">
+        {left.map((book, i) => (
+          <CentredSideCard
+            key={book.id}
+            book={book}
+            side="left"
+            depth={i + 1}
+            reduce={reduce ?? false}
+          />
+        ))}
+        {right.map((book, i) => (
+          <CentredSideCard
+            key={book.id}
+            book={book}
+            side="right"
+            depth={i + 1}
+            reduce={reduce ?? false}
+          />
+        ))}
+      </div>
 
       {/* Centre book — flex-centred inside the hero. Children
           (mascot scenes) live inside its relative wrapper. */}

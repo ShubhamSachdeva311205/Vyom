@@ -1036,17 +1036,48 @@ HMAC webhook + global discounts + Amazon notice). 3.3 implementation
 (actual Shiprocket calls) is blocked on user providing dashboard
 email/password for the test sandbox.
 
+### Mobile hero fix + Tax Invoice spec (2026-05-28)
+
+**Issue #82 (P1 bug):** Homepage hero animation was broken on phones
+< md (768px). `LayeredBookHero` and `ScrollRevealHero` both use
+fixed-px `offsetX` (220–440px) for side cards. On a 360px-wide
+phone the centre book fills almost the whole viewport and the side
+books translate fully off-screen — and the scroll-reveal's outer
+`min-h-[300vh]` produced 3 screens of empty scroll. Fix: wrapped
+side-book renders in `<div className="hidden md:contents">` in
+both hero components; reduced the scroll-reveal outer to
+`min-h-[80vh] md:min-h-[300vh]` so mobile has a normal-height
+hero with just the centre book.
+
+**Issue #83 (P1 feature):** User dropped `Sale_18_08-05-2026.pdf`
+in the repo root — their existing Vyapar Tax Invoice format. Spec:
+generate the same layout server-side post-payment, replace the
+print-CSS workaround from #77. Filed with a full layout reference
+(seller block, bill-to, line items table with HSN/SAC + per-line
+discount, totals + amount-in-words, bank details, terms). Roadmap
+gains Subphase 3.6 (Tax Invoice PDF generation): sequential
+`invoice_number` + `invoice_generated_at` columns, `books.hsn_sac`
+column (default 4901, 0% GST), `src/lib/invoice/render.ts`,
+`/api/orders/[id]/invoice.pdf` route, replaces PrintReceiptButton.
+Phase 7 attaches the PDF to the receipt email.
+
+`NEXT-PROMPT.md` rewritten for the upcoming `/clear` — points at
+the new lean HANDOFF, the queued "Next up" list at the bottom of
+this journal, the two user-blocking items (#7 OAuth + #81
+Shiprocket creds), and the workflow rules captured to memory.
+
 ### Next up
 
-1. **3.3 Shiprocket integration** — blocked on user credentials.
-2. **Phase 5.1 Admin orders + inventory UI** — high priority now
-   that real orders are landing in the DB.
-3. **Phase 5.5 Admin allowlist UI** (Issue #10) — gets Mom off the
-   env-var dance.
-4. **3.5 GST/tax** at checkout.
-5. **3.4 Refund webhook expansion** + admin refund button.
-6. **Phase 4** — R2 + watermarked PDF + audio streaming.
-7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+1. **3.3 Shiprocket integration** — blocked on user credentials (#81).
+2. **3.6 Tax Invoice PDF** (#83) — replaces print-CSS workaround.
+3. **Phase 5.1 Admin orders + inventory UI** (#61) — high priority
+   now that real orders are landing in the DB.
+4. **Phase 5.5 Admin allowlist UI** (#10) — gets Mom off the env-var
+   dance.
+5. **3.5 GST/tax** at checkout.
+6. **3.4 Refund webhook expansion** + admin refund button.
+7. **Phase 4** — R2 + watermarked PDF + audio streaming.
+8. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
 
 ---
 

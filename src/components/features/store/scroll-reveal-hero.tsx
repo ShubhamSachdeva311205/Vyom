@@ -67,32 +67,39 @@ export function ScrollRevealHero({ center, left, right }: ScrollRevealHeroProps)
   const sideSpread = reduce ? oneConst : sideSpreadRaw;
 
   return (
-    <div ref={ref} className="relative min-h-[300vh]">
+    // Mobile (<md): no fan-out scroll reveal — the fixed-px offsetX
+    // values push side books off-screen, so we just show the centre
+    // book in a normal-height container. md+ gets the 3-screen sticky
+    // scroll experience. Issue #82.
+    <div ref={ref} className="relative min-h-[80vh] md:min-h-[300vh]">
       <div className="sticky top-16 flex h-[calc(100vh-4rem)] items-center justify-center overflow-visible">
         <div
           className="relative mx-auto flex w-full items-center justify-center"
           style={{ perspective: "1600px" }}
         >
-          {left.map((book, i) => (
-            <SideBook
-              key={book.id}
-              book={book}
-              side="left"
-              depth={i + 1}
-              opacity={sideOpacity}
-              spread={sideSpread}
-            />
-          ))}
-          {right.map((book, i) => (
-            <SideBook
-              key={book.id}
-              book={book}
-              side="right"
-              depth={i + 1}
-              opacity={sideOpacity}
-              spread={sideSpread}
-            />
-          ))}
+          {/* Side books hidden on mobile — see comment above. */}
+          <div className="hidden md:contents">
+            {left.map((book, i) => (
+              <SideBook
+                key={book.id}
+                book={book}
+                side="left"
+                depth={i + 1}
+                opacity={sideOpacity}
+                spread={sideSpread}
+              />
+            ))}
+            {right.map((book, i) => (
+              <SideBook
+                key={book.id}
+                book={book}
+                side="right"
+                depth={i + 1}
+                opacity={sideOpacity}
+                spread={sideSpread}
+              />
+            ))}
+          </div>
 
           {/* Centre book — flex-centred. Mascots intentionally removed. */}
           <motion.div

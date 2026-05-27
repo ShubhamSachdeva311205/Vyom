@@ -128,6 +128,20 @@ Subphase 3.4: Refund / Chargeback (NEW)
 
     [ ] payment.failed and refund.processed webhook handlers. Update order status; revoke digital access grants if any; notify admin via email + toast on next admin session.
 
+Subphase 3.6: Tax Invoice PDF generation (NEW 2026-05-28; Issue #83)
+
+    [ ] Add orders.invoice_number (sequential per fiscal year, never reused) + orders.invoice_generated_at columns. Backed by a Supabase sequence so it survives restarts.
+
+    [ ] Add books.hsn_sac column (4901 = printed books, 0% GST by default).
+
+    [ ] src/lib/invoice/render.ts — server-side PDF generation (pdfkit or @react-pdf/renderer). Layout mirrors the user's existing Vyapar invoice: Tax Invoice header, seller block (Seema Sachdeva / address / phone / shubhamhelpseries@gmail.com), Bill-To, invoice no + date, line items table (#, Item Name, HSN/SAC, Qty, Unit, Price/Unit, Discount, Amount), shipping as its own line, totals + 'Invoice Amount In Words', bank details (SBI Marathahalli A/C ***REDACTED*** IFSC ***REDACTED***), terms, authorised signatory.
+
+    [ ] /api/orders/[id]/invoice.pdf route — auth-gated to owner OR admin, streams the rendered PDF.
+
+    [ ] Replace the current PrintReceiptButton (Issue #77 interim print-CSS workaround) with a 'Download invoice' button hitting that route.
+
+    [ ] Phase 7 hook: attach generated invoice to the receipt email via Resend.
+
 Subphase 3.5: GST / Tax (NEW)
 
     [ ] Mark each SKU with its GST class (most printed books are 0%; digital-only and audio may differ — confirm with CA before launch).
