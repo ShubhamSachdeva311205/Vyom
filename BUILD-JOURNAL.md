@@ -1036,6 +1036,26 @@ HMAC webhook + global discounts + Amazon notice). 3.3 implementation
 (actual Shiprocket calls) is blocked on user providing dashboard
 email/password for the test sandbox.
 
+### History rewrite — Sale_*.pdf scrubbed (2026-05-28)
+
+User-uploaded Vyapar invoice `Sale_18_08-05-2026.pdf` (contains
+mom's address + SBI account number) was accidentally committed in
+the "fix mobile hero" commit, then removed in a follow-up. Both
+commits were force-pushed.
+
+Vendor details deemed sensitive enough to scrub from history. Ran
+`git filter-repo --invert-paths --path Sale_18_08-05-2026.pdf` +
+`git push --force-with-lease origin main`. Every commit from the
+PDF-introducing one onward got a new hash; older commits unchanged.
+PDF blob is gone from all reachable history on local + remote.
+
+Verified: `curl -I .../raw/main/Sale_18_08-05-2026.pdf` returns
+404. `git cat-file -e 166a500` (the old hash) fails.
+
+`.gitignore` already hardened with `Sale_*.pdf` / `Invoice_*.pdf` /
+`*.invoice.pdf` patterns in `aaac5b2` (pre-rewrite). Future user-
+dropped invoices stay local-only.
+
 ### Mobile hero fix + Tax Invoice spec (2026-05-28)
 
 **Issue #82 (P1 bug):** Homepage hero animation was broken on phones
