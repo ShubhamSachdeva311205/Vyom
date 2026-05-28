@@ -9,7 +9,12 @@ import { cn } from "@/lib/utils";
 import type { StatusCounts } from "@/actions/admin-orders";
 import { statusLabel, type OrderStatusV2 } from "@/lib/orders/labels";
 
-const TABS: Array<{ key: "all" | OrderStatusV2; label: string }> = [
+type Tab = { key: "all" | OrderStatusV2; label: string };
+
+// Tabs always shown. "Abandoned" (pending_payment) is added at the end
+// only when count > 0 — it's intentionally hidden when there's nothing
+// to clean up, so it doesn't draw attention away from real orders.
+const BASE_TABS: Tab[] = [
   { key: "all", label: "All" },
   { key: "paid", label: "Paid" },
   { key: "packed", label: "Packed" },
@@ -75,7 +80,16 @@ export function OrdersFilters({
       {/* Status tabs — horizontal scroll on mobile. */}
       <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
         <ul className="flex gap-1 min-w-max">
-          {TABS.map((tab) => {
+          {(() => {
+            const tabs: Tab[] = [...BASE_TABS];
+            const abandoned = counts?.pending_payment ?? 0;
+            // Show "Abandoned" tab only when there's something there OR
+            // the user has already filtered to it.
+            if (abandoned > 0 || currentStatus === "pending_payment") {
+              tabs.push({ key: "pending_payment", label: "Abandoned" });
+            }
+            return tabs;
+          })().map((tab) => {
             const active = currentStatus === tab.key;
             const count = counts ? counts[tab.key] : null;
             return (

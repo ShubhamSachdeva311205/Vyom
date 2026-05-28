@@ -103,6 +103,14 @@ export async function listOrders(input: z.input<typeof listInput>): Promise<
     // Cast covers values added by migration 20260528175144 not yet in
     // the generated enum.
     query = query.eq("status", status as unknown as Tables<"orders">["status"]);
+  } else {
+    // "All" tab — hide abandoned checkouts (pending_payment rows that
+    // never got a successful Razorpay capture). These accumulate every
+    // time someone opens the modal and closes it without paying. They
+    // still exist in the DB and remain accessible via
+    // /admin/orders?status=pending_payment for cleanup, but they
+    // shouldn't drown out real orders Mom needs to pack.
+    query = query.neq("status", "pending_payment" as unknown as Tables<"orders">["status"]);
   }
   if (from) query = query.gte("created_at", `${from}T00:00:00Z`);
   if (to) query = query.lte("created_at", `${to}T23:59:59Z`);
@@ -324,7 +332,12 @@ export async function getOrderStatusCounts(): Promise<ActionResult<StatusCounts>
   ];
 
   const [all, ...perStatus] = await Promise.all([
-    supabase.from("orders").select("*", { count: "exact", head: true }),
+    // "All" count mirrors the list query: exclude pending_payment so
+    // abandoned-checkout rows don't inflate the badge.
+    supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .neq("status", "pending_payment" as unknown as Tables<"orders">["status"]),
     ...statuses.map((s) =>
       supabase
         .from("orders")

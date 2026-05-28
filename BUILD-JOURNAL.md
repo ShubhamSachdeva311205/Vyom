@@ -1170,9 +1170,47 @@ orders. Mobile-first because she packs on her phone.
   still TODO. Wait for user visual sign-off per
   `memory/feedback_verify_before_closing.md` before closing.
 
+### Phase 5.1 follow-up — abandoned-cart filter + local migration (2026-05-29)
+
+User testing flushed out two things on the new admin orders UI:
+
+1. **Status dropdown was a no-op.** Root cause: the
+   `20260528175144_admin_orders_extend_status_tracking.sql` migration
+   hadn't been applied to the running local Supabase stack (the local
+   Docker stack was up, but `db reset` / `migration up` wasn't run
+   after I dropped the file). Applied via
+   `docker exec -i supabase_db_advaita psql -U postgres -d postgres <
+   supabase/migrations/20260528175144_…sql` — `ALTER TYPE / ALTER
+   TABLE / CREATE FUNCTION` all returned cleanly. Verified enum
+   contains the new `on_hold` and `partially_refunded` values.
+
+2. **Abandoned checkouts polluted the "All" tab.**
+   `createRazorpayOrder` inserts a row with status `pending_payment`
+   before the Razorpay modal even opens. If the user closes the modal
+   without paying, the row sits forever as an "unpaid" order. Fix:
+
+   - `listOrders` now `.neq("status", "pending_payment")` when no
+     explicit status filter is set.
+   - `getOrderStatusCounts.all` mirrors the same exclusion.
+   - `OrdersFilters` shows an extra "Abandoned" tab ONLY when
+     `counts.pending_payment > 0` (or the user has navigated to
+     `?status=pending_payment` directly). When Mom has no abandoned
+     rows, the tab is invisible — no distracting empty state.
+
+   Filed Issue #84 with the v2 follow-ups: scheduled auto-cancel of
+   stale `pending_payment` rows after Razorpay's 30-min order TTL,
+   and a possible architectural change to defer the orders INSERT
+   until `payment.captured` webhook fires.
+
+3. **`.env.local` parsing — # in passwords.** Heads-up captured in
+   the response: dotenv treats `#` as a comment delimiter unless
+   the value is quoted. Wrap secrets containing `#` (or any of
+   `$`, `\`, `"`, spaces, `=`) in single quotes:
+   `SHIPROCKET_PASSWORD='ab#cd!ef'`.
+
 ### Next up
 
-1. User pushes migration `20260528175144` + regenerates types.
+1. **3.3 Shiprocket integration** — blocked on user credentials (#81).
 2. **3.3 Shiprocket integration** — blocked on user credentials (#81).
 3. **3.6 Tax Invoice PDF** (#83) — replaces print-CSS workaround.
 4. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
