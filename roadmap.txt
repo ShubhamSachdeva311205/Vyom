@@ -167,7 +167,7 @@ PHASE 5: THE ADMIN COMMAND CENTER (Mom's Panel)
 Goal: High legibility, mobile-friendly operational UI.
 Subphase 5.1: Order & Inventory Management
 
-    [ ] Build Kanban UI for active orders: 🟥 New → 🟨 Packed → 🟩 Shipped (with tracking URL prompt).
+    [x] Build Order Management UI for active orders: tabs + search + date range, mobile-first list, /admin/orders/[id] detail with status timeline + tracking capture + copy address (see Issue #61).
 
     [ ] Build Inventory UI: Real-time stock list with automated red warnings if stock < 5.
 

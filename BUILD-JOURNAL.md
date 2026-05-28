@@ -1086,18 +1086,103 @@ the new lean HANDOFF, the queued "Next up" list at the bottom of
 this journal, the two user-blocking items (#7 OAuth + #81
 Shiprocket creds), and the workflow rules captured to memory.
 
+### Phase 5.1 — Admin orders UI (2026-05-29)
+
+First operational surface Mom can actually use to fulfil real
+orders. Mobile-first because she packs on her phone.
+
+**Schema (migration `20260528175144_admin_orders_extend_status_tracking.sql`)**
+
+- Extended `order_status` enum with `on_hold` and `partially_refunded`.
+  Postgres can't drop enum values, so existing rows + RLS policies
+  are unaffected.
+- Added `orders.tracking_number`, `courier_name`, `delivered_at`,
+  `on_hold_at`, `refunded_at`, `admin_notes`. The structured
+  `(tracking_number, courier_name)` pair supersedes the free-text
+  `tracking_url` for new code; the URL column stays for the receipt
+  page link.
+- Two SECURITY DEFINER RPCs: `update_order_status(p_order_id,
+  p_new_status, p_notes)` and `set_order_tracking(...)`. Both
+  re-check `is_admin()` server-side, stamp the matching `*_at`
+  timestamp, and write an `admin_audit_logs` row on every flip —
+  defence-in-depth on top of the middleware admin gate.
+
+**Server actions (`src/actions/admin-orders.ts`)**
+
+- `listOrders({ status?, search?, from?, to?, page? })` — paginated
+  (25/page). Foreign-table join to `users` for customer name/email;
+  pulls `shipping_address.city` from JSONB. Search ilike's on
+  `order_number`.
+- `getOrderDetail(orderId)` — order + items (with book join) +
+  customer.
+- `updateOrderStatus(...)` and `setOrderTracking(...)` — thin
+  wrappers around the RPCs. Both `revalidatePath` the list + detail
+  so Mom sees the new state immediately.
+- `getOrderStatusCounts()` — feeds the tab badges.
+- Pure label helpers (`statusLabel`, `courierLabel`, the enum
+  constants) live in `src/lib/orders/labels.ts` — a `"use server"`
+  file can only export async functions, so non-async stays out.
+
+**Admin shell (`src/app/(operational)/admin/layout.tsx`)**
+
+- 56-px-wide left rail on md+, fixed bottom tab bar on mobile. Five
+  nav items (Overview / Orders / Books / Coupons / Settings); Books,
+  Coupons, Settings link to routes that don't exist yet — that's
+  deliberate, they'll 404 until Phase 5.3 / 5.2 / 5.5.
+
+**List page (`/admin/orders`)**
+
+- Status tabs (All / Paid / Packed / Shipped / Delivered / On hold /
+  Refunded / Cancelled) with counts. Search input (`?q=`). Date range
+  (`?from`, `?to`). Loading / empty / error states (empty copy
+  differs when filters are active). Mobile row layout, pagination.
+
+**Detail page (`/admin/orders/[id]`)**
+
+- Customer block + shipping block with one-tap copy buttons (copies
+  formatted plain-text address — paste straight into Shiprocket or
+  WhatsApp).
+- Line items with cover thumbs + totals breakdown (subtotal, discount
+  with coupon code if present, shipping, GST, total).
+- Tracking capture: number + courier dropdown + optional URL.
+- Right rail: primary button auto-advances to the next state (paid →
+  Packed → Shipped → Delivered) plus a status dropdown for arbitrary
+  jumps (on_hold, refunded, cancelled). Timeline of `*_at`
+  timestamps. Razorpay payment ID footer card.
+- Print invoice button reuses `PrintReceiptButton` — same interim
+  flow as `/order/[id]/success`. Replaced with the Vyapar generator
+  in Phase 3.6 (#83).
+
+**Open items**
+
+- Migration `20260528175144` is NOT yet pushed to the remote Supabase
+  project (CLI not linked locally this session). Pages render fine
+  against the existing schema, but the new status values + tracking
+  columns + RPCs only become usable after the push. User action at
+  the top of the next session: `./scripts/supabase-with-env.sh
+  link --project-ref <ref>` then `./scripts/supabase-with-env.sh db
+  push`, then regenerate types.
+- `as never` casts on the two new RPC names and `as unknown as
+  Tables<…>["status"]` on `on_hold` filtering drop out automatically
+  once the types regenerate.
+- Issue #61 stays open — only C3a (list) + C3b (detail) shipped this
+  round. C3c CSV exports + the "Mark as Shipped" email modal are
+  still TODO. Wait for user visual sign-off per
+  `memory/feedback_verify_before_closing.md` before closing.
+
 ### Next up
 
-1. **3.3 Shiprocket integration** — blocked on user credentials (#81).
-2. **3.6 Tax Invoice PDF** (#83) — replaces print-CSS workaround.
-3. **Phase 5.1 Admin orders + inventory UI** (#61) — high priority
-   now that real orders are landing in the DB.
-4. **Phase 5.5 Admin allowlist UI** (#10) — gets Mom off the env-var
+1. User pushes migration `20260528175144` + regenerates types.
+2. **3.3 Shiprocket integration** — blocked on user credentials (#81).
+3. **3.6 Tax Invoice PDF** (#83) — replaces print-CSS workaround.
+4. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
+   lookup (the rest of #61's punch list).
+5. **Phase 5.5 Admin allowlist UI** (#10) — gets Mom off the env-var
    dance.
-5. **3.5 GST/tax** at checkout.
-6. **3.4 Refund webhook expansion** + admin refund button.
-7. **Phase 4** — R2 + watermarked PDF + audio streaming.
-8. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+6. **3.5 GST/tax** at checkout.
+7. **3.4 Refund webhook expansion** + admin refund button.
+8. **Phase 4** — R2 + watermarked PDF + audio streaming.
+9. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
 
 ---
 
