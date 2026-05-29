@@ -58,6 +58,16 @@ const envSchema = z.object({
   // ---- Shiprocket (Phase 3.3) ----
   SHIPROCKET_EMAIL: z.string().email().optional(),
   SHIPROCKET_PASSWORD: z.string().optional(),
+  // 6-digit Indian pincode of Mom's warehouse / pickup point. Used as
+  // the origin for serviceability checks. Required at runtime when a
+  // quote is requested — surfaced via a clear error.
+  SHIPROCKET_PICKUP_PINCODE: z
+    .string()
+    .regex(/^[1-9][0-9]{5}$/, "Must be a 6-digit pincode")
+    .optional(),
+  // Nickname of the pickup address in Mom's Shiprocket dashboard.
+  // First-time accounts get one called "Primary" — that's our default.
+  SHIPROCKET_PICKUP_LOCATION: z.string().optional().default("Primary"),
 
   // ---- Cloudflare R2 (Phase 4) ----
   R2_ACCOUNT_ID: z.string().optional(),

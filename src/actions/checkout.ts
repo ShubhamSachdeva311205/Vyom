@@ -28,6 +28,10 @@ import { z } from "zod";
 import { findCartForOwner, getCartWithItems, resolveCartOwner } from "@/lib/cart/queries";
 import { env } from "@/lib/env";
 import { getRazorpayClient } from "@/lib/razorpay/client";
+import {
+  ShiprocketError,
+  getServiceability,
+} from "@/lib/shiprocket/client";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 type ActionResult<T = undefined> =
@@ -123,7 +127,33 @@ export async function createRazorpayOrder(
     0,
   );
 
-  const shippingPaise = 0; // Phase 3.3 will wire Shiprocket.
+  // Re-fetch a Shiprocket quote server-side so a tampered client price
+  // can't override the real cost. Fall back to 0 (free shipping) if
+  // pincode is missing or Shiprocket is down — checkout still works,
+  // Mom absorbs the cost in those rare cases.
+  let shippingPaise = 0;
+  if (pincode) {
+    const weightGrams = cartWithItems.items.reduce((sum, it) => {
+      const w = (it.book as unknown as { weight_grams?: number }).weight_grams ?? 300;
+      return sum + w * it.quantity;
+    }, 0);
+    try {
+      const { cheapest } = await getServiceability({
+        deliveryPincode: pincode,
+        weightGrams,
+      });
+      if (cheapest) {
+        shippingPaise = Math.round(cheapest.rate * 100);
+      }
+    } catch (err) {
+      // Log + degrade gracefully. Don't fail checkout because of a
+      // courier-API hiccup.
+      console.error(
+        "[checkout] Shiprocket quote failed — defaulting shipping to ₹0:",
+        err instanceof ShiprocketError ? err.message : err,
+      );
+    }
+  }
   const taxPaise = 0; // Phase 3.5 will compute GST.
 
   // 4. Insert pending order WITHOUT coupon first so we have order_id for

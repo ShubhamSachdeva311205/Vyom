@@ -21,7 +21,12 @@ import {
   ORDER_STATUS_VALUES,
   type OrderStatusV2,
 } from "@/lib/orders/labels";
-import { createClient } from "@/lib/supabase/server";
+import {
+  ShiprocketError,
+  assignAwb,
+  createOrder as createShiprocketOrder,
+} from "@/lib/shiprocket/client";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
 type ActionResult<T = undefined> =
@@ -252,6 +257,17 @@ export async function updateOrderStatus(
     return { success: false, error: error.message };
   }
 
+  // Side-effect: when Mom marks an order as Packed and it doesn't yet
+  // have a Shiprocket AWB, auto-create the Shiprocket order + assign
+  // an AWB. Best-effort — if Shiprocket is down, the status flip
+  // still succeeds and Mom can fall back to creating the shipment in
+  // the Shiprocket panel by hand. Errors are logged, not surfaced.
+  if (parsed.data.newStatus === "packed") {
+    void autoCreateShiprocketOrder(parsed.data.orderId).catch((err) => {
+      console.error("[admin-orders] Shiprocket auto-create failed:", err);
+    });
+  }
+
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${parsed.data.orderId}`);
 
@@ -260,6 +276,152 @@ export async function updateOrderStatus(
     success: true,
     data: { id: row?.id ?? parsed.data.orderId, status: row?.status ?? parsed.data.newStatus },
   };
+}
+
+/* ============================================================
+ * Shiprocket auto-create on Mark-as-Packed.
+ *
+ * Runs out-of-band (best-effort): looks up the order + items + customer,
+ * builds the Shiprocket payload, creates the order, assigns an AWB if
+ * one wasn't auto-picked, then patches our orders row with the AWB +
+ * courier. If anything fails, logs and returns — Mom can hit the
+ * tracking form manually as a fallback.
+ * ============================================================ */
+async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
+  const service = createServiceClient();
+
+  // Bail if this order already has a tracking number (idempotent: don't
+  // create a second Shiprocket order if Mom flips packed → shipped → packed).
+  const { data: existing } = await service
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!existing) return;
+  const existingAwb = (existing as unknown as { tracking_number: string | null })
+    .tracking_number;
+  if (existingAwb) return;
+
+  // Pull line items + book titles.
+  const { data: items } = await service
+    .from("order_items")
+    .select("*, book:books(id, title, slug, weight_grams, length_cm, breadth_cm, height_cm)")
+    .eq("order_id", orderId);
+  if (!items || items.length === 0) return;
+
+  // Customer email/phone for billing contact.
+  const { data: customer } = await service
+    .from("users")
+    .select("email, full_name")
+    .eq("id", existing.user_id)
+    .maybeSingle();
+
+  type ShipAddress = {
+    name?: string | null;
+    line1?: string | null;
+    line2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    pincode?: string | null;
+    country?: string | null;
+    phone?: string | null;
+  };
+  const addr = (existing.shipping_address ?? null) as ShipAddress | null;
+  if (!addr || !addr.line1 || !addr.city || !addr.pincode || !addr.phone) {
+    console.warn(
+      "[admin-orders] Cannot auto-create Shiprocket order — incomplete shipping address.",
+    );
+    return;
+  }
+
+  // Sum total parcel weight + use the largest book dim for the parcel.
+  let totalWeight = 0;
+  let maxLength = 22;
+  let maxBreadth = 15;
+  let maxHeight = 2;
+  const shipItems = items.map((it) => {
+    type B = {
+      weight_grams?: number;
+      length_cm?: number;
+      breadth_cm?: number;
+      height_cm?: number;
+      title?: string;
+      slug?: string;
+    };
+    const book = (it.book ?? {}) as B;
+    const w = book.weight_grams ?? 300;
+    totalWeight += w * it.quantity;
+    maxLength = Math.max(maxLength, Number(book.length_cm ?? maxLength));
+    maxBreadth = Math.max(maxBreadth, Number(book.breadth_cm ?? maxBreadth));
+    maxHeight = Math.max(maxHeight, Number(book.height_cm ?? maxHeight));
+    return {
+      name: book.title ?? "Book",
+      sku: book.slug ?? "book",
+      units: it.quantity,
+      sellingPricePaise: it.unit_price_paise,
+    };
+  });
+
+  let shipmentId: number;
+  let awbCode: string | undefined;
+  let courierName: string | undefined;
+
+  try {
+    const created = await createShiprocketOrder({
+      orderId: existing.order_number,
+      orderDate: new Date(existing.created_at).toISOString().replace("T", " ").slice(0, 16),
+      billing: {
+        name: addr.name ?? customer?.full_name ?? "Customer",
+        address: [addr.line1, addr.line2].filter(Boolean).join(", "),
+        city: addr.city,
+        pincode: addr.pincode,
+        state: addr.state ?? "",
+        country: addr.country ?? "India",
+        email: customer?.email ?? "",
+        phone: addr.phone,
+      },
+      items: shipItems,
+      paymentMethod: "Prepaid",
+      subTotalPaise: existing.subtotal_paise,
+      weightGrams: totalWeight,
+      lengthCm: maxLength,
+      breadthCm: maxBreadth,
+      heightCm: maxHeight,
+    });
+    shipmentId = created.shipmentId;
+    awbCode = created.awbCode;
+    courierName = created.courierName;
+  } catch (err) {
+    console.error("[admin-orders] Shiprocket createOrder failed:", err);
+    return;
+  }
+
+  // If Shiprocket didn't auto-assign an AWB, ask explicitly.
+  if (!awbCode) {
+    try {
+      const assigned = await assignAwb(shipmentId);
+      awbCode = assigned.awbCode;
+      courierName = assigned.courierName;
+    } catch (err) {
+      console.error(
+        "[admin-orders] Shiprocket assignAwb failed — Shipment id:",
+        shipmentId,
+        err instanceof ShiprocketError ? err.message : err,
+      );
+      return;
+    }
+  }
+
+  if (!awbCode) return;
+
+  await service
+    .from("orders")
+    .update({
+      tracking_number: awbCode,
+      courier_name: courierName ?? "shiprocket",
+      tracking_url: `https://shiprocket.co/tracking/${awbCode}`,
+    } as never)
+    .eq("id", orderId);
 }
 
 /* ============================================================

@@ -106,23 +106,25 @@ Subphase 3.2: Cart & Order Confirmation (NEW)
 
 Subphase 3.3: Shipping Logic — Shiprocket (REVISED 2026-05-28; Issue #81)
 
-    [ ] Build pincode validation function at checkout.
+    [x] Pincode validation at checkout (6-digit regex, debounced live-quote on entry).
 
-    [ ] Shiprocket auth: mint a 10-day JWT via /external/auth/login with SHIPROCKET_EMAIL + SHIPROCKET_PASSWORD env vars. Cache in memory / Supabase settings table; refresh before expiry.
+    [x] Shiprocket auth: 10-day JWT via /external/auth/login with SHIPROCKET_EMAIL + SHIPROCKET_PASSWORD. Cached in-process with 9-day TTL + promise-lock on cache miss.
 
-    [ ] Get Shiprocket's serviceability + rate quote via /external/courier/serviceability/ for the cart's pickup pincode → delivery pincode + weight.
+    [x] Shiprocket serviceability quote at checkout via /external/courier/serviceability/ — pickup → delivery → cart weight. Picks the cheapest available courier.
 
-    [ ] Read settings.free_shipping_enabled (server-side, never client).
+    [ ] Read settings.free_shipping_enabled (server-side, never client) — deferred. Currently we always quote live; the settings toggle gets wired with the admin Settings UI (Phase 5.5).
 
-    [ ] If free_shipping_enabled = true AND Shiprocket quote < ₹100 → Shipping Cost = 0.
+    [ ] If free_shipping_enabled = true AND Shiprocket quote < ₹100 → Shipping Cost = 0 — deferred to Phase 5.5.
 
-    [ ] Otherwise → customer pays the Shiprocket rate.
+    [x] Otherwise → customer pays the Shiprocket rate.
 
-    [ ] Bangalore-pincode rule REMOVED. Pincode is only an input to Shiprocket's quote.
+    [x] Bangalore-pincode rule REMOVED. Pincode is only an input to Shiprocket's quote.
 
-    [ ] Order-creation step: once payment succeeds, POST /external/orders/create/adhoc to Shiprocket with order details + cart items. Stash the Shiprocket order_id + shipment_id on our orders row (add columns: shiprocket_order_id, shiprocket_shipment_id, shiprocket_awb_code).
+    [x] Order-creation step: triggered when Mom marks the order as "Packed". autoCreateShiprocketOrder posts to /external/orders/create/adhoc, falls back to /external/courier/assign/awb for the AWB, and patches our orders row (tracking_number, courier_name, tracking_url). Fire-and-forget side-effect — status flip still succeeds if Shiprocket is down.
 
-    [ ] Admin "Mark Shipped" modal (Phase 5.1) prompts for the AWB code (or auto-fetched from Shiprocket); tracking URL pattern is https://shiprocket.co/tracking/{awb}.
+    [x] Per-book shipping dims: weight_grams, length_cm, breadth_cm, height_cm added to books table with school-book defaults (300 g, 22 × 15 × 2 cm). Mom can override per-book once Phase 5.3 admin CRUD ships.
+
+    [x] Admin "Mark Shipped" modal (Phase 5.1) — tracking number + courier captured from auto-create. Manual TrackingForm on detail page is the fallback if auto-create failed. Tracking URL pattern is https://shiprocket.co/tracking/{awb}.
 
 Subphase 3.4: Refund / Chargeback (NEW)
 

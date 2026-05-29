@@ -1208,19 +1208,103 @@ User testing flushed out two things on the new admin orders UI:
    `$`, `\`, `"`, spaces, `=`) in single quotes:
    `SHIPROCKET_PASSWORD='ab#cd!ef'`.
 
+### Phase 3.3 — Shiprocket integration (2026-05-29)
+
+Shiprocket auth + live quote at checkout + auto-create on Packed,
+shipped end-to-end against the user's account. Token verified locally
+(HTTP 200, 400-char JWT).
+
+**Schema (`20260528230755_books_shipping_dimensions.sql`)**
+
+- Adds `weight_grams int default 300` and `length_cm / breadth_cm /
+  height_cm numeric(5,1)` with school-book defaults (22 × 15 × 2 cm).
+- All `NOT NULL DEFAULT` so existing rows backfill cleanly. Mom
+  overrides per-book once Phase 5.3 admin CRUD ships.
+- Applied to local Supabase via Docker psql.
+
+**Client (`src/lib/shiprocket/client.ts`)**
+
+- Lazy `getToken()` with 9-day in-memory cache + promise-lock so
+  concurrent cache-miss calls share one login.
+- `getServiceability(pincode, weightGrams)` — returns array of
+  couriers + `cheapest` (lowest non-zero `rate`).
+- `createOrder(...)` — POSTs to `/orders/create/adhoc`. Returns
+  shipment_id (+ awb_code/courier_name if Shiprocket auto-assigned).
+- `assignAwb(shipmentId)` — fallback when create didn't auto-pick.
+- `pingShiprocket()` — health-check for a future admin "Test
+  connection" button.
+- `ShiprocketError` carries status + raw body for diagnostics.
+
+**Env (`src/lib/env.ts`)**
+
+- New optional: `SHIPROCKET_PICKUP_PINCODE` (6-digit regex),
+  `SHIPROCKET_PICKUP_LOCATION` (default `"Primary"`).
+- `SHIPROCKET_EMAIL` + `SHIPROCKET_PASSWORD` were already wired but
+  never used; this commit consumes them.
+
+**Server action (`src/actions/shipping.ts`)**
+
+- `getShippingQuote({ pincode })` — sums `weight_grams × qty` across
+  the current cart, calls Shiprocket, returns cheapest rate +
+  courier name + ETD. Discriminated union return. Graceful error
+  copy when Shiprocket throws.
+
+**Checkout form (`src/components/features/store/checkout-form.tsx`)**
+
+- Pincode input is now controlled. On every change with a valid
+  6-digit value, debounce 500 ms → `getShippingQuote`.
+- Quote state derived from `(currentPincode, lastAsyncResult)` —
+  React 19's `set-state-in-effect` rule forbids the previous
+  synchronous setState approach, so the effect only writes inside
+  the timer callback.
+- Subtotal / Shipping / Total breakdown live in the form. Shipping
+  line shows "Quoting…" spinner, then `₹X via {courier} · ETA …`,
+  or a destructive caption if the pincode is unserviceable.
+
+**Checkout server action (`src/actions/checkout.ts`)**
+
+- `createRazorpayOrder` re-fetches the quote server-side and uses
+  the real rate so a tampered client price can't override it. Falls
+  back to ₹0 (and logs) if Shiprocket is down — checkout still
+  works; Mom absorbs the cost in that rare case.
+
+**Admin Mark-as-Packed (`src/actions/admin-orders.ts`)**
+
+- `updateOrderStatus` fires a best-effort `autoCreateShiprocketOrder`
+  side-effect when `newStatus === "packed"`. The helper:
+    - Bails early if the order already has a `tracking_number`
+      (idempotent on packed → shipped → packed cycles).
+    - Pulls items + book dims + customer + shipping address.
+    - Computes total parcel weight + uses max of each per-book dim
+      as parcel dim.
+    - Calls `createOrder` → `assignAwb` (if no awb yet) → patches
+      `orders` with `tracking_number / courier_name / tracking_url`.
+    - All errors logged, never thrown — Mom can still flip the
+      status and fill the TrackingForm manually.
+
+**Open items**
+
+- Production note: fire-and-forget side-effect from a Server Action
+  is fine on a Node runtime but can be killed mid-execution on
+  Vercel Edge if the function returns before it finishes. Move to a
+  queue (or inline+await) before going live.
+- Settings.free_shipping_enabled / "free if quote < ₹100" rule is
+  NOT wired here. Roadmap rows left unchecked. Lands with Phase 5.5
+  admin settings UI.
+- TypeScript casts to read `weight_grams` etc. from `books` rows
+  drop out automatically once `supabase gen types` regenerates.
+
 ### Next up
 
-1. **3.3 Shiprocket integration** — blocked on user credentials (#81).
-2. **3.3 Shiprocket integration** — blocked on user credentials (#81).
-3. **3.6 Tax Invoice PDF** (#83) — replaces print-CSS workaround.
-4. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
+1. **3.6 Tax Invoice PDF** (#83) — replaces print-CSS workaround.
+2. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
    lookup (the rest of #61's punch list).
-5. **Phase 5.5 Admin allowlist UI** (#10) — gets Mom off the env-var
-   dance.
-6. **3.5 GST/tax** at checkout.
-7. **3.4 Refund webhook expansion** + admin refund button.
-8. **Phase 4** — R2 + watermarked PDF + audio streaming.
-9. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+3. **Phase 5.5 Admin allowlist + settings UI** (#10) — also wires
+   the free-shipping toggle that 3.3 left unchecked.
+4. **3.5 GST/tax** at checkout.
+5. **3.4 Refund webhook expansion** + admin refund button.
+6. **Phase 4** — R2 + watermarked PDF + audio streaming.
+7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
 
 ---
 

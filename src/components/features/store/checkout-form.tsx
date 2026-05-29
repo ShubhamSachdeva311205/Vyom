@@ -2,13 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import Script from "next/script";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   createRazorpayOrder,
   verifyPaymentAndCompleteOrder,
 } from "@/actions/checkout";
+import { getShippingQuote } from "@/actions/shipping";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
@@ -18,10 +19,8 @@ import { Stack, Row } from "@/components/layouts/stack";
 import { formatINR } from "@/lib/format";
 
 const RAZORPAY_SCRIPT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
+const PINCODE_REGEX = /^[1-9][0-9]{5}$/;
 
-// Minimal Razorpay Checkout types — the SDK script attaches a global
-// `Razorpay` constructor that takes an options bag and exposes .open().
-// Typed locally so we don't depend on @types/razorpay which is sparse.
 interface RazorpayHandlerResponse {
   razorpay_order_id: string;
   razorpay_payment_id: string;
@@ -58,20 +57,12 @@ interface CheckoutFormProps {
   userName: string;
 }
 
-/**
- * CheckoutForm — coupon + pincode inputs + the Razorpay modal trigger.
- *
- * Flow:
- *   1. User enters optional coupon + pincode, clicks Pay.
- *   2. createRazorpayOrder runs server-side: validates, inserts our
- *      pending_payment order + items, atomically redeems coupon if
- *      provided, creates the Razorpay order via SDK, returns ids.
- *   3. We load checkout.razorpay.com/v1/checkout.js (via next/script)
- *      and open the modal with the returned ids.
- *   4. On modal success → verifyPaymentAndCompleteOrder runs
- *      HMAC-SHA256 verify + flips the order to 'paid' + clears the cart.
- *   5. Redirect to /order/[id]/success.
- */
+type QuoteResult =
+  | { kind: "ok"; ratePaise: number; courierName: string; etd: string }
+  | { kind: "error"; message: string };
+
+type QuoteState = QuoteResult | { kind: "idle" } | { kind: "loading" };
+
 export function CheckoutForm({
   subtotalPaise,
   razorpayKeyId,
@@ -81,6 +72,56 @@ export function CheckoutForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [scriptReady, setScriptReady] = useState(false);
+  const [pincode, setPincode] = useState("");
+  // Most recent async result keyed by the pincode it was for. The
+  // displayed `quote` is DERIVED from this + the current pincode so
+  // the effect never has to synchronously setState (React 19 lint
+  // forbids that).
+  const [asyncQuote, setAsyncQuote] = useState<{
+    pincode: string;
+    result: QuoteResult;
+  } | null>(null);
+
+  const validPincode = PINCODE_REGEX.test(pincode);
+  const quote: QuoteState = !validPincode
+    ? { kind: "idle" }
+    : asyncQuote?.pincode === pincode
+      ? asyncQuote.result
+      : { kind: "loading" };
+
+  useEffect(() => {
+    if (!validPincode) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const result = await getShippingQuote({ pincode });
+      if (cancelled) return;
+      if (!result.success) {
+        setAsyncQuote({ pincode, result: { kind: "error", message: result.error } });
+        return;
+      }
+      const data = result.data;
+      if (!data) {
+        setAsyncQuote({ pincode, result: { kind: "error", message: "No quote returned." } });
+        return;
+      }
+      setAsyncQuote({
+        pincode,
+        result: {
+          kind: "ok",
+          ratePaise: data.ratePaise,
+          courierName: data.courierName,
+          etd: data.etd,
+        },
+      });
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [pincode, validPincode]);
+
+  const shippingPaise = quote.kind === "ok" ? quote.ratePaise : 0;
+  const projectedTotalPaise = subtotalPaise + shippingPaise;
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -91,8 +132,6 @@ export function CheckoutForm({
 
       const result = await createRazorpayOrder(formData);
       if (!result.success) {
-        // Mirror to console so the user can copy-paste the exact error
-        // text when reporting. (Issue #79.)
         console.error("[checkout] createRazorpayOrder failed:", result.error);
         toast.error(result.error);
         return;
@@ -118,7 +157,7 @@ export function CheckoutForm({
           startTransition(async () => {
             const verifyResult = await verifyPaymentAndCompleteOrder(response);
             if (!verifyResult.success) {
-                    console.error("[checkout] verify failed:", verifyResult.error, response);
+              console.error("[checkout] verify failed:", verifyResult.error, response);
               toast.error(verifyResult.error);
               return;
             }
@@ -131,9 +170,6 @@ export function CheckoutForm({
         },
         modal: {
           ondismiss: () => {
-            // User closed the modal without paying. Order stays in
-            // pending_payment — they can retry from /checkout (we
-            // could also revoke it; leaving it for the admin to see.)
             toast.message("Payment cancelled. Your cart is unchanged.");
           },
         },
@@ -170,7 +206,7 @@ export function CheckoutForm({
 
             <FormField
               label="Shipping pincode"
-              description="Live Shiprocket rates arrive in Phase 3.3 — shipping is ₹0 for now."
+              description="Live Shiprocket rates fetched on entry."
             >
               <Input
                 name="pincode"
@@ -179,19 +215,60 @@ export function CheckoutForm({
                 placeholder="6-digit pincode"
                 autoComplete="postal-code"
                 maxLength={6}
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value.replace(/[^0-9]/g, ""))}
               />
             </FormField>
 
             <div className="border-t border-border pt-4">
-              <Row align="center" justify="between">
-                <Label className="text-body text-muted-foreground">Subtotal</Label>
-                <span className="text-headline tabular-nums">
-                  {formatINR(subtotalPaise)}
-                </span>
-              </Row>
-              <p className="text-caption mt-1">
-                Discount + shipping + GST are calculated on the next screen.
-              </p>
+              <Stack gap={2}>
+                <Row align="center" justify="between">
+                  <Label className="text-body text-muted-foreground">Subtotal</Label>
+                  <span className="text-body tabular-nums">
+                    {formatINR(subtotalPaise)}
+                  </span>
+                </Row>
+
+                <Row align="center" justify="between">
+                  <Label className="text-body text-muted-foreground">Shipping</Label>
+                  <span className="text-body tabular-nums">
+                    {quote.kind === "loading" ? (
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                        Quoting…
+                      </span>
+                    ) : quote.kind === "ok" ? (
+                      formatINR(quote.ratePaise)
+                    ) : quote.kind === "error" ? (
+                      <span className="text-destructive text-caption">{quote.message}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-caption">
+                        Enter pincode for quote
+                      </span>
+                    )}
+                  </span>
+                </Row>
+
+                {quote.kind === "ok" ? (
+                  <p className="text-caption text-muted-foreground">
+                    Via {quote.courierName} · ETA {quote.etd}
+                  </p>
+                ) : null}
+
+                <Row
+                  align="center"
+                  justify="between"
+                  className="border-t border-border pt-2 mt-1"
+                >
+                  <Label className="text-headline">Total</Label>
+                  <span className="text-headline tabular-nums">
+                    {formatINR(projectedTotalPaise)}
+                  </span>
+                </Row>
+                <p className="text-caption text-muted-foreground">
+                  Discount applies on the Razorpay screen. GST: included.
+                </p>
+              </Stack>
             </div>
 
             <Button type="submit" size="md" disabled={pending || !scriptReady} className="w-full">
