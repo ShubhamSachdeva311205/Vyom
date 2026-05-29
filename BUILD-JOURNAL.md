@@ -1294,17 +1294,67 @@ shipped end-to-end against the user's account. Token verified locally
 - TypeScript casts to read `weight_grams` etc. from `books` rows
   drop out automatically once `supabase gen types` regenerates.
 
+### Phase 3.3 follow-up — checkout UX hardening (2026-05-30)
+
+User-driven follow-ups after seeing the live checkout:
+
+1. **Live discount preview.** Previously the discount only showed up
+   on the Razorpay screen — surprising. New action
+   `previewCheckoutTotals({ couponCode?, pincode? })` mirrors the
+   math inside `createRazorpayOrder` (subtotal, coupon preview,
+   shipping quote, total) but inserts/redeems nothing. Checkout
+   form debounces 500 ms on either input and shows: `Subtotal ·
+   Discount (CODE) − ₹X · Shipping via Bluedart ETA … · Total`.
+   Coupon-invalid messages (expired, wrong user, etc.) render
+   inline below the input so the user sees them BEFORE clicking
+   Pay. Subtotal stays a server-side prop so the displayed
+   discount-eligible logic doesn't leak the cart math to the
+   client. `createRazorpayOrder` is still the source of truth —
+   the preview is advisory.
+
+2. **Disable Pay when blocked.** Computed `blockedReason` string
+   covers: missing pincode, still quoting, unserviceable pincode,
+   invalid coupon, preview error. Pay button is disabled with a
+   caption underneath telling Mom-the-customer what's wrong. The
+   "No couriers serve this pincode" copy renders in destructive
+   colour next to the Shipping line so the user sees the
+   problem AT the input, not just at the button.
+
+3. **Razorpay-modal dismiss cleanup.** New `cancelPendingOrder`
+   action: owner-only, marks the pending_payment order as
+   cancelled. Wired into the modal's `ondismiss` so abandoned
+   checkouts get marked cancelled immediately. This complements
+   the "all-tab excludes pending_payment" filter from Phase 5.1
+   follow-up — now we ALSO actively clean up instead of just
+   hiding. The "Payment in progress — don't close this window"
+   notice renders during the active modal window.
+
+4. **Filed for later (not in this commit):**
+   - #85 — Customer-selectable shipping partner at checkout (fast
+     vs cheap).
+   - #86 — Free shipping toggle + auto-free-under-₹100 rule
+     (deferred from Phase 3.3 originally).
+   - #87 — Shiprocket webhook → auto-update order status (huge
+     ops win; eliminates manual status flips for in-transit /
+     delivered events).
+   - #88 — Production fire-and-forget risk for the
+     `autoCreateShiprocketOrder` side-effect (must close before
+     launch).
+   - #89 — Mark-as-Shipped customer email with AWB (Phase 7
+     Resend dependency).
+
 ### Next up
 
 1. **3.6 Tax Invoice PDF** (#83) — replaces print-CSS workaround.
 2. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
    lookup (the rest of #61's punch list).
 3. **Phase 5.5 Admin allowlist + settings UI** (#10) — also wires
-   the free-shipping toggle that 3.3 left unchecked.
-4. **3.5 GST/tax** at checkout.
-5. **3.4 Refund webhook expansion** + admin refund button.
-6. **Phase 4** — R2 + watermarked PDF + audio streaming.
-7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+   the free-shipping toggle (#86).
+4. **#87 Shiprocket status webhook** — high ops impact.
+5. **3.5 GST/tax** at checkout.
+6. **3.4 Refund webhook expansion** + admin refund button.
+7. **Phase 4** — R2 + watermarked PDF + audio streaming.
+8. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
 
 ---
 

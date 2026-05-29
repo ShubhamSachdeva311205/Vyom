@@ -52,6 +52,193 @@ const verifyInput = z.object({
   razorpay_signature: z.string().min(1),
 });
 
+const previewInput = z.object({
+  couponCode: z.string().regex(COUPON_REGEX).optional().or(z.literal("")),
+  pincode: z.string().regex(PINCODE_REGEX).optional().or(z.literal("")),
+});
+
+const cancelInput = z.object({
+  orderId: z.string().uuid(),
+});
+
+/* -----------------------------------------------------------------
+ * previewCheckoutTotals — read-only breakdown for the live UI.
+ *
+ * Mirrors the math inside createRazorpayOrder but inserts nothing
+ * and redeems nothing. The actual order create rebuilds these
+ * numbers server-side so a tampered client can't underpay.
+ * ----------------------------------------------------------------- */
+export interface CheckoutPreview {
+  subtotalPaise: number;
+  discountPaise: number;
+  shippingPaise: number;
+  totalPaise: number;
+  couponApplied: string | null;
+  couponReason: string | null;
+  shippingCourier: string | null;
+  shippingEtd: string | null;
+  shippingUnserviceable: boolean;
+}
+
+export async function previewCheckoutTotals(
+  input: z.input<typeof previewInput>,
+): Promise<ActionResult<CheckoutPreview>> {
+  const parsed = previewInput.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Coupon or pincode format looks invalid." };
+  }
+
+  const couponCode = parsed.data.couponCode || null;
+  const pincode = parsed.data.pincode || null;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "Please sign in to check out." };
+  }
+
+  const owner = await resolveCartOwner();
+  if (!owner || owner.kind !== "user" || owner.userId !== user.id) {
+    return { success: false, error: "Could not find your cart." };
+  }
+  const cart = await findCartForOwner(owner);
+  if (!cart) return { success: false, error: "Your cart is empty." };
+  const cartWithItems = await getCartWithItems(cart.id);
+  if (!cartWithItems || cartWithItems.items.length === 0) {
+    return { success: false, error: "Your cart is empty." };
+  }
+
+  const subtotalPaise = cartWithItems.items.reduce(
+    (sum, it) => sum + it.book.price_paise * it.quantity,
+    0,
+  );
+  const eligibleSubtotalPaise = cartWithItems.items.reduce(
+    (sum, it) =>
+      sum + (it.book.discount_eligible ? it.book.price_paise * it.quantity : 0),
+    0,
+  );
+
+  // Coupon preview (read-only — never redeems).
+  const service = createServiceClient();
+  let discountPaise = 0;
+  let couponApplied: string | null = null;
+  let couponReason: string | null = null;
+  if (couponCode) {
+    const { data: preview } = await service.rpc("preview_coupon", {
+      p_code: couponCode,
+      p_user_id: user.id,
+      p_eligible_subtotal_paise: eligibleSubtotalPaise,
+    });
+    const row = Array.isArray(preview) ? preview[0] : preview;
+    if (row?.valid) {
+      discountPaise = row.discount_paise ?? 0;
+      couponApplied = couponCode;
+    } else {
+      couponReason = row?.reason ?? "Coupon is not valid.";
+    }
+  }
+
+  // Shipping quote.
+  let shippingPaise = 0;
+  let shippingCourier: string | null = null;
+  let shippingEtd: string | null = null;
+  let shippingUnserviceable = false;
+  if (pincode) {
+    const weightGrams = cartWithItems.items.reduce((sum, it) => {
+      const w = (it.book as unknown as { weight_grams?: number }).weight_grams ?? 300;
+      return sum + w * it.quantity;
+    }, 0);
+    try {
+      const { cheapest } = await getServiceability({
+        deliveryPincode: pincode,
+        weightGrams,
+      });
+      if (cheapest) {
+        shippingPaise = Math.round(cheapest.rate * 100);
+        shippingCourier = cheapest.courier_name;
+        shippingEtd = cheapest.etd;
+      } else {
+        shippingUnserviceable = true;
+      }
+    } catch (err) {
+      console.error(
+        "[previewCheckoutTotals] Shiprocket quote failed:",
+        err instanceof ShiprocketError ? err.message : err,
+      );
+    }
+  }
+
+  const totalPaise = Math.max(
+    0,
+    subtotalPaise - discountPaise + shippingPaise,
+  );
+
+  return {
+    success: true,
+    data: {
+      subtotalPaise,
+      discountPaise,
+      shippingPaise,
+      totalPaise,
+      couponApplied,
+      couponReason,
+      shippingCourier,
+      shippingEtd,
+      shippingUnserviceable,
+    },
+  };
+}
+
+/* -----------------------------------------------------------------
+ * cancelPendingOrder — mark a pending_payment order as cancelled.
+ *
+ * Called by the Razorpay modal's `ondismiss` handler so abandoned
+ * checkouts get cleaned up immediately instead of accumulating in
+ * the DB. Only the owner of the order can cancel it; only
+ * `pending_payment` rows are eligible (paid orders are immutable
+ * via this path — admin reversal is its own action).
+ * ----------------------------------------------------------------- */
+export async function cancelPendingOrder(
+  input: z.input<typeof cancelInput>,
+): Promise<ActionResult> {
+  const parsed = cancelInput.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: "Invalid order id." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not signed in." };
+
+  const service = createServiceClient();
+  const { data: existing } = await service
+    .from("orders")
+    .select("id, user_id, status")
+    .eq("id", parsed.data.orderId)
+    .maybeSingle();
+
+  if (!existing || existing.user_id !== user.id) {
+    return { success: false, error: "Order not found." };
+  }
+  if (existing.status !== "pending_payment") {
+    // Already moved past pending — nothing to do, but not a real error.
+    return { success: true };
+  }
+
+  const { error } = await service
+    .from("orders")
+    .update({ status: "cancelled" })
+    .eq("id", parsed.data.orderId);
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
 export interface CreatedOrderPayload {
   /** Our internal orders.id — used for success-page redirect. */
   orderId: string;
