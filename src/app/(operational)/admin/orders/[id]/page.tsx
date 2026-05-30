@@ -6,7 +6,7 @@ import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
 import { Card } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/error-state";
-import { PrintReceiptButton } from "@/components/features/store/print-receipt-button";
+import { InvoiceDownloadButton } from "@/components/features/store/invoice-download-button";
 import { OrderStatusBadge } from "@/components/features/admin/order-status-badge";
 import {
   CopyButton,
@@ -111,7 +111,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                   </span>
                 </Row>
               </Stack>
-              <PrintReceiptButton />
+              <InvoiceDownloadButton orderId={order.id} />
             </Row>
           </Stack>
 

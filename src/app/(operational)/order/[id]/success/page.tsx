@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PrintReceiptButton } from "@/components/features/store/print-receipt-button";
+import { InvoiceDownloadButton } from "@/components/features/store/invoice-download-button";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
@@ -166,7 +166,7 @@ export default async function OrderSuccessPage({ params }: SuccessPageProps) {
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </Button>
-              <PrintReceiptButton />
+              <InvoiceDownloadButton orderId={order.id} />
               <Button asChild variant="outline" size="md">
                 <Link href="/store">Keep browsing</Link>
               </Button>

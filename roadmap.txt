@@ -132,17 +132,17 @@ Subphase 3.4: Refund / Chargeback (NEW)
 
 Subphase 3.6: Tax Invoice PDF generation (NEW 2026-05-28; Issue #83)
 
-    [ ] Add orders.invoice_number (sequential per fiscal year, never reused) + orders.invoice_generated_at columns. Backed by a Supabase sequence so it survives restarts.
+    [x] orders.invoice_number (sequential, fiscal-year format ADV/YYYY-YY/NNNN via invoice_number_seq + next_invoice_number() SECURITY DEFINER allocator) + orders.invoice_generated_at. Idempotent on re-render.
 
-    [ ] Add books.hsn_sac column (4901 = printed books, 0% GST by default).
+    [x] books.hsn_sac column (default '4901' — printed books, 0% GST).
 
-    [ ] src/lib/invoice/render.ts — server-side PDF generation (pdfkit or @react-pdf/renderer). Layout mirrors the user's existing Vyapar invoice: Tax Invoice header, seller block (Seema Sachdeva / address / phone / shubhamhelpseries@gmail.com), Bill-To, invoice no + date, line items table (#, Item Name, HSN/SAC, Qty, Unit, Price/Unit, Discount, Amount), shipping as its own line, totals + 'Invoice Amount In Words', bank details (SBI Marathahalli A/C ***REDACTED*** IFSC ***REDACTED***), terms, authorised signatory.
+    [x] src/lib/invoice/render.ts — pdfkit-based renderer. Layout matches Vyapar: Tax Invoice header, seller block, Bill-To, invoice no + date + order ref, line items table (#, Item Name, HSN/SAC, Qty, Unit, Price/Unit, Discount, Amount), shipping as its own line, totals box, "Invoice Amount In Words" with Indian lakh/crore wording, terms, SBI Marathahalli bank details, authorised signatory.
 
-    [ ] /api/orders/[id]/invoice.pdf route — auth-gated to owner OR admin, streams the rendered PDF.
+    [x] /api/orders/[id]/invoice.pdf route — auth-gated to owner OR admin, allocates invoice number on first hit, streams via ReadableStream with inline Content-Disposition.
 
-    [ ] Replace the current PrintReceiptButton (Issue #77 interim print-CSS workaround) with a 'Download invoice' button hitting that route.
+    [x] Replaced PrintReceiptButton (Issue #77 interim) with InvoiceDownloadButton on both /order/[id]/success and /admin/orders/[id]. Old component deleted.
 
-    [ ] Phase 7 hook: attach generated invoice to the receipt email via Resend.
+    [ ] Phase 7 hook: attach generated invoice to the receipt email via Resend. (Deferred to #89.)
 
 Subphase 3.5: GST / Tax (NEW)
 

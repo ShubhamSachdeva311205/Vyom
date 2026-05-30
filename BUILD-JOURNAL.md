@@ -1343,18 +1343,96 @@ User-driven follow-ups after seeing the live checkout:
    - #89 — Mark-as-Shipped customer email with AWB (Phase 7
      Resend dependency).
 
+### Phase 3.6 — Tax Invoice PDF generation (2026-05-30)
+
+Replaces the print-CSS hack (PrintReceiptButton, Issue #77) with
+a real server-rendered Vyapar-style invoice. Mom can give these
+out for GST records without a screenshot detour.
+
+**Schema (`20260530133804_invoice_number_sequence.sql`)**
+
+- `invoice_number_seq` sequence + `next_invoice_number()` SECURITY
+  DEFINER allocator. Format: `ADV/YYYY-YY/NNNN` (e.g.
+  `ADV/2026-27/0001`). Fiscal year computed from `current_date` —
+  months 4–12 → `YYYY-(YY+1)`, months 1–3 → `(YYYY-1)-YY`.
+- `orders.invoice_number` (text, unique) + `orders.invoice_generated_at`.
+  Idempotent — re-rendering an existing invoice never reallocates.
+- `books.hsn_sac` (default `'4901'` — printed books, 0% GST).
+- Applied to local Supabase via Docker psql. Verified allocator
+  returns `ADV/2026-27/0001` and `0002` on consecutive calls.
+
+**Renderer (`src/lib/invoice/render.ts`)**
+
+- pdfkit-based. ~600 KB dep, server-only, no client bundle hit.
+- A4 portrait, 36 pt margins.
+- Sections (top → bottom): Header (seller block + Tax Invoice
+  title + meta) → Bill To → Items table (8 columns) → Totals box
+  (right-aligned, 240 pt wide) → Amount in Words → Terms + Bank
+  Details two-column → Footer.
+- Item table columns: `# | Item Name | HSN/SAC | Qty | Unit |
+  Price/Unit | Discount | Amount` — widths sum to CONTENT_W (523 pt).
+- Shipping renders as its own line (HSN blank, "Pcs" unit).
+- Order-level discount pro-rated across line items by share of
+  subtotal so per-line Disc column sums to order discount.
+- `amountInWordsINR` uses Indian lakh + crore grouping
+  (12,34,567 → "Twelve Lakh Thirty Four Thousand Five Hundred Sixty
+  Seven Rupees Only").
+- `RUPEE = "Rs."` fallback — pdfkit's bundled Helvetica lacks the
+  ₹ glyph and would render tofu. Swap to a bundled DejaVu font in a
+  follow-up if we want the real symbol.
+- Bank details hardcoded to SBI Marathahalli / ***REDACTED*** /
+  ***REDACTED*** per the spec PDF.
+
+**Route (`/api/orders/[id]/invoice.pdf`)**
+
+- AuthN: signed-in user required.
+- AuthZ: owner OR admin (via `isAdminEmail`).
+- Allocates `invoice_number` on first hit via the RPC; subsequent
+  hits reuse the stamped value. `invoice_generated_at` stamped on
+  first hit too.
+- Streams as `application/pdf` inline, filename
+  `invoice-ADV-2026-27-0001.pdf` (slashes swapped to hyphens for
+  filesystem-friendly naming).
+- Wraps the Buffer in a single-chunk ReadableStream to satisfy
+  NextResponse's BodyInit typing.
+
+**UI swap**
+
+- New: `src/components/features/store/invoice-download-button.tsx` —
+  thin asChild Button wrapping an `<a target="_blank">` to the
+  route.
+- Old: `print-receipt-button.tsx` deleted entirely. No more
+  PrintReceiptButton references in the tree.
+- Wired into `/order/[id]/success` and `/admin/orders/[id]`.
+
+**Open / follow-up**
+
+- The seller block has Mom's address as placeholders
+  ("Bengaluru, Karnataka / India" + a `+91 99999 00000` phone
+  stub). Need real values — Mom should send the canonical address
+  + phone she wants on invoices. Filed nothing yet — flag at end
+  of next session.
+- ₹ symbol → `"Rs."` text fallback because pdfkit's Helvetica
+  can't render it. Bundling a Unicode-friendly font would fix it
+  but adds ~300 KB; not urgent.
+- The `as never` RPC cast and the `as unknown as { invoice_number
+  ... }` widening on the `orders` row drop out once
+  `supabase gen types` regenerates.
+- Phase 7 hook (attach invoice to Resend email) tracked under #89.
+
 ### Next up
 
-1. **3.6 Tax Invoice PDF** (#83) — replaces print-CSS workaround.
-2. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
+1. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
    lookup (the rest of #61's punch list).
-3. **Phase 5.5 Admin allowlist + settings UI** (#10) — also wires
-   the free-shipping toggle (#86).
-4. **#87 Shiprocket status webhook** — high ops impact.
-5. **3.5 GST/tax** at checkout.
-6. **3.4 Refund webhook expansion** + admin refund button.
-7. **Phase 4** — R2 + watermarked PDF + audio streaming.
-8. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+2. **Phase 5.5 Admin allowlist + settings UI** (#10) — also wires
+   the free-shipping toggle (#86) and lets Mom edit invoice seller
+   address.
+3. **#87 Shiprocket status webhook** — high ops impact, eliminates
+   manual status flips for in-transit / delivered.
+4. **3.5 GST/tax** at checkout.
+5. **3.4 Refund webhook expansion** + admin refund button.
+6. **Phase 4** — R2 + watermarked PDF + audio streaming.
+7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
 
 ---
 
