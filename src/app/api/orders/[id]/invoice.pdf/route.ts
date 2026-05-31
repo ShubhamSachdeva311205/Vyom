@@ -96,7 +96,7 @@ export async function GET(
     id: string;
     quantity: number;
     unit_price_paise: number;
-    book: { title?: string | null; hsn_sac?: string | null } | null;
+    book: { title?: string | null } | null;
   };
   const rows = (items ?? []) as ItemRow[];
 
@@ -110,7 +110,6 @@ export async function GET(
         : 0;
     return {
       name: it.book?.title ?? "Book",
-      hsnSac: it.book?.hsn_sac ?? "4901",
       quantity: it.quantity,
       unit: "Pcs",
       unitPricePaise: it.unit_price_paise,
@@ -130,15 +129,20 @@ export async function GET(
   };
   const addr = (order.shipping_address ?? null) as ShipAddr | null;
 
-  const billToAddressLines: string[] = [];
+  const shipToAddressLines: string[] = [];
   if (addr) {
-    if (addr.line1) billToAddressLines.push(addr.line1);
-    if (addr.line2) billToAddressLines.push(addr.line2);
+    if (addr.line1) shipToAddressLines.push(addr.line1);
+    if (addr.line2) shipToAddressLines.push(addr.line2);
     const cityLine = [addr.city, addr.state, addr.pincode]
       .filter(Boolean)
       .join(", ");
-    if (cityLine) billToAddressLines.push(cityLine);
-    if (addr.country) billToAddressLines.push(addr.country);
+    if (cityLine) shipToAddressLines.push(cityLine);
+    if (addr.country) shipToAddressLines.push(addr.country);
+  }
+  // Older test orders may have no shipping_address. Show a clear
+  // placeholder rather than a blank box.
+  if (shipToAddressLines.length === 0) {
+    shipToAddressLines.push("Address not captured at checkout.");
   }
 
   let pdf: Buffer;
@@ -153,9 +157,9 @@ export async function GET(
         phone: "+91 99999 00000",
         email: "shubhamhelpseries@gmail.com",
       },
-      billTo: {
+      shipTo: {
         name: addr?.name ?? customer?.full_name ?? "Customer",
-        addressLines: billToAddressLines,
+        addressLines: shipToAddressLines,
         phone: addr?.phone ?? undefined,
         email: customer?.email ?? undefined,
       },

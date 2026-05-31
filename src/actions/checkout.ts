@@ -40,10 +40,30 @@ type ActionResult<T = undefined> =
 
 const PINCODE_REGEX = /^[1-9][0-9]{5}$/;
 const COUPON_REGEX = /^[A-Za-z0-9-_]{3,40}$/;
+const PHONE_REGEX = /^[6-9][0-9]{9}$/; // Indian mobile, 10 digits
+
+// Shipping address fields collected at checkout. Required: name +
+// phone + line1 + city + state + pincode. line2 is optional. Without
+// these the order can't ship via Shiprocket OR appear correctly on
+// the tax invoice. Persisted to orders.shipping_address JSONB.
+const shippingAddressSchema = z.object({
+  fullName: z.string().trim().min(2, "Name is required").max(120),
+  phone: z
+    .string()
+    .trim()
+    .regex(PHONE_REGEX, "Enter a 10-digit Indian mobile number"),
+  line1: z.string().trim().min(3, "Street address is required").max(160),
+  line2: z.string().trim().max(160).optional().or(z.literal("")),
+  city: z.string().trim().min(2, "City is required").max(80),
+  state: z.string().trim().min(2, "State is required").max(80),
+  pincode: z.string().regex(PINCODE_REGEX, "Pincode must be 6 digits"),
+});
+
+export type ShippingAddressInput = z.input<typeof shippingAddressSchema>;
 
 const createOrderInput = z.object({
   couponCode: z.string().regex(COUPON_REGEX).optional().or(z.literal("")),
-  pincode: z.string().regex(PINCODE_REGEX).optional().or(z.literal("")),
+  shippingAddress: shippingAddressSchema,
 });
 
 const verifyInput = z.object({
@@ -52,6 +72,8 @@ const verifyInput = z.object({
   razorpay_signature: z.string().min(1),
 });
 
+// Preview only needs pincode for the live quote — full address goes
+// via createRazorpayOrder once the customer commits.
 const previewInput = z.object({
   couponCode: z.string().regex(COUPON_REGEX).optional().or(z.literal("")),
   pincode: z.string().regex(PINCODE_REGEX).optional().or(z.literal("")),
@@ -271,15 +293,28 @@ export async function createRazorpayOrder(
 ): Promise<ActionResult<CreatedOrderPayload>> {
   const parsed = createOrderInput.safeParse({
     couponCode: formData.get("couponCode")?.toString().trim() || "",
-    pincode: formData.get("pincode")?.toString().trim() || "",
+    shippingAddress: {
+      fullName: formData.get("fullName")?.toString().trim() ?? "",
+      phone: formData.get("phone")?.toString().trim() ?? "",
+      line1: formData.get("line1")?.toString().trim() ?? "",
+      line2: formData.get("line2")?.toString().trim() ?? "",
+      city: formData.get("city")?.toString().trim() ?? "",
+      state: formData.get("state")?.toString().trim() ?? "",
+      pincode: formData.get("pincode")?.toString().trim() ?? "",
+    },
   });
 
   if (!parsed.success) {
-    return { success: false, error: "Coupon or pincode format looks invalid." };
+    const firstIssue = parsed.error.issues[0];
+    return {
+      success: false,
+      error: firstIssue?.message ?? "Please fill in all shipping details.",
+    };
   }
 
   const couponCode = parsed.data.couponCode || null;
-  const pincode = parsed.data.pincode || null;
+  const address = parsed.data.shippingAddress;
+  const pincode = address.pincode;
 
   // 1. Require signed-in user (FFR §A6: guest checkout NOT supported).
   const supabase = await createClient();
@@ -348,6 +383,20 @@ export async function createRazorpayOrder(
   const service = createServiceClient();
   const orderNumber = generateOrderNumber();
 
+  // Shape stored in orders.shipping_address (jsonb). Matches the
+  // ShipAddress type consumed by autoCreateShiprocketOrder and the
+  // invoice renderer's Ship To block.
+  const shippingAddressJson = {
+    name: address.fullName,
+    phone: address.phone,
+    line1: address.line1,
+    line2: address.line2 || null,
+    city: address.city,
+    state: address.state,
+    pincode: address.pincode,
+    country: "India",
+  };
+
   const { data: orderRow, error: orderErr } = await service
     .from("orders")
     .insert({
@@ -360,6 +409,7 @@ export async function createRazorpayOrder(
       tax_paise: taxPaise,
       total_paise: subtotalPaise + shippingPaise + taxPaise,
       shipping_pincode: pincode,
+      shipping_address: shippingAddressJson,
     })
     .select("id, order_number")
     .single();

@@ -180,19 +180,23 @@ export interface OrderDetail {
 }
 
 export async function getOrderDetail(orderId: string): Promise<ActionResult<OrderDetail>> {
-  if (!z.string().uuid().safeParse(orderId).success) {
+  // Accept either a UUID (id) or a human order_number (ADV-YYYYMMDD-XXXXX).
+  const isUuid = z.string().uuid().safeParse(orderId).success;
+  const ORDER_NUMBER_REGEX = /^[A-Z0-9-]{4,40}$/;
+  if (!isUuid && !ORDER_NUMBER_REGEX.test(orderId)) {
     return { success: false, error: "Invalid order id." };
   }
+
   const gate = await assertAdmin();
   if (!gate.ok) return { success: false, error: gate.error };
 
   const supabase = await createClient();
 
-  const { data: order, error: orderErr } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("id", orderId)
-    .single();
+  const baseQuery = supabase.from("orders").select("*");
+  const { data: order, error: orderErr } = await (isUuid
+    ? baseQuery.eq("id", orderId)
+    : baseQuery.eq("order_number", orderId)
+  ).maybeSingle();
   if (orderErr || !order) {
     return { success: false, error: orderErr?.message ?? "Order not found." };
   }
@@ -202,7 +206,7 @@ export async function getOrderDetail(orderId: string): Promise<ActionResult<Orde
     .select(
       `*, book:books(id, title, subtitle, cover_image_url, slug)`,
     )
-    .eq("order_id", orderId);
+    .eq("order_id", order.id);
   if (itemsErr) {
     return { success: false, error: itemsErr.message };
   }

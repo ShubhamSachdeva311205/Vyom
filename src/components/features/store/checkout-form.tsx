@@ -267,21 +267,87 @@ export function CheckoutForm({
               ) : null}
             </div>
 
-            <FormField
-              label="Shipping pincode"
-              description="Live Shiprocket rates fetched on entry."
-            >
-              <Input
-                name="pincode"
-                inputMode="numeric"
-                pattern="[1-9][0-9]{5}"
-                placeholder="6-digit pincode"
-                autoComplete="postal-code"
-                maxLength={6}
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value.replace(/[^0-9]/g, ""))}
-              />
-            </FormField>
+            <div className="border-t border-border pt-4">
+              <p className="text-eyebrow mb-3">Shipping address</p>
+              <Stack gap={3}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label="Full name">
+                    <Input
+                      name="fullName"
+                      autoComplete="name"
+                      placeholder="Your name"
+                      maxLength={120}
+                      required
+                    />
+                  </FormField>
+                  <FormField label="Phone (10-digit)">
+                    <Input
+                      name="phone"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      placeholder="9876543210"
+                      maxLength={10}
+                      required
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="Address line 1">
+                  <Input
+                    name="line1"
+                    autoComplete="address-line1"
+                    placeholder="Flat / House no., Building, Street"
+                    maxLength={160}
+                    required
+                  />
+                </FormField>
+
+                <FormField label="Address line 2 (optional)">
+                  <Input
+                    name="line2"
+                    autoComplete="address-line2"
+                    placeholder="Landmark, Area"
+                    maxLength={160}
+                  />
+                </FormField>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormField label="City">
+                    <Input
+                      name="city"
+                      autoComplete="address-level2"
+                      maxLength={80}
+                      required
+                    />
+                  </FormField>
+                  <FormField label="State">
+                    <Input
+                      name="state"
+                      autoComplete="address-level1"
+                      maxLength={80}
+                      required
+                    />
+                  </FormField>
+                  <FormField
+                    label="Pincode"
+                    description="Used for live shipping quote."
+                  >
+                    <Input
+                      name="pincode"
+                      inputMode="numeric"
+                      pattern="[1-9][0-9]{5}"
+                      placeholder="560001"
+                      autoComplete="postal-code"
+                      maxLength={6}
+                      value={pincode}
+                      onChange={(e) => setPincode(e.target.value.replace(/[^0-9]/g, ""))}
+                      required
+                    />
+                  </FormField>
+                </div>
+              </Stack>
+            </div>
 
             <div className="border-t border-border pt-4">
               <Stack gap={2}>

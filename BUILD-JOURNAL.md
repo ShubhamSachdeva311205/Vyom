@@ -1463,6 +1463,80 @@ User testing flushed out three things:
 - #92 — AWB auto-fill bug (this commit's logging will surface the
   cause).
 
+### Checkout address collection + invoice overhaul (2026-06-01)
+
+User reported the invoice was missing customer name / phone /
+delivery address. Looking at the dev log surfaced the actual root
+cause: **the checkout never asked for an address**, so the
+`shipping_address` JSONB on every order was null. This also explained
+why Shiprocket auto-create silently bailed on Mark-as-Packed
+(`hasAddress: false`).
+
+**Address collection at checkout**
+
+- New zod `shippingAddressSchema` in `src/actions/checkout.ts`:
+  required fullName / phone (Indian 10-digit) / line1 / city / state
+  / pincode; optional line2. Phone regex enforces `[6-9][0-9]{9}` so
+  invalid mobiles get caught before payment.
+- `createRazorpayOrder` now parses the full address from FormData
+  and persists it as `orders.shipping_address` JSONB. The standalone
+  pincode field is gone — pincode is pulled out of the address.
+- `previewCheckoutTotals` unchanged — it still only needs pincode
+  for the live quote.
+- `CheckoutForm` form fields rearranged: coupon at top, then a
+  "Shipping address" section with 4 rows of inputs (name+phone /
+  line1 / line2 / city+state+pincode). Standard `autoComplete`
+  tokens so the browser autofills.
+- Existing pre-Phase-3.6 orders without addresses won't break — the
+  invoice renderer + admin display gracefully show "Address not
+  captured at checkout."
+
+**Invoice overhaul (`src/lib/invoice/render.ts`)**
+
+- **Removed HSN/SAC column.** Confusing for a non-GST-registered
+  seller and not legally required without GSTIN. Will add back
+  once Mom registers.
+- **Removed "Authorised Signatory"** line per user.
+- **Bill To → Ship To.** Single unified block (B2C bill = ship).
+  Name in 12 pt bold, phone in 9 pt bold so Mom can spot the
+  delivery contact at a glance. Full address + email below.
+- **Auto-sized Ship To block** — height grows with address lines so
+  long addresses don't get clipped.
+- **Column widths balanced** to sum exactly to CONTENT_W (523 pt).
+  Old layout had columns summing to 533 pt — that's why text was
+  visibly overlapping at the right edge.
+- Every `text()` call now passes an explicit `width` so pdfkit
+  wraps inside the column instead of running over.
+- Headers / item rows / meta rows all set `lineBreak: false` +
+  `ellipsis: true` where appropriate so they never wrap mid-row.
+- Removed `RUPEE` "₹" attempts everywhere — clean "Rs." throughout.
+
+**Admin route flexibility**
+
+- `getOrderDetail` now accepts EITHER UUID or `order_number`
+  (`ADV-YYYYMMDD-XXXXX`). Pasting the human ID into the URL works
+  now. Matches the success page + invoice route's behaviour.
+- The earlier 404 user saw on `/admin/orders/ADV-…/success` was
+  trying a route that doesn't exist — `/success` only lives under
+  `/order/[id]/`, not `/admin/orders/[id]/`. (Customer page vs admin
+  page — different URLs.)
+
+**Issue filed**
+
+- #93 — Save shipping address on user profile + auto-fill at
+  checkout (Phase 5.4 customer dashboard work).
+
+**Open follow-ups**
+
+- The seller block still has placeholder address + phone
+  (`Bengaluru, Karnataka` + `+91 99999 00000`). User must provide
+  real values before launch. Asked at end of last response;
+  awaiting reply.
+- Existing test orders have no `shipping_address`. New ones from
+  this commit forward will. To regenerate AWBs for old orders Mom
+  would need to manually fill the TrackingForm on
+  `/admin/orders/[id]`.
+
 ### Next up
 
 1. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer

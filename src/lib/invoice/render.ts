@@ -2,18 +2,24 @@ import "server-only";
 import PDFDocument from "pdfkit";
 
 /**
- * Vyapar-style Tax Invoice renderer (Phase 3.6).
+ * Tax Invoice renderer (Phase 3.6, revised 2026-06-01).
  *
- * Mirrors the layout of Mom's existing Vyapar invoices. Pure
- * server-side: takes a structured payload, returns a PDF Buffer.
- * The caller (api route) handles streaming + auth.
+ * Vyapar-style layout, simplified for Mom's pre-GSTIN reality:
+ *   - HSN/SAC column removed — confusing for a non-GST-registered
+ *     seller; we'll add it back when she gets a GSTIN.
+ *   - Authorised-signatory line removed per user.
+ *   - Bill-To/Ship-To unified into "Ship To" since storefront orders
+ *     bill + ship to the same address. Name + phone prominent so Mom
+ *     can call the customer.
+ *   - Column widths balanced + text widths set on every text() call
+ *     so nothing leaks past its column.
  *
- * pdfkit positioning is in PostScript points (72 pt = 1 inch). A4
- * = 595 × 842 pt. Default margins 50 pt all around.
+ * Pure server-side: takes structured payload, returns PDF Buffer.
+ * Route handles streaming + auth.
  */
 
-const RUPEE = "Rs."; // pdfkit's bundled Helvetica lacks the ₹ glyph; use a
-                    // text fallback so the PDF doesn't render a tofu box.
+const RUPEE = "Rs."; // pdfkit's bundled Helvetica lacks the ₹ glyph;
+                    // "Rs." renders cleanly without bundling a font.
 const FONT_REG = "Helvetica";
 const FONT_BOLD = "Helvetica-Bold";
 
@@ -28,25 +34,24 @@ export interface InvoiceInput {
     email: string;
     gstin?: string;
   };
-  billTo: {
+  /** Customer + delivery details. Single block (billing = shipping for B2C). */
+  shipTo: {
     name: string;
-    addressLines: string[];
     phone?: string;
     email?: string;
+    addressLines: string[];
   };
   items: Array<{
     name: string;
-    hsnSac: string;
     quantity: number;
     unit: string; // "Pcs", "Book", etc.
     unitPricePaise: number;
     discountPaise: number;
   }>;
   shippingPaise: number;
-  /** Optional: total discount allocation across items (computed if not given). */
   subtotalPaise: number;
   totalPaise: number;
-  /** Amount received from customer; equal to totalPaise for prepaid Razorpay. */
+  /** Amount received (equals totalPaise for prepaid Razorpay orders). */
   receivedPaise: number;
   bank: {
     name: string;
@@ -84,19 +89,17 @@ export function renderInvoicePDF(input: InvoiceInput): Promise<Buffer> {
 }
 
 /* ============================================================
- * Internal layout
+ * Layout constants
  * ============================================================ */
-
 const PAGE_W = 595;
 const PAGE_H = 842;
 const MARGIN = 36;
-const CONTENT_W = PAGE_W - MARGIN * 2;
+const CONTENT_W = PAGE_W - MARGIN * 2; // 523 pt
 
 function drawInvoice(doc: PDFKit.PDFDocument, input: InvoiceInput): void {
   let y = MARGIN;
-
   y = drawHeader(doc, input, y);
-  y = drawBillTo(doc, input, y + 12);
+  y = drawShipTo(doc, input, y + 12);
   y = drawItemsTable(doc, input, y + 12);
   y = drawTotals(doc, input, y + 8);
   y = drawAmountInWords(doc, input, y + 12);
@@ -104,80 +107,115 @@ function drawInvoice(doc: PDFKit.PDFDocument, input: InvoiceInput): void {
   drawFooter(doc);
 }
 
+/* ============================================================
+ * Header — seller block + Tax Invoice title + meta
+ * ============================================================ */
 function drawHeader(
   doc: PDFKit.PDFDocument,
   input: InvoiceInput,
   startY: number,
 ): number {
-  // Top border
+  const boxH = 96;
+  const halfW = CONTENT_W / 2;
+  const padX = 12;
+
   doc
     .lineWidth(1)
     .strokeColor("#0f172a")
-    .rect(MARGIN, startY, CONTENT_W, 90)
+    .rect(MARGIN, startY, CONTENT_W, boxH)
     .stroke();
 
-  // Left half: seller block.
+  // Left: seller.
   doc
     .font(FONT_BOLD)
-    .fontSize(16)
+    .fontSize(15)
     .fillColor("#0f172a")
-    .text(input.seller.name, MARGIN + 12, startY + 12, { width: CONTENT_W / 2 - 12 });
-  doc.font(FONT_REG).fontSize(9);
-  let cursor = startY + 32;
+    .text(input.seller.name, MARGIN + padX, startY + 10, {
+      width: halfW - padX * 2,
+      lineBreak: false,
+    });
+
+  doc.font(FONT_REG).fontSize(9).fillColor("#0f172a");
+  let cursor = startY + 30;
+  const sellerWidth = halfW - padX * 2;
   for (const line of input.seller.addressLines) {
-    doc.text(line, MARGIN + 12, cursor, { width: CONTENT_W / 2 - 12 });
+    doc.text(line, MARGIN + padX, cursor, { width: sellerWidth });
     cursor += 11;
   }
-  doc.text(`Phone: ${input.seller.phone}`, MARGIN + 12, cursor);
+  doc.text(`Phone: ${input.seller.phone}`, MARGIN + padX, cursor, {
+    width: sellerWidth,
+  });
   cursor += 11;
-  doc.text(`Email: ${input.seller.email}`, MARGIN + 12, cursor);
+  doc.text(`Email: ${input.seller.email}`, MARGIN + padX, cursor, {
+    width: sellerWidth,
+  });
   if (input.seller.gstin) {
     cursor += 11;
-    doc.text(`GSTIN: ${input.seller.gstin}`, MARGIN + 12, cursor);
+    doc.text(`GSTIN: ${input.seller.gstin}`, MARGIN + padX, cursor, {
+      width: sellerWidth,
+    });
   }
 
-  // Right half: "Tax Invoice" + meta.
-  const rightX = MARGIN + CONTENT_W / 2;
+  // Right: Tax Invoice title + meta. Right-aligned column.
+  const rightX = MARGIN + halfW + padX;
+  const rightW = halfW - padX * 2;
+
   doc
     .font(FONT_BOLD)
     .fontSize(18)
     .fillColor("#0f172a")
-    .text("Tax Invoice", rightX, startY + 14, {
-      width: CONTENT_W / 2 - 12,
+    .text("Tax Invoice", rightX, startY + 12, {
+      width: rightW,
       align: "right",
     });
 
-  doc.font(FONT_REG).fontSize(9);
+  // Meta rows: label on left, value bold on right, both inside the right column.
   const meta = [
     ["Invoice No.", input.invoiceNumber],
     ["Date", formatDate(input.invoiceDate)],
     ["Order No.", input.orderNumber],
   ];
   let metaY = startY + 42;
+  const labelW = 70;
+  const valueW = rightW - labelW;
   for (const [k, v] of meta) {
-    doc.text(`${k}:`, rightX, metaY, {
-      width: CONTENT_W / 2 - 90,
-      align: "right",
-    });
+    doc
+      .font(FONT_REG)
+      .fontSize(9)
+      .fillColor("#475569")
+      .text(`${k}:`, rightX, metaY, {
+        width: labelW,
+        align: "left",
+      });
     doc
       .font(FONT_BOLD)
-      .text(v, rightX + CONTENT_W / 2 - 90, metaY, {
-        width: 78,
+      .fontSize(9)
+      .fillColor("#0f172a")
+      .text(v, rightX + labelW, metaY, {
+        width: valueW,
         align: "right",
       });
-    doc.font(FONT_REG);
-    metaY += 12;
+    metaY += 13;
   }
 
-  return startY + 90;
+  return startY + boxH;
 }
 
-function drawBillTo(
+/* ============================================================
+ * Ship To — customer + delivery details. Name + phone bold so Mom
+ * spots delivery contact at a glance.
+ * ============================================================ */
+function drawShipTo(
   doc: PDFKit.PDFDocument,
   input: InvoiceInput,
   startY: number,
 ): number {
-  const boxH = 70;
+  const padX = 12;
+  // Auto-size to content: name row + (lines + phone + email).
+  const lines = input.shipTo.addressLines.filter(Boolean);
+  const contactRows = (input.shipTo.phone ? 1 : 0) + (input.shipTo.email ? 1 : 0);
+  const boxH = 24 + lines.length * 12 + contactRows * 12 + 14;
+
   doc
     .lineWidth(1)
     .strokeColor("#0f172a")
@@ -188,51 +226,72 @@ function drawBillTo(
     .font(FONT_BOLD)
     .fontSize(9)
     .fillColor("#475569")
-    .text("BILL TO", MARGIN + 12, startY + 8);
+    .text("SHIP TO", MARGIN + padX, startY + 8, {
+      width: CONTENT_W - padX * 2,
+    });
 
   doc
     .font(FONT_BOLD)
-    .fontSize(11)
+    .fontSize(12)
     .fillColor("#0f172a")
-    .text(input.billTo.name, MARGIN + 12, startY + 22);
+    .text(input.shipTo.name, MARGIN + padX, startY + 22, {
+      width: CONTENT_W - padX * 2,
+    });
 
-  doc.font(FONT_REG).fontSize(9);
-  let cursor = startY + 36;
-  for (const line of input.billTo.addressLines.filter(Boolean)) {
-    doc.text(line, MARGIN + 12, cursor, { width: CONTENT_W - 24 });
-    cursor += 11;
+  doc.font(FONT_REG).fontSize(9).fillColor("#0f172a");
+  let cursor = startY + 40;
+  const wrapW = CONTENT_W - padX * 2;
+  for (const line of lines) {
+    doc.text(line, MARGIN + padX, cursor, { width: wrapW });
+    cursor += 12;
   }
-  if (input.billTo.phone) {
-    doc.text(`Phone: ${input.billTo.phone}`, MARGIN + 12, cursor);
-    cursor += 11;
+  if (input.shipTo.phone) {
+    doc
+      .font(FONT_BOLD)
+      .text(`Phone: ${input.shipTo.phone}`, MARGIN + padX, cursor, {
+        width: wrapW,
+      });
+    doc.font(FONT_REG);
+    cursor += 12;
   }
-  if (input.billTo.email) {
-    doc.text(`Email: ${input.billTo.email}`, MARGIN + 12, cursor);
+  if (input.shipTo.email) {
+    doc.text(`Email: ${input.shipTo.email}`, MARGIN + padX, cursor, {
+      width: wrapW,
+    });
   }
 
   return startY + boxH;
 }
 
+/* ============================================================
+ * Items table — simplified columns (no HSN/SAC).
+ * Widths sum exactly to CONTENT_W = 523.
+ * ============================================================ */
 function drawItemsTable(
   doc: PDFKit.PDFDocument,
   input: InvoiceInput,
   startY: number,
 ): number {
-  // Column layout (sum to CONTENT_W = 523):
-  //   #   Item Name   HSN/SAC   Qty   Unit   Price/Unit   Discount   Amount
-  //  22    220         60        40    40       55           50       46
-  const COLS = [
-    { key: "idx", label: "#", width: 22, align: "left" as const },
-    { key: "name", label: "Item Name", width: 220, align: "left" as const },
-    { key: "hsn", label: "HSN/SAC", width: 60, align: "center" as const },
-    { key: "qty", label: "Qty", width: 40, align: "right" as const },
-    { key: "unit", label: "Unit", width: 40, align: "center" as const },
-    { key: "price", label: `Price/Unit (${RUPEE})`, width: 55, align: "right" as const },
-    { key: "disc", label: `Disc (${RUPEE})`, width: 50, align: "right" as const },
-    { key: "amt", label: `Amount (${RUPEE})`, width: 46, align: "right" as const },
+  type Col = {
+    key: string;
+    label: string;
+    width: number;
+    align: "left" | "right" | "center";
+  };
+  const COLS: Col[] = [
+    { key: "idx", label: "#", width: 24, align: "left" },
+    { key: "name", label: "Item", width: 248, align: "left" },
+    { key: "qty", label: "Qty", width: 38, align: "right" },
+    { key: "unit", label: "Unit", width: 40, align: "center" },
+    { key: "price", label: `Rate (${RUPEE})`, width: 65, align: "right" },
+    { key: "disc", label: `Disc (${RUPEE})`, width: 55, align: "right" },
+    { key: "amt", label: `Amount (${RUPEE})`, width: 53, align: "right" },
   ];
-
+  const padX = 4;
   const headerH = 22;
+  const rowH = 22;
+
+  // Header bg + border.
   doc
     .rect(MARGIN, startY, CONTENT_W, headerH)
     .fillColor("#f1f5f9")
@@ -245,81 +304,69 @@ function drawItemsTable(
     .rect(MARGIN, startY, CONTENT_W, headerH)
     .stroke();
 
+  // Header labels.
+  doc.font(FONT_BOLD).fontSize(8).fillColor("#0f172a");
   let colX = MARGIN;
-  doc.font(FONT_BOLD).fontSize(8);
   for (const col of COLS) {
-    doc.text(col.label, colX + 4, startY + 7, {
-      width: col.width - 8,
+    doc.text(col.label, colX + padX, startY + 8, {
+      width: col.width - padX * 2,
       align: col.align,
+      lineBreak: false,
     });
     colX += col.width;
   }
 
   // Body rows.
-  doc.font(FONT_REG).fontSize(9);
+  doc.font(FONT_REG).fontSize(9).fillColor("#0f172a");
   let rowY = startY + headerH;
   for (const [i, item] of input.items.entries()) {
-    const rowH = 24;
-    doc
-      .lineWidth(0.5)
-      .strokeColor("#e2e8f0")
-      .moveTo(MARGIN, rowY + rowH)
-      .lineTo(MARGIN + CONTENT_W, rowY + rowH)
-      .stroke();
+    drawDivider(doc, rowY + rowH);
 
     const amountPaise = item.unitPricePaise * item.quantity - item.discountPaise;
-    const values: Array<{ value: string; col: (typeof COLS)[number] }> = [
-      { value: String(i + 1), col: COLS[0] },
-      { value: item.name, col: COLS[1] },
-      { value: item.hsnSac, col: COLS[2] },
-      { value: String(item.quantity), col: COLS[3] },
-      { value: item.unit, col: COLS[4] },
-      { value: formatINR(item.unitPricePaise), col: COLS[5] },
-      { value: formatINR(item.discountPaise), col: COLS[6] },
-      { value: formatINR(amountPaise), col: COLS[7] },
+    const values = [
+      String(i + 1),
+      item.name,
+      String(item.quantity),
+      item.unit,
+      formatINR(item.unitPricePaise),
+      formatINR(item.discountPaise),
+      formatINR(amountPaise),
     ];
 
     let cx = MARGIN;
-    for (const v of values) {
-      doc.text(v.value, cx + 4, rowY + 7, {
-        width: v.col.width - 8,
-        align: v.col.align,
+    for (const [ci, col] of COLS.entries()) {
+      doc.text(values[ci], cx + padX, rowY + 7, {
+        width: col.width - padX * 2,
+        align: col.align,
         ellipsis: true,
+        lineBreak: false,
       });
-      cx += v.col.width;
+      cx += col.width;
     }
     rowY += rowH;
   }
 
-  // Shipping line — HSN blank, no discount, amount = shippingPaise.
+  // Shipping line.
   if (input.shippingPaise > 0) {
-    const rowH = 24;
-    doc
-      .lineWidth(0.5)
-      .strokeColor("#e2e8f0")
-      .moveTo(MARGIN, rowY + rowH)
-      .lineTo(MARGIN + CONTENT_W, rowY + rowH)
-      .stroke();
-
-    const values: Array<{ value: string; col: (typeof COLS)[number] }> = [
-      { value: String(input.items.length + 1), col: COLS[0] },
-      { value: "Delivery and packaging", col: COLS[1] },
-      { value: "", col: COLS[2] },
-      { value: "1", col: COLS[3] },
-      { value: "Pcs", col: COLS[4] },
-      { value: formatINR(input.shippingPaise), col: COLS[5] },
-      { value: formatINR(0), col: COLS[6] },
-      { value: formatINR(input.shippingPaise), col: COLS[7] },
+    drawDivider(doc, rowY + rowH);
+    const values = [
+      String(input.items.length + 1),
+      "Delivery & packaging",
+      "1",
+      "Pcs",
+      formatINR(input.shippingPaise),
+      formatINR(0),
+      formatINR(input.shippingPaise),
     ];
-
     let cx = MARGIN;
-    for (const v of values) {
-      doc.text(v.value, cx + 4, rowY + 7, {
-        width: v.col.width - 8,
-        align: v.col.align,
+    for (const [ci, col] of COLS.entries()) {
+      doc.text(values[ci], cx + padX, rowY + 7, {
+        width: col.width - padX * 2,
+        align: col.align,
         ellipsis: true,
+        lineBreak: false,
       });
-      cx += v.col.width;
+      cx += col.width;
     }
     rowY += rowH;
   }
@@ -334,21 +381,37 @@ function drawItemsTable(
   return rowY;
 }
 
+function drawDivider(doc: PDFKit.PDFDocument, y: number): void {
+  doc
+    .lineWidth(0.5)
+    .strokeColor("#e2e8f0")
+    .moveTo(MARGIN, y)
+    .lineTo(MARGIN + CONTENT_W, y)
+    .stroke();
+}
+
+/* ============================================================
+ * Totals box (right-aligned).
+ * ============================================================ */
 function drawTotals(
   doc: PDFKit.PDFDocument,
   input: InvoiceInput,
   startY: number,
 ): number {
-  const boxW = 240;
+  const boxW = 260;
   const boxX = MARGIN + CONTENT_W - boxW;
   const lineH = 16;
+  const padX = 10;
+  const labelW = 110;
+  const valueW = boxW - labelW - padX * 2;
 
   const totalDiscount = input.items.reduce(
     (sum, it) => sum + it.discountPaise,
     0,
   );
 
-  const rows: Array<{ label: string; value: string; bold?: boolean }> = [
+  type Row = { label: string; value: string; bold?: boolean };
+  const rows: Row[] = [
     { label: "Sub Total", value: formatINR(input.subtotalPaise) },
   ];
   if (totalDiscount > 0) {
@@ -364,27 +427,31 @@ function drawTotals(
     value: formatINR(Math.max(0, input.totalPaise - input.receivedPaise)),
   });
 
-  const boxH = rows.length * lineH + 8;
+  const boxH = rows.length * lineH + 10;
+
   doc
     .lineWidth(0.7)
     .strokeColor("#0f172a")
     .rect(boxX, startY, boxW, boxH)
     .stroke();
 
-  let y = startY + 6;
+  let y = startY + 8;
   for (const row of rows) {
     doc
       .font(row.bold ? FONT_BOLD : FONT_REG)
       .fontSize(row.bold ? 11 : 9)
       .fillColor("#0f172a")
-      .text(row.label, boxX + 10, y, {
-        width: boxW / 2 - 14,
+      .text(row.label, boxX + padX, y, {
+        width: labelW,
+        align: "left",
+        lineBreak: false,
       });
     doc
       .font(row.bold ? FONT_BOLD : FONT_REG)
-      .text(row.value, boxX + boxW / 2, y, {
-        width: boxW / 2 - 10,
+      .text(row.value, boxX + padX + labelW, y, {
+        width: valueW,
         align: "right",
+        lineBreak: false,
       });
     y += lineH;
   }
@@ -392,12 +459,17 @@ function drawTotals(
   return startY + boxH;
 }
 
+/* ============================================================
+ * Amount in words (full-width strip).
+ * ============================================================ */
 function drawAmountInWords(
   doc: PDFKit.PDFDocument,
   input: InvoiceInput,
   startY: number,
 ): number {
-  const boxH = 30;
+  const padX = 12;
+  const boxH = 32;
+
   doc
     .lineWidth(0.7)
     .strokeColor("#0f172a")
@@ -406,29 +478,35 @@ function drawAmountInWords(
 
   doc
     .font(FONT_BOLD)
-    .fontSize(9)
+    .fontSize(8)
     .fillColor("#475569")
-    .text("Invoice Amount In Words", MARGIN + 10, startY + 6);
+    .text("INVOICE AMOUNT IN WORDS", MARGIN + padX, startY + 6, {
+      width: CONTENT_W - padX * 2,
+    });
 
-  const words = amountInWordsINR(input.totalPaise);
   doc
     .font(FONT_BOLD)
     .fontSize(10)
     .fillColor("#0f172a")
-    .text(words, MARGIN + 10, startY + 16, {
-      width: CONTENT_W - 20,
+    .text(amountInWordsINR(input.totalPaise), MARGIN + padX, startY + 17, {
+      width: CONTENT_W - padX * 2,
+      ellipsis: true,
     });
 
   return startY + boxH;
 }
 
+/* ============================================================
+ * Terms + Bank details (two columns). No signatory.
+ * ============================================================ */
 function drawTermsAndBank(
   doc: PDFKit.PDFDocument,
   input: InvoiceInput,
   startY: number,
 ): number {
-  const boxH = 110;
+  const boxH = 96;
   const halfW = CONTENT_W / 2;
+  const padX = 12;
 
   doc
     .lineWidth(0.7)
@@ -436,18 +514,19 @@ function drawTermsAndBank(
     .rect(MARGIN, startY, CONTENT_W, boxH)
     .stroke();
 
-  // Vertical divider
   doc
     .moveTo(MARGIN + halfW, startY)
     .lineTo(MARGIN + halfW, startY + boxH)
     .stroke();
 
-  // Left: Terms.
+  // Left: terms.
   doc
     .font(FONT_BOLD)
-    .fontSize(9)
+    .fontSize(8)
     .fillColor("#475569")
-    .text("TERMS AND CONDITIONS", MARGIN + 10, startY + 8);
+    .text("TERMS & CONDITIONS", MARGIN + padX, startY + 8, {
+      width: halfW - padX * 2,
+    });
 
   const terms = input.terms ?? [
     "Thank you for being a valuable customer.",
@@ -457,44 +536,45 @@ function drawTermsAndBank(
   doc.font(FONT_REG).fontSize(8).fillColor("#0f172a");
   let cursor = startY + 22;
   for (const t of terms) {
-    doc.text(`• ${t}`, MARGIN + 10, cursor, {
-      width: halfW - 20,
+    doc.text(`- ${t}`, MARGIN + padX, cursor, {
+      width: halfW - padX * 2,
     });
-    cursor += 14;
+    cursor += 16;
   }
 
-  // Right: Bank details.
+  // Right: bank details.
+  const bankX = MARGIN + halfW + padX;
+  const bankW = halfW - padX * 2;
+  const labelW = 60;
+  const valueW = bankW - labelW;
+
   doc
     .font(FONT_BOLD)
-    .fontSize(9)
+    .fontSize(8)
     .fillColor("#475569")
-    .text("BANK DETAILS", MARGIN + halfW + 10, startY + 8);
+    .text("BANK DETAILS", bankX, startY + 8, { width: bankW });
 
-  doc.font(FONT_REG).fontSize(9).fillColor("#0f172a");
+  doc.fontSize(9).fillColor("#0f172a");
   const bankRows = [
     ["Bank", input.bank.name],
     ["A/C No.", input.bank.accountNumber],
     ["IFSC", input.bank.ifsc],
     ["Branch", input.bank.branch],
   ];
-  let bankY = startY + 24;
+  let bankY = startY + 22;
   for (const [k, v] of bankRows) {
-    doc.font(FONT_REG).text(k, MARGIN + halfW + 10, bankY, { width: 60 });
-    doc.font(FONT_BOLD).text(v, MARGIN + halfW + 70, bankY, {
-      width: halfW - 80,
-    });
-    bankY += 13;
+    doc
+      .font(FONT_REG)
+      .text(k, bankX, bankY, { width: labelW, lineBreak: false });
+    doc
+      .font(FONT_BOLD)
+      .text(v, bankX + labelW, bankY, {
+        width: valueW,
+        align: "right",
+        lineBreak: false,
+      });
+    bankY += 14;
   }
-
-  // Authorised signatory at the very bottom-right.
-  doc
-    .font(FONT_REG)
-    .fontSize(9)
-    .fillColor("#475569")
-    .text("Authorised Signatory", MARGIN + halfW + 10, startY + boxH - 16, {
-      width: halfW - 20,
-      align: "right",
-    });
 
   return startY + boxH;
 }
@@ -504,19 +584,18 @@ function drawFooter(doc: PDFKit.PDFDocument): void {
     .font(FONT_REG)
     .fontSize(8)
     .fillColor("#94a3b8")
-    .text("Generated by Advaita · advaita.in", MARGIN, PAGE_H - MARGIN + 6, {
+    .text("Generated by Advaita - advaita.in", MARGIN, PAGE_H - MARGIN + 6, {
       width: CONTENT_W,
       align: "center",
+      lineBreak: false,
     });
 }
 
 /* ============================================================
  * Helpers
  * ============================================================ */
-
 function formatINR(paise: number): string {
   const rupees = (paise / 100).toFixed(2);
-  // Indian number system: 1,23,456.78
   const [intPart, decPart] = rupees.split(".");
   const lastThree = intPart.slice(-3);
   const rest = intPart.slice(0, -3);
@@ -556,7 +635,18 @@ const ONES = [
   "Eighteen",
   "Nineteen",
 ];
-const TENS = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+const TENS = [
+  "",
+  "",
+  "Twenty",
+  "Thirty",
+  "Forty",
+  "Fifty",
+  "Sixty",
+  "Seventy",
+  "Eighty",
+  "Ninety",
+];
 
 function twoDigits(n: number): string {
   if (n < 20) return ONES[n];
@@ -574,10 +664,6 @@ function threeDigits(n: number): string {
   return parts.join(" ");
 }
 
-/**
- * Indian word-format for an INR amount in paise. e.g. 12500 → "One Hundred
- * Twenty Five Rupees Only". Uses lakh + crore.
- */
 function amountInWordsINR(paise: number): string {
   const rupees = Math.floor(paise / 100);
   const paiseRem = paise % 100;
