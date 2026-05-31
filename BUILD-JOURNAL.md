@@ -1420,6 +1420,49 @@ out for GST records without a screenshot detour.
   `supabase gen types` regenerates.
 - Phase 7 hook (attach invoice to Resend email) tracked under #89.
 
+### Phase 3.6 + 5.1 follow-ups (2026-06-01)
+
+User testing flushed out three things:
+
+1. **Invoice download returned `{"error":"Render failed"}`.** Root
+   cause: pdfkit's `.afm` font metric files are loaded at runtime
+   via `fs.readFileSync` from relative paths inside the package.
+   Next/Turbopack tree-shakes them out of the bundle so the
+   renderer throws `ENOENT data/Helvetica.afm`. Fix: added
+   `serverExternalPackages: ["pdfkit"]` to next.config.ts — leaves
+   pdfkit untouched in node_modules. Same gotcha applies to any
+   library that reads data files at runtime (canvas, sharp etc.).
+   Also: route now returns the real error message in `NODE_ENV !==
+   "production"` so the next time this kind of thing happens we
+   see it immediately instead of "Render failed".
+
+2. **`/order/[id]/success` 404'd when user pasted the
+   `order_number`** (`ADV-YYYYMMDD-XXXXX`) instead of the UUID.
+   The normal flow redirects with the UUID — but receipts /
+   invoices show the order_number, so users naturally try to paste
+   that. Fix: success page + invoice route now accept EITHER. UUID
+   regex disambiguates. Backwards compatible.
+
+3. **Mark-as-Packed not auto-filling AWB.** Diagnosis blocked by
+   silent log → the failure mode wasn't visible to user. Fixes:
+   - `autoCreateShiprocketOrder` now logs the SPECIFIC missing
+     field when bailing on incomplete shipping address
+     (hasLine1 / hasCity / hasPincode / hasPhone).
+   - When Shiprocket's `createOrder` API rejects the payload, the
+     error log now prints `status` + raw response body so we can
+     see what Shiprocket said (was just printing the Error
+     instance).
+   - Filed Issue #92 to track the underlying bug + collect log
+     output after user retests.
+
+**Issues filed in this round:**
+
+- #90 — Mobile responsiveness pass before launch (P0, blocking).
+  Marked very important per user.
+- #91 — Complete UI revamp design pass.
+- #92 — AWB auto-fill bug (this commit's logging will surface the
+  cause).
+
 ### Next up
 
 1. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
@@ -1433,6 +1476,8 @@ out for GST records without a screenshot detour.
 5. **3.4 Refund webhook expansion** + admin refund button.
 6. **Phase 4** — R2 + watermarked PDF + audio streaming.
 7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+8. **#90 Mobile responsiveness** — must close before launch.
+9. **#91 Complete UI revamp** — final sprint polish.
 
 ---
 

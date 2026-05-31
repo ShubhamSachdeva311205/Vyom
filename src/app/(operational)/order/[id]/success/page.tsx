@@ -31,12 +31,17 @@ export default async function OrderSuccessPage({ params }: SuccessPageProps) {
 
   // Fetch with service role + owner check (cleaner than wiring RLS for
   // this one-off; the inline ownership check is the security gate).
+  //
+  // Lookup accepts EITHER the UUID `orders.id` (the normal redirect-from-
+  // Razorpay path) OR the human-readable `orders.order_number` (so users
+  // can paste/share the invoice URL from their receipt without copying a
+  // UUID). The UUID regex check disambiguates the two.
   const service = createServiceClient();
-  const { data: order } = await service
-    .from("orders")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const lookup = isUuid
+    ? service.from("orders").select("*").eq("id", id)
+    : service.from("orders").select("*").eq("order_number", id);
+  const { data: order } = await lookup.maybeSingle();
 
   if (!order || order.user_id !== user.id) {
     notFound();
@@ -45,7 +50,7 @@ export default async function OrderSuccessPage({ params }: SuccessPageProps) {
   const { data: items } = await service
     .from("order_items")
     .select("*, book:books(slug,title,subtitle,has_audio,has_answer_key)")
-    .eq("order_id", id);
+    .eq("order_id", order.id);
 
   const lineItems = items ?? [];
 

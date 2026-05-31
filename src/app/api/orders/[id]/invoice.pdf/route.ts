@@ -27,13 +27,14 @@ export async function GET(
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  // 2. AuthZ — owner OR admin
+  // 2. AuthZ — owner OR admin. Accept either UUID id or order_number
+  // so the route is shareable with the human-readable identifier.
   const service = createServiceClient();
-  const { data: order } = await service
-    .from("orders")
-    .select("*")
-    .eq("id", orderId)
-    .maybeSingle();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+  const lookup = isUuid
+    ? service.from("orders").select("*").eq("id", orderId)
+    : service.from("orders").select("*").eq("order_number", orderId);
+  const { data: order } = await lookup.maybeSingle();
   if (!order) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
@@ -72,14 +73,14 @@ export async function GET(
         invoice_number: invoiceNumber,
         invoice_generated_at: invoiceGeneratedAt.toISOString(),
       } as never)
-      .eq("id", orderId);
+      .eq("id", order.id);
   }
 
   // 4. Hydrate items + customer.
   const { data: items } = await service
     .from("order_items")
     .select("*, book:books(id, title, hsn_sac)")
-    .eq("order_id", orderId);
+    .eq("order_id", order.id);
 
   const { data: customer } = await service
     .from("users")
@@ -172,7 +173,11 @@ export async function GET(
     });
   } catch (err) {
     console.error("[invoice.pdf] render failed:", err);
-    return NextResponse.json({ error: "Render failed" }, { status: 500 });
+    const detail =
+      process.env.NODE_ENV !== "production" && err instanceof Error
+        ? err.message
+        : "Render failed";
+    return NextResponse.json({ error: detail }, { status: 500 });
   }
 
   // Wrap as a single-chunk ReadableStream so NextResponse's BodyInit

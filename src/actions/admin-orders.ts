@@ -297,17 +297,26 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
     .select("*")
     .eq("id", orderId)
     .maybeSingle();
-  if (!existing) return;
+  if (!existing) {
+    console.warn("[admin-orders] Shiprocket auto-create skipped — order not found:", orderId);
+    return;
+  }
   const existingAwb = (existing as unknown as { tracking_number: string | null })
     .tracking_number;
-  if (existingAwb) return;
+  if (existingAwb) {
+    console.info("[admin-orders] Shiprocket auto-create skipped — already has AWB:", existingAwb);
+    return;
+  }
 
   // Pull line items + book titles.
   const { data: items } = await service
     .from("order_items")
     .select("*, book:books(id, title, slug, weight_grams, length_cm, breadth_cm, height_cm)")
     .eq("order_id", orderId);
-  if (!items || items.length === 0) return;
+  if (!items || items.length === 0) {
+    console.warn("[admin-orders] Shiprocket auto-create skipped — order has no items:", orderId);
+    return;
+  }
 
   // Customer email/phone for billing contact.
   const { data: customer } = await service
@@ -329,7 +338,15 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
   const addr = (existing.shipping_address ?? null) as ShipAddress | null;
   if (!addr || !addr.line1 || !addr.city || !addr.pincode || !addr.phone) {
     console.warn(
-      "[admin-orders] Cannot auto-create Shiprocket order — incomplete shipping address.",
+      "[admin-orders] Shiprocket auto-create skipped — incomplete shipping address.",
+      {
+        orderId,
+        hasAddress: Boolean(addr),
+        hasLine1: Boolean(addr?.line1),
+        hasCity: Boolean(addr?.city),
+        hasPincode: Boolean(addr?.pincode),
+        hasPhone: Boolean(addr?.phone),
+      },
     );
     return;
   }
@@ -392,7 +409,18 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
     awbCode = created.awbCode;
     courierName = created.courierName;
   } catch (err) {
-    console.error("[admin-orders] Shiprocket createOrder failed:", err);
+    if (err instanceof ShiprocketError) {
+      console.error(
+        "[admin-orders] Shiprocket createOrder failed:",
+        err.message,
+        "status=",
+        err.status,
+        "body=",
+        JSON.stringify(err.body),
+      );
+    } else {
+      console.error("[admin-orders] Shiprocket createOrder failed:", err);
+    }
     return;
   }
 
