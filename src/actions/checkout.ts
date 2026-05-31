@@ -42,20 +42,21 @@ const PINCODE_REGEX = /^[1-9][0-9]{5}$/;
 const COUPON_REGEX = /^[A-Za-z0-9-_]{3,40}$/;
 const PHONE_REGEX = /^[6-9][0-9]{9}$/; // Indian mobile, 10 digits
 
-// Shipping address fields collected at checkout. Required: name +
-// phone + line1 + city + state + pincode. line2 is optional. Without
-// these the order can't ship via Shiprocket OR appear correctly on
-// the tax invoice. Persisted to orders.shipping_address JSONB.
+// Shipping address. Hard-required for now: name + phone + pincode.
+// Street fields are kept in the form (Shiprocket / invoice still need
+// them eventually) but accepted as empty so users can complete a test
+// or one-off checkout without filling everything. We'll re-tighten
+// once Google Places autocomplete lands (#94).
 const shippingAddressSchema = z.object({
   fullName: z.string().trim().min(2, "Name is required").max(120),
   phone: z
     .string()
     .trim()
     .regex(PHONE_REGEX, "Enter a 10-digit Indian mobile number"),
-  line1: z.string().trim().min(3, "Street address is required").max(160),
+  line1: z.string().trim().max(160).optional().or(z.literal("")),
   line2: z.string().trim().max(160).optional().or(z.literal("")),
-  city: z.string().trim().min(2, "City is required").max(80),
-  state: z.string().trim().min(2, "State is required").max(80),
+  city: z.string().trim().max(80).optional().or(z.literal("")),
+  state: z.string().trim().max(80).optional().or(z.literal("")),
   pincode: z.string().regex(PINCODE_REGEX, "Pincode must be 6 digits"),
 });
 

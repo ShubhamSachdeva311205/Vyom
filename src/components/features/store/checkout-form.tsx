@@ -79,6 +79,8 @@ export function CheckoutForm({
   const [paying, setPaying] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [pincode, setPincode] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [preview, setPreview] = useState<PreviewSnapshot | null>(null);
 
   const validPincode = PINCODE_REGEX.test(pincode);
@@ -144,22 +146,29 @@ export function CheckoutForm({
   const totalPaise =
     ok?.totalPaise ?? Math.max(0, subtotalPaise + shippingPaise - discountPaise);
 
-  // Block Pay when the pincode is unserviceable, the coupon was rejected,
-  // or we're still mid-flight.
+  // Block Pay when required fields are missing, the pincode is
+  // unserviceable, the coupon was rejected, or we're still mid-flight.
+  // Hard-required: name + phone + pincode. Street fields are accepted
+  // empty for now (#94 will replace with a Places-autocompleted input).
+  const PHONE_OK = /^[6-9][0-9]{9}$/.test(phone);
   const unserviceable = Boolean(ok?.shippingUnserviceable);
   const couponInvalid = Boolean(ok?.couponReason);
   const blockedReason =
-    !validPincode
-      ? "Enter a 6-digit shipping pincode."
-      : previewState.kind === "loading"
-        ? "Computing your total…"
-        : unserviceable
-          ? "No couriers serve this pincode."
-          : couponInvalid
-            ? ok?.couponReason ?? "Coupon is not valid."
-            : previewState.kind === "error"
-              ? previewState.message
-              : null;
+    fullName.trim().length < 2
+      ? "Enter your full name."
+      : !PHONE_OK
+        ? "Enter a 10-digit Indian mobile number."
+        : !validPincode
+          ? "Enter a 6-digit shipping pincode."
+          : previewState.kind === "loading"
+            ? "Computing your total…"
+            : unserviceable
+              ? "No couriers serve this pincode."
+              : couponInvalid
+                ? ok?.couponReason ?? "Coupon is not valid."
+                : previewState.kind === "error"
+                  ? previewState.message
+                  : null;
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -271,16 +280,18 @@ export function CheckoutForm({
               <p className="text-eyebrow mb-3">Shipping address</p>
               <Stack gap={3}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormField label="Full name">
+                  <FormField label="Full name *">
                     <Input
                       name="fullName"
                       autoComplete="name"
                       placeholder="Your name"
                       maxLength={120}
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       required
                     />
                   </FormField>
-                  <FormField label="Phone (10-digit)">
+                  <FormField label="Phone (10-digit) *">
                     <Input
                       name="phone"
                       type="tel"
@@ -288,18 +299,22 @@ export function CheckoutForm({
                       autoComplete="tel-national"
                       placeholder="9876543210"
                       maxLength={10}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
                       required
                     />
                   </FormField>
                 </div>
 
-                <FormField label="Address line 1">
+                <FormField
+                  label="Address line 1"
+                  description="Optional for now. Searchable address with Google Places is coming (#94)."
+                >
                   <Input
                     name="line1"
                     autoComplete="address-line1"
                     placeholder="Flat / House no., Building, Street"
                     maxLength={160}
-                    required
                   />
                 </FormField>
 
@@ -318,7 +333,6 @@ export function CheckoutForm({
                       name="city"
                       autoComplete="address-level2"
                       maxLength={80}
-                      required
                     />
                   </FormField>
                   <FormField label="State">
@@ -326,11 +340,10 @@ export function CheckoutForm({
                       name="state"
                       autoComplete="address-level1"
                       maxLength={80}
-                      required
                     />
                   </FormField>
                   <FormField
-                    label="Pincode"
+                    label="Pincode *"
                     description="Used for live shipping quote."
                   >
                     <Input
