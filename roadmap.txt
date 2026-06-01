@@ -112,9 +112,9 @@ Subphase 3.3: Shipping Logic — Shiprocket (REVISED 2026-05-28; Issue #81)
 
     [x] Shiprocket serviceability quote at checkout via /external/courier/serviceability/ — pickup → delivery → cart weight. Picks the cheapest available courier.
 
-    [ ] Read settings.free_shipping_enabled (server-side, never client) — deferred. Currently we always quote live; the settings toggle gets wired with the admin Settings UI (Phase 5.5).
+    [x] Read settings.free_shipping_enabled (server-side, never client). Read from public.settings.shipping_settings JSONB via getShippingSettings(); per-request React.cache().
 
-    [ ] If free_shipping_enabled = true AND Shiprocket quote < ₹100 → Shipping Cost = 0 — deferred to Phase 5.5.
+    [x] If free_shipping_enabled = true AND Shiprocket quote < ₹100 → Shipping Cost = 0. Threshold is configurable in /admin/settings.
 
     [x] Otherwise → customer pays the Shiprocket rate.
 
@@ -199,13 +199,19 @@ Subphase 5.4: Customer Lookup + Admin Tools
 
     [ ] Vyapar "Copy Billing Details" button on order detail.
 
-Subphase 5.5: Admin Allowlist Management (Issue #10)
+Subphase 5.5: Admin Settings UI (Issue #10, #86)
 
-    [ ] /admin/settings/admins page — table of current admin emails, add/remove with confirm dialog.
+    [x] /admin/settings page with four sections: Seller details (invoice header), Shipping (free-shipping toggle + threshold + pickup pincode), Bank details (invoice footer), Admin access (allowlist).
 
-    [ ] Server Actions addAdminEmail / removeAdminEmail with audit log entries.
+    [x] Server Actions: updateSellerDetails / updateShippingSettings / updateBankDetails / addAdminEmail / removeAdminEmail / listAdminEmails — all admin-gated.
 
-    [ ] Guards: can't remove yourself, can't reduce list below one admin.
+    [x] Guard: can't remove your own admin access.
+
+    [x] isAdminEmail refactored async + reads from admin_emails DB table (env-var ADMIN_EMAILS still wins as bootstrap fallback). Single source of truth between middleware and Postgres is_admin() RPC.
+
+    [x] Wired the free-shipping rule (#86) into getShippingQuote + previewCheckoutTotals + createRazorpayOrder. When settings.shipping_settings.free_shipping_enabled AND Shiprocket quote < threshold (default ₹100), customer pays ₹0; courier label shows "Free (saved ₹X)".
+
+    [x] Wired seller + bank details into invoice renderer — Mom edits, /api/orders/[id]/invoice.pdf reflects on next request (React cache scoped per render).
 
 Subphase 5.7: Sales reports + financial dashboard (Issue #70)
 

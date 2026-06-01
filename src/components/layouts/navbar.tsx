@@ -48,7 +48,7 @@ export async function Navbar({ className }: NavbarProps) {
     cartItemCount,
   ] = await Promise.all([supabase.auth.getUser(), getCurrentCartItemCount()]);
 
-  const admin = isAdminEmail(user?.email);
+  const admin = await isAdminEmail(user?.email);
 
   return (
     <header

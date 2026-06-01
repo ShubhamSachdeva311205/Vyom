@@ -27,7 +27,7 @@ export async function sendAdminMagicLink(formData: FormData): Promise<ActionResu
 
   const { email } = parsed.data;
 
-  if (!isAdminEmail(email)) {
+  if (!(await isAdminEmail(email))) {
     // Deliberately vague — don't leak which addresses are admin.
     return {
       success: false,

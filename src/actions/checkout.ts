@@ -27,7 +27,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { findCartForOwner, getCartWithItems, resolveCartOwner } from "@/lib/cart/queries";
 import { env } from "@/lib/env";
+import { formatINR as formatINRForPreview } from "@/lib/format";
 import { getRazorpayClient } from "@/lib/razorpay/client";
+import { applyFreeShippingRule, getShippingSettings } from "@/lib/settings/queries";
 import {
   ShiprocketError,
   getServiceability,
@@ -174,13 +176,22 @@ export async function previewCheckoutTotals(
       return sum + w * it.quantity;
     }, 0);
     try {
+      const shippingSettings = await getShippingSettings();
       const { cheapest } = await getServiceability({
         deliveryPincode: pincode,
         weightGrams,
+        pickupPincode: shippingSettings.pickupPincode,
       });
       if (cheapest) {
-        shippingPaise = Math.round(cheapest.rate * 100);
-        shippingCourier = cheapest.courier_name;
+        const rawPaise = Math.round(cheapest.rate * 100);
+        const { ratePaise, freeApplied } = applyFreeShippingRule(
+          rawPaise,
+          shippingSettings,
+        );
+        shippingPaise = ratePaise;
+        shippingCourier = freeApplied
+          ? `Free (saved ${formatINRForPreview(rawPaise)})`
+          : cheapest.courier_name;
         shippingEtd = cheapest.etd;
       } else {
         shippingUnserviceable = true;
@@ -361,12 +372,15 @@ export async function createRazorpayOrder(
       return sum + w * it.quantity;
     }, 0);
     try {
+      const shippingSettings = await getShippingSettings();
       const { cheapest } = await getServiceability({
         deliveryPincode: pincode,
         weightGrams,
+        pickupPincode: shippingSettings.pickupPincode,
       });
       if (cheapest) {
-        shippingPaise = Math.round(cheapest.rate * 100);
+        const rawPaise = Math.round(cheapest.rate * 100);
+        shippingPaise = applyFreeShippingRule(rawPaise, shippingSettings).ratePaise;
       }
     } catch (err) {
       // Log + degrade gracefully. Don't fail checkout because of a

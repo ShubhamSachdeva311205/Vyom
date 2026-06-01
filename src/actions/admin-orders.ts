@@ -48,7 +48,7 @@ async function assertAdmin(): Promise<
   if (error || !user?.email) {
     return { ok: false, error: "Not signed in." };
   }
-  if (!isAdminEmail(user.email)) {
+  if (!(await isAdminEmail(user.email))) {
     return { ok: false, error: "Not authorised." };
   }
   return { ok: true, email: user.email };

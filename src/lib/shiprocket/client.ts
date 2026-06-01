@@ -134,10 +134,17 @@ export interface ServiceabilityResult {
 export async function getServiceability(input: {
   deliveryPincode: string;
   weightGrams: number;
+  /**
+   * Pickup pincode. Pass from settings.shipping_settings.pickup_pincode
+   * when available; falls back to SHIPROCKET_PICKUP_PINCODE env var for
+   * older callers / boot-time config.
+   */
+  pickupPincode?: string | null;
 }): Promise<ServiceabilityResult> {
-  if (!env.SHIPROCKET_PICKUP_PINCODE) {
+  const pickupPincode = input.pickupPincode ?? env.SHIPROCKET_PICKUP_PINCODE;
+  if (!pickupPincode) {
     throw new ShiprocketError(
-      "SHIPROCKET_PICKUP_PINCODE not set. Add Mom's warehouse pincode to .env.local.",
+      "Pickup pincode not configured. Set it in /admin/settings or as SHIPROCKET_PICKUP_PINCODE in .env.local.",
     );
   }
   const weightKg = Math.max(0.1, input.weightGrams / 1000);
@@ -151,7 +158,7 @@ export async function getServiceability(input: {
 
   const raw = await call<RawResp>("GET", "/courier/serviceability/", {
     query: {
-      pickup_postcode: env.SHIPROCKET_PICKUP_PINCODE,
+      pickup_postcode: pickupPincode,
       delivery_postcode: input.deliveryPincode,
       weight: weightKg,
       cod: 0,

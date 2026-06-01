@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
       url.searchParams.set("next", pathname);
       return NextResponse.redirect(url);
     }
-    if (!isAdminEmail(user.email)) {
+    if (!(await isAdminEmail(user.email))) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       url.searchParams.set("auth_error", "not_admin");

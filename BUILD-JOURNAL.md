@@ -1537,16 +1537,91 @@ why Shiprocket auto-create silently bailed on Mark-as-Packed
   would need to manually fill the TrackingForm on
   `/admin/orders/[id]`.
 
+### Phase 5.5 — Admin Settings UI (2026-06-01)
+
+The "edit-without-redeploy" surface. One page, four sections.
+
+**Schema (`20260531222802_settings_seed_defaults.sql`)**
+
+- Seeds three rows in the existing `public.settings` table
+  (idempotent `on conflict do nothing`):
+  - `seller_details` (name, address_lines[], phone, email, gstin)
+  - `shipping_settings` (free_shipping_enabled,
+    free_shipping_threshold_paise, pickup_pincode, pickup_location)
+  - `bank_details` (name, account_number, ifsc, branch)
+- `admin_emails` table already existed from the FFR migration; this
+  phase wires the UI CRUD.
+
+**Typed read helpers (`src/lib/settings/queries.ts`)**
+
+- `getSellerDetails()`, `getShippingSettings()`, `getBankDetails()`
+  — each wrapped in React `cache()` so callers within a single
+  render pass share one DB roundtrip.
+- Each has a hardcoded fallback in case the row goes missing —
+  invoice rendering and checkout never crash on a missing settings
+  row.
+- `applyFreeShippingRule(ratePaise, settings)` pure helper — used
+  by 3 callers (preview, real quote, checkout total) so the rule
+  lives in one place.
+
+**Async admin gate (`src/lib/auth/admin.ts`)**
+
+- Converted `isAdminEmail()` from sync env-only to async DB-backed
+  (with env-var bootstrap fallback).
+- Updated all callers: middleware, navbar, admin-auth Server
+  Action, admin-orders assertAdmin, admin-settings assertAdmin,
+  invoice route, admin sign-in page.
+- Reasoning: previously the Postgres `is_admin()` RPC read from
+  `admin_emails` but the TS-side gate only read env. Drift bug
+  closed (#74-adjacent). Single source of truth now.
+
+**Server actions (`src/actions/admin-settings.ts`)**
+
+- `updateSellerDetails`, `updateShippingSettings`,
+  `updateBankDetails`, `addAdminEmail`, `removeAdminEmail`,
+  `listAdminEmails`. All admin-gated, all `revalidatePath`
+  /admin/settings on success.
+- Safety: `removeAdminEmail` refuses to delete the caller's own
+  email so Mom can't lock herself out.
+- DB unique-violation on add → friendly "already an admin" copy.
+
+**UI (`/admin/settings`)**
+
+- Server component fetches all four sections in parallel + the
+  admin emails list, then renders four `Card`s each containing a
+  client component form.
+- Each form: controlled inputs, Save button with spinner +
+  in-place success tick, toast on error.
+- AdminEmailsForm renders the existing list with per-row remove +
+  an inline "Add admin" form. Disables the remove button on the
+  caller's own row.
+
+**Free-shipping rule (#86) — closed in this commit**
+
+- `getShippingQuote`, `previewCheckoutTotals`, `createRazorpayOrder`
+  all call `getShippingSettings()` + `applyFreeShippingRule()`.
+- When enabled AND quote < threshold (default ₹100):
+  - `ratePaise` returns 0
+  - Courier label shows `Free shipping (saved ₹X)` so the customer
+    sees what we ate
+- Threshold is editable from the UI.
+
+**Open follow-ups**
+
+- Pickup pincode setting now overrides `SHIPROCKET_PICKUP_PINCODE`
+  env var. Mom should set it via UI; env stays as the boot-time
+  fallback. Update NEXT-PROMPT / SETUP docs after she's
+  configured it.
+- Old test orders still have no `shipping_address` (pre-Phase-3.6).
+  Filed nothing — they'll age out as new orders flow in.
+
 ### Next up
 
 1. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
    lookup (the rest of #61's punch list).
-2. **Phase 5.5 Admin allowlist + settings UI** (#10) — also wires
-   the free-shipping toggle (#86) and lets Mom edit invoice seller
-   address.
-3. **#87 Shiprocket status webhook** — high ops impact, eliminates
+2. **#87 Shiprocket status webhook** — high ops impact, eliminates
    manual status flips for in-transit / delivered.
-4. **3.5 GST/tax** at checkout.
+3. **3.5 GST/tax** at checkout.
 5. **3.4 Refund webhook expansion** + admin refund button.
 6. **Phase 4** — R2 + watermarked PDF + audio streaming.
 7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).

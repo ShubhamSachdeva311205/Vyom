@@ -17,7 +17,7 @@ export default async function AdminSignInPage() {
   const { data } = await supabase.auth.getUser();
 
   // If already signed in as admin, send straight to /admin.
-  if (data.user && isAdminEmail(data.user.email)) {
+  if (data.user && (await isAdminEmail(data.user.email))) {
     redirect("/admin");
   }
 

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { renderInvoicePDF } from "@/lib/invoice/render";
+import { getBankDetails, getSellerDetails } from "@/lib/settings/queries";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 /**
@@ -39,7 +40,7 @@ export async function GET(
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
   const isOwner = order.user_id === user.id;
-  const isAdmin = isAdminEmail(user.email ?? "");
+  const isAdmin = await isAdminEmail(user.email ?? "");
   if (!isOwner && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -145,6 +146,14 @@ export async function GET(
     shipToAddressLines.push("Address not captured at checkout.");
   }
 
+  // Pull invoice header/footer from admin-managed settings (Phase 5.5).
+  // Both fall back to hardcoded values if the rows are missing — so
+  // older deploys never crash on a missing settings row.
+  const [sellerDetails, bankDetails] = await Promise.all([
+    getSellerDetails(),
+    getBankDetails(),
+  ]);
+
   let pdf: Buffer;
   try {
     pdf = await renderInvoicePDF({
@@ -152,10 +161,11 @@ export async function GET(
       invoiceDate: invoiceGeneratedAt ?? new Date(),
       orderNumber: order.order_number,
       seller: {
-        name: "Seema Sachdeva",
-        addressLines: ["Bengaluru, Karnataka", "India"],
-        phone: "+91 99999 00000",
-        email: "shubhamhelpseries@gmail.com",
+        name: sellerDetails.name,
+        addressLines: sellerDetails.addressLines,
+        phone: sellerDetails.phone,
+        email: sellerDetails.email,
+        gstin: sellerDetails.gstin ?? undefined,
       },
       shipTo: {
         name: addr?.name ?? customer?.full_name ?? "Customer",
@@ -169,10 +179,10 @@ export async function GET(
       totalPaise: order.total_paise,
       receivedPaise: order.status === "pending_payment" ? 0 : order.total_paise,
       bank: {
-        name: "State Bank of India",
-        accountNumber: "***REDACTED***",
-        ifsc: "***REDACTED***",
-        branch: "Marathahalli",
+        name: bankDetails.name,
+        accountNumber: bankDetails.accountNumber,
+        ifsc: bankDetails.ifsc,
+        branch: bankDetails.branch,
       },
     });
   } catch (err) {

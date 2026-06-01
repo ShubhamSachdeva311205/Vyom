@@ -17,6 +17,8 @@
 
 import { z } from "zod";
 import { getCurrentCart } from "@/lib/cart/queries";
+import { formatINR } from "@/lib/format";
+import { applyFreeShippingRule, getShippingSettings } from "@/lib/settings/queries";
 import { ShiprocketError, getServiceability } from "@/lib/shiprocket/client";
 
 type ActionResult<T = undefined> =
@@ -58,9 +60,11 @@ export async function getShippingQuote(
   }, 0);
 
   try {
+    const settings = await getShippingSettings();
     const { cheapest } = await getServiceability({
       deliveryPincode: parsed.data.pincode,
       weightGrams,
+      pickupPincode: settings.pickupPincode,
     });
 
     if (!cheapest) {
@@ -70,11 +74,16 @@ export async function getShippingQuote(
       };
     }
 
+    const rawPaise = Math.round(cheapest.rate * 100);
+    const { ratePaise, freeApplied } = applyFreeShippingRule(rawPaise, settings);
+
     return {
       success: true,
       data: {
-        ratePaise: Math.round(cheapest.rate * 100),
-        courierName: cheapest.courier_name,
+        ratePaise,
+        courierName: freeApplied
+          ? `Free shipping (saved ${formatINR(rawPaise)})`
+          : cheapest.courier_name,
         etd: cheapest.etd,
         weightGrams,
       },
