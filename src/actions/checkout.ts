@@ -44,6 +44,21 @@ const PINCODE_REGEX = /^[1-9][0-9]{5}$/;
 const COUPON_REGEX = /^[A-Za-z0-9-_]{3,40}$/;
 const PHONE_REGEX = /^[6-9][0-9]{9}$/; // Indian mobile, 10 digits
 
+/**
+ * Defense-in-depth circuit breaker. createRazorpayOrder already
+ * recomputes prices server-side from DB-trusted data, so a tampered
+ * client can't underpay. But if some future bug — coupon-validator
+ * glitch, sign error in shipping math, gift-card stacking, anything —
+ * ever produced a near-zero total against a real cart, this floor
+ * catches it before money moves.
+ *
+ * Today's max legit discount is 10% (student10/teacher10). 30% floor
+ * leaves a 20-point safety margin even if Mom rolls out 50%-off
+ * vendor coupons. If she ever needs deeper discounts, expose this
+ * as a setting (admin can lower the floor).
+ */
+const MIN_PAYABLE_FRACTION = 0.3;
+
 // Shipping address. Hard-required for now: name + phone + pincode.
 // Street fields are kept in the form (Shiprocket / invoice still need
 // them eventually) but accepted as empty so users can complete a test
@@ -473,6 +488,33 @@ export async function createRazorpayOrder(
   // 7. Patch order with discount + final total + coupon code (so the
   //    post-payment redeem knows which code to honour).
   const totalPaise = Math.max(0, subtotalPaise - discountPaise + shippingPaise + taxPaise);
+
+  // 7a. Circuit breaker — refuse to send a Razorpay order whose total
+  //     is implausibly low against the cart subtotal. Belt-and-suspenders
+  //     on top of the server-side price computation. Logs full detail
+  //     for forensics if it ever fires.
+  const minPayablePaise = Math.floor(subtotalPaise * MIN_PAYABLE_FRACTION);
+  if (subtotalPaise > 0 && totalPaise < minPayablePaise) {
+    console.error("[checkout] PRICE FLOOR TRIGGERED — refusing to create Razorpay order", {
+      orderId: orderRow.id,
+      orderNumber: orderRow.order_number,
+      userId: user.id,
+      subtotalPaise,
+      discountPaise,
+      shippingPaise,
+      taxPaise,
+      totalPaise,
+      minPayablePaise,
+      couponApplied,
+    });
+    await service.from("orders").delete().eq("id", orderRow.id);
+    return {
+      success: false,
+      error:
+        "Something looks wrong with the total on this order. Please refresh and try again — if it keeps happening, email shubhamhelpseries@gmail.com.",
+    };
+  }
+
   await service
     .from("orders")
     .update({

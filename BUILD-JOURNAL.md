@@ -1615,13 +1615,55 @@ The "edit-without-redeploy" surface. One page, four sections.
 - Old test orders still have no `shipping_address` (pre-Phase-3.6).
   Filed nothing — they'll age out as new orders flow in.
 
+### Security audit + price floor + refund policy (2026-06-01)
+
+User flagged general anxiety about hackers / glitches / refund
+abuse. Walked through the existing trust boundaries with them (every
+price recomputed server-side in createRazorpayOrder, RLS on every
+table, HMAC webhook verification, SECURITY DEFINER RPCs for
+coupon/status mutations, env vs DB admin gate). Then added two
+hardening layers + filed three issues.
+
+**Price floor (this commit) — `src/actions/checkout.ts`**
+
+- New `MIN_PAYABLE_FRACTION = 0.30` constant. After computing
+  `totalPaise = subtotal - discount + shipping + tax`, refuse to
+  create the Razorpay order if `totalPaise < subtotalPaise * 0.30`.
+- Cleans up the orphan `pending_payment` row (same path as a coupon
+  rejection).
+- Logs a full forensic record (subtotal, discount, shipping, total,
+  computed floor, user id, order number, coupon) so if it ever fires
+  we know why.
+- Today's max legit discount is 10% — the 30% floor gives a 20-point
+  cushion even if Mom rolls out 50%-off vendor coupons. If she ever
+  goes deeper she lowers the constant (will be a setting later).
+
+**Refund policy locked** (specced in #97, no code change yet)
+
+- Mom picks per refund: full / minus Razorpay fee / custom / decline.
+- Legal: Indian Consumer Protection Act 2019 requires full refund
+  unless deductions are disclosed. New paragraph going into
+  `/legal/returns` covering: Razorpay fees non-refundable on customer-
+  initiated cancellations; condition-of-goods adjustments; right to
+  deduct fraud costs after due process.
+- New column needed: `orders.non_refundable_fee_paise` populated from
+  the `payment.captured` webhook's `fee` + `tax` fields. Drives
+  refund math + Phase 5.7 reports.
+
+**Issues filed**
+
+- #96 Atomic inventory decrement at `payment.captured` (P0 — security)
+- #97 Admin refund UI + fee tracking (P1 — ops)
+- #98 Out-of-stock UI on PDP/store/cart (P1 — UX)
+
 ### Next up
 
-1. **Phase 5.1 follow-up** — inventory UI + CSV exports + customer
-   lookup (the rest of #61's punch list).
-2. **#87 Shiprocket status webhook** — high ops impact, eliminates
-   manual status flips for in-transit / delivered.
-3. **3.5 GST/tax** at checkout.
+1. **#96 + #62 inventory decrement + UI** — bundled. Pre-launch
+   critical so we don't oversell.
+2. **#64 vendor coupon generator** — user flagged.
+3. **#97 admin refund UI** — closes the abuse-handling loop.
+4. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
+5. **3.5 GST/tax** at checkout.
 5. **3.4 Refund webhook expansion** + admin refund button.
 6. **Phase 4** — R2 + watermarked PDF + audio streaming.
 7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
