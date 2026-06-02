@@ -97,6 +97,7 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
   // Idempotent: if the inline verify already flipped us, leave the
   // status untouched but STILL attempt inventory decrement below (the
   // RPC has its own idempotency stamp).
+  const fee = (payment.fee ?? 0) + (payment.tax ?? 0);
   if (order.status === "pending_payment") {
     await service
       .from("orders")
@@ -104,7 +105,18 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
         status: "paid",
         razorpay_payment_id: payment.id,
         paid_at: new Date().toISOString(),
-      })
+        // Stamp the actual Razorpay fee so the refund dialog knows
+        // exactly what's non-refundable. Falls back to ~2.36%
+        // estimate in the UI when this is null (pre-fix orders).
+        non_refundable_fee_paise: fee > 0 ? fee : null,
+      } as never)
+      .eq("id", order.id);
+  } else if (fee > 0) {
+    // Status already flipped by inline verify, but we still want the
+    // fee number for refund math.
+    await service
+      .from("orders")
+      .update({ non_refundable_fee_paise: fee } as never)
       .eq("id", order.id);
   }
 
@@ -166,10 +178,38 @@ async function handleRefundProcessed(payload: WebhookPayload): Promise<void> {
   if (!refund?.payment_id) return;
 
   const service = createServiceClient();
+  // Look up the order so we can do cumulative math + status logic.
+  // refunded_paise was added by migration 20260602204644 — cast
+  // through unknown until generated types regenerate.
+  const { data: order } = await service
+    .from("orders")
+    .select("id, total_paise")
+    .eq("razorpay_payment_id", refund.payment_id)
+    .maybeSingle();
+  if (!order) return;
+
+  const { data: refundedRow } = await service
+    .from("orders")
+    .select("*")
+    .eq("id", order.id)
+    .maybeSingle();
+  const alreadyRefunded =
+    ((refundedRow as unknown as { refunded_paise?: number | null } | null)
+      ?.refunded_paise) ?? 0;
+  const refundAmount = refund.amount ?? 0;
+  const newRefunded = Math.min(order.total_paise, alreadyRefunded + refundAmount);
+  const newStatus =
+    newRefunded >= order.total_paise ? "refunded" : "partially_refunded";
+
+  // Idempotent: if our refund action already updated to this amount,
+  // the row will already match — no-op write is harmless.
   await service
     .from("orders")
-    .update({ status: "refunded" })
-    .eq("razorpay_payment_id", refund.payment_id);
+    .update({
+      status: newStatus,
+      refunded_paise: newRefunded,
+    } as never)
+    .eq("id", order.id);
 }
 
 /* -----------------------------------------------------------------
@@ -194,10 +234,14 @@ interface WebhookPayload {
         order_id?: string;
         error_code?: string;
         error_description?: string;
+        /** Razorpay fee in paise (non-refundable on refunds). */
+        fee?: number;
+        /** GST on the fee, in paise (also non-refundable). */
+        tax?: number;
       };
     };
     refund?: {
-      entity?: { payment_id?: string };
+      entity?: { payment_id?: string; amount?: number };
     };
   };
 }

@@ -27,6 +27,18 @@ export default function ReturnsPage() {
           photo via the feedback form within 7 days and we&rsquo;ll
           replace the affected item at no cost.
         </p>
+        <p>
+          When a refund is issued (e.g. for damaged goods or at our
+          discretion), refunds are processed via the original payment
+          method through Razorpay. Payment processing fees charged by
+          Razorpay (typically 2&ndash;2.36% of the original transaction)
+          are non&#8209;refundable and may be deducted from refunds for
+          cancellations or refund requests initiated by the customer.
+          Returns of physical goods are subject to inspection; items in
+          unsellable condition may be refunded at a reduced amount. We
+          reserve the right to deduct reasonable costs from refunds for
+          orders flagged as fraudulent or abusive after due process.
+        </p>
       </Stack>
     </Stack>
   );

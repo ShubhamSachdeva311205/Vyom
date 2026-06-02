@@ -13,6 +13,7 @@ import {
   StatusActions,
   TrackingForm,
 } from "@/components/features/admin/order-actions";
+import { RefundDialog } from "@/components/features/admin/refund-dialog";
 import { getOrderDetail } from "@/actions/admin-orders";
 import { courierLabel, type OrderStatusV2 } from "@/lib/orders/labels";
 import { formatINR } from "@/lib/format";
@@ -263,6 +264,24 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                 <Stack gap={3}>
                   <span className="text-eyebrow">Actions</span>
                   <StatusActions orderId={order.id} currentStatus={status} />
+                  {order.razorpay_payment_id &&
+                  status !== "pending_payment" &&
+                  status !== "cancelled" &&
+                  status !== "refunded" ? (
+                    <RefundDialog
+                      orderId={order.id}
+                      totalPaise={order.total_paise}
+                      alreadyRefundedPaise={
+                        (order as unknown as { refunded_paise: number | null })
+                          .refunded_paise ?? 0
+                      }
+                      capturedFeePaise={
+                        (order as unknown as {
+                          non_refundable_fee_paise: number | null;
+                        }).non_refundable_fee_paise ?? null
+                      }
+                    />
+                  ) : null}
                 </Stack>
               </Card>
 

@@ -128,7 +128,15 @@ Subphase 3.3: Shipping Logic — Shiprocket (REVISED 2026-05-28; Issue #81)
 
 Subphase 3.4: Refund / Chargeback (NEW)
 
-    [ ] payment.failed and refund.processed webhook handlers. Update order status; revoke digital access grants if any; notify admin via email + toast on next admin session.
+    [x] payment.failed handler stamps notes column. refund.processed handler now computes cumulative refunded_paise and flips status to refunded / partially_refunded. Idempotent with the in-app refundOrder path.
+
+    [x] Admin refund UI (#97): /admin/orders/[id] Actions card gains an "Issue refund" button. RefundDialog supports full / minus-fee / custom / decline modes with live "customer gets / Mom loses / Mom net-recoups" math. Razorpay payments.refund API call, audit log entry, status flip via RPC, inventory restock if order had been decremented.
+
+    [x] orders.non_refundable_fee_paise stamped from payment.captured webhook's fee+tax. Pre-fix orders fall back to ~2.36% estimate in the dialog.
+
+    [x] /legal/returns disclosure paragraph: payment processing fees non-refundable on customer-initiated refunds; right to deduct costs for fraudulent orders. Legal under Indian Consumer Protection Act 2019 when disclosed in published terms.
+
+    [ ] Phase 7 hook: "Your refund has been processed" email via Resend. Stubbed with TODO in refundOrder action.
 
 Subphase 3.6: Tax Invoice PDF generation (NEW 2026-05-28; Issue #83)
 

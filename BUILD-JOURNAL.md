@@ -1782,17 +1782,82 @@ coupons already supported everything — no migration needed.
   copy stays since Mom should distribute it once and remember
   who has it).
 
+### Phase 3.4 + #97 — Admin refund UI (2026-06-03)
+
+Closes the abuse-handling loop. Mom can refund any paid order
+without leaving the app, picks per-refund whether to absorb the
+Razorpay fee, and inventory restocks automatically.
+
+**Schema (`20260602204644_refund_fields_and_restock_rpc.sql`)**
+
+- `orders.non_refundable_fee_paise` (nullable) — captured from
+  `payment.captured` webhook's `payment.fee + payment.tax`. Lets the
+  refund dialog show exact net-recoup. Pre-fix orders stay null and
+  fall back to a ~2.36% estimate in the UI.
+- `orders.refunded_paise` (default 0) — cumulative across one or
+  more partial refunds. Drives status: 0 untouched, partial = 
+  `partially_refunded`, full = `refunded`.
+- `orders.inventory_restocked_at` — idempotency stamp for the
+  restock RPC.
+- `restock_inventory(p_order_id)` SECURITY DEFINER — mirror of
+  decrement. Only restocks if previously decremented AND not already
+  restocked. Returns `(ok, reason)`.
+
+**Webhook (`/api/webhooks/razorpay`)**
+
+- `payment.captured` handler stamps `non_refundable_fee_paise` from
+  the payment object's fee + tax. Works even when the inline verify
+  beat the webhook to the status flip.
+- `refund.processed` handler upgraded: cumulative `refunded_paise`
+  + status to `refunded` / `partially_refunded`. Idempotent with the
+  in-app refund action (no-op write if our action already updated).
+
+**Server actions (`src/actions/admin-refunds.ts`)**
+
+- `refundOrder({ orderId, amountPaise, reason })` — calls
+  Razorpay `payments.refund`, updates `refunded_paise`, flips
+  status via `update_order_status` RPC (audit-logs the status
+  change), restocks inventory if it was decremented, writes a
+  separate refund-detail audit_log row with the Razorpay refund id.
+  Refuses if amount exceeds remaining refundable.
+- `declineRefund({ orderId, reason })` — no money moves, audit_log
+  row only. Reason must be 10+ chars.
+
+**UI (`RefundDialog`)**
+
+- Numbers strip at top: original payment, Razorpay fee (with "(est.
+  2.36%)" tag when not captured), already refunded, refundable now.
+- Four mode buttons: Full / Minus fee / Custom / Decline. Each
+  shows its computed amount as a subtitle.
+- Outcome panel for non-decline modes: "Customer gets / Mom loses
+  (fee) / Mom net-recoups" with live math.
+- Reason textarea required (decline requires 10+ chars).
+- Button reflects mode + amount: `"Refund ₹X"` or `"Decline refund"`.
+
+**Returns policy (`/legal/returns`)**
+
+- New paragraph disclosing: Razorpay fees non-refundable on
+  customer-initiated cancellations; condition-of-goods adjustments
+  possible; right to deduct costs on fraud after due process.
+- Per Indian Consumer Protection Act 2019, deductions only enforceable
+  when disclosed in published terms — this paragraph closes that gap.
+
+**Open follow-ups**
+
+- Phase 7 Resend email "Your refund has been processed" — stubbed
+  with TODO comment in refundOrder action.
+- Reports (#70) will pull `non_refundable_fee_paise` to show true
+  net revenue.
+
 ### Next up
 
-1. **#97 admin refund UI** — closes the abuse-handling loop +
-   handles the decrement-failed-on-paid case.
-2. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
-3. **3.5 GST/tax** at checkout.
-4. **3.4 Refund webhook expansion** + admin refund button.
-5. **Phase 4** — R2 + watermarked PDF + audio streaming.
-6. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
-7. **#90 Mobile responsiveness** — pre-launch P0.
-8. **#91 Complete UI revamp** — pre-launch.
+1. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
+2. **3.5 GST/tax** at checkout.
+3. **Phase 4** — R2 + watermarked PDF + audio streaming.
+4. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+5. **#90 Mobile responsiveness** — pre-launch P0.
+6. **#91 Complete UI revamp** — pre-launch.
+7. **#70 Sales reports** — net revenue, fees paid, refunds.
 
 ---
 
