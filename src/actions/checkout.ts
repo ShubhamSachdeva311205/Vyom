@@ -29,7 +29,11 @@ import { findCartForOwner, getCartWithItems, resolveCartOwner } from "@/lib/cart
 import { env } from "@/lib/env";
 import { formatINR as formatINRForPreview } from "@/lib/format";
 import { getRazorpayClient } from "@/lib/razorpay/client";
-import { applyFreeShippingRule, getShippingSettings } from "@/lib/settings/queries";
+import {
+  applyFreeShippingRule,
+  getCheckoutSafety,
+  getShippingSettings,
+} from "@/lib/settings/queries";
 import {
   ShiprocketError,
   getServiceability,
@@ -44,20 +48,9 @@ const PINCODE_REGEX = /^[1-9][0-9]{5}$/;
 const COUPON_REGEX = /^[A-Za-z0-9-_]{3,40}$/;
 const PHONE_REGEX = /^[6-9][0-9]{9}$/; // Indian mobile, 10 digits
 
-/**
- * Defense-in-depth circuit breaker. createRazorpayOrder already
- * recomputes prices server-side from DB-trusted data, so a tampered
- * client can't underpay. But if some future bug — coupon-validator
- * glitch, sign error in shipping math, gift-card stacking, anything —
- * ever produced a near-zero total against a real cart, this floor
- * catches it before money moves.
- *
- * Today's max legit discount is 10% (student10/teacher10). 30% floor
- * leaves a 20-point safety margin even if Mom rolls out 50%-off
- * vendor coupons. If she ever needs deeper discounts, expose this
- * as a setting (admin can lower the floor).
- */
-const MIN_PAYABLE_FRACTION = 0.3;
+// Circuit breaker — minimum fraction of subtotal that the customer
+// must actually pay. Read from settings.checkout_safety so Mom can
+// adjust per Phase 5.5 UI. Default 0.30.
 
 // Shipping address. Hard-required for now: name + phone + pincode.
 // Street fields are kept in the form (Shiprocket / invoice still need
@@ -493,7 +486,10 @@ export async function createRazorpayOrder(
   //     is implausibly low against the cart subtotal. Belt-and-suspenders
   //     on top of the server-side price computation. Logs full detail
   //     for forensics if it ever fires.
-  const minPayablePaise = Math.floor(subtotalPaise * MIN_PAYABLE_FRACTION);
+  const checkoutSafety = await getCheckoutSafety();
+  const minPayablePaise = Math.floor(
+    subtotalPaise * checkoutSafety.minPayableFraction,
+  );
   if (subtotalPaise > 0 && totalPaise < minPayablePaise) {
     console.error("[checkout] PRICE FLOOR TRIGGERED — refusing to create Razorpay order", {
       orderId: orderRow.id,
@@ -505,6 +501,7 @@ export async function createRazorpayOrder(
       taxPaise,
       totalPaise,
       minPayablePaise,
+      minPayableFraction: checkoutSafety.minPayableFraction,
       couponApplied,
     });
     await service.from("orders").delete().eq("id", orderRow.id);

@@ -38,6 +38,16 @@ export interface BankDetails {
   branch: string;
 }
 
+export interface CheckoutSafety {
+  /**
+   * Minimum fraction of the cart subtotal that the customer must
+   * actually pay. Refuses to send the Razorpay order otherwise.
+   * Defends against an unknown bug or attacker producing a near-zero
+   * total. Range: 0 (no floor) – 1.0 (must pay 100%).
+   */
+  minPayableFraction: number;
+}
+
 const DEFAULT_SELLER: SellerDetails = {
   name: "Seema Sachdeva",
   addressLines: ["Bengaluru, Karnataka", "India"],
@@ -58,6 +68,10 @@ const DEFAULT_BANK: BankDetails = {
   accountNumber: "***REDACTED***",
   ifsc: "***REDACTED***",
   branch: "Marathahalli",
+};
+
+const DEFAULT_CHECKOUT_SAFETY: CheckoutSafety = {
+  minPayableFraction: 0.3,
 };
 
 async function readSetting(key: string): Promise<unknown> {
@@ -113,6 +127,17 @@ export const getShippingSettings = cache(async (): Promise<ShippingSettings> => 
     pickupPincode: raw.pickup_pincode ?? envPincode,
     pickupLocation: raw.pickup_location ?? env.SHIPROCKET_PICKUP_LOCATION,
   };
+});
+
+export const getCheckoutSafety = cache(async (): Promise<CheckoutSafety> => {
+  const raw = (await readSetting("checkout_safety")) as Partial<{
+    min_payable_fraction: number;
+  }> | null;
+  if (!raw) return DEFAULT_CHECKOUT_SAFETY;
+  // Clamp to [0, 1] in case a bad value got into the row.
+  const v = Number(raw.min_payable_fraction);
+  const clamped = Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : DEFAULT_CHECKOUT_SAFETY.minPayableFraction;
+  return { minPayableFraction: clamped };
 });
 
 export const getBankDetails = cache(async (): Promise<BankDetails> => {

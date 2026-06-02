@@ -124,6 +124,30 @@ export async function updateShippingSettings(
 }
 
 /* ============================================================
+ * Checkout safety
+ * ============================================================ */
+const checkoutSafetySchema = z.object({
+  minPayableFraction: z.number().min(0).max(1),
+});
+
+export async function updateCheckoutSafety(
+  input: z.input<typeof checkoutSafetySchema>,
+): Promise<ActionResult> {
+  const parsed = checkoutSafetySchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const gate = await assertAdmin();
+  if (!gate.ok) return { success: false, error: gate.error };
+
+  await upsertSetting("checkout_safety", {
+    min_payable_fraction: parsed.data.minPayableFraction,
+  });
+  revalidatePath("/admin/settings");
+  return { success: true };
+}
+
+/* ============================================================
  * Bank details
  * ============================================================ */
 const bankSchema = z.object({

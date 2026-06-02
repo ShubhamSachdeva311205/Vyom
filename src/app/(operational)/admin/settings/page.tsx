@@ -5,11 +5,13 @@ import { Card } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/error-state";
 import { AdminEmailsForm } from "@/components/features/admin/settings/admin-emails-form";
 import { BankForm } from "@/components/features/admin/settings/bank-form";
+import { CheckoutSafetyForm } from "@/components/features/admin/settings/checkout-safety-form";
 import { SellerForm } from "@/components/features/admin/settings/seller-form";
 import { ShippingForm } from "@/components/features/admin/settings/shipping-form";
 import { listAdminEmails } from "@/actions/admin-settings";
 import {
   getBankDetails,
+  getCheckoutSafety,
   getSellerDetails,
   getShippingSettings,
 } from "@/lib/settings/queries";
@@ -23,10 +25,11 @@ export default async function AdminSettingsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [seller, shipping, bank, adminEmailsResult] = await Promise.all([
+  const [seller, shipping, bank, checkoutSafety, adminEmailsResult] = await Promise.all([
     getSellerDetails(),
     getShippingSettings(),
     getBankDetails(),
+    getCheckoutSafety(),
     listAdminEmails(),
   ]);
 
@@ -64,6 +67,20 @@ export default async function AdminSettingsPage() {
                 </p>
               </Stack>
               <ShippingForm initial={shipping} />
+            </Stack>
+          </Card>
+
+          <Card variant="surface" padding="lg">
+            <Stack gap={3}>
+              <Stack gap={1}>
+                <span className="text-eyebrow">Checkout safety</span>
+                <p className="text-caption text-muted-foreground">
+                  Price-floor circuit breaker. If the computed total ever
+                  drops below this percentage of the cart subtotal, the
+                  order is refused before Razorpay.
+                </p>
+              </Stack>
+              <CheckoutSafetyForm initial={checkoutSafety} />
             </Stack>
           </Card>
 
