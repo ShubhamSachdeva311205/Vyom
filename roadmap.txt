@@ -177,7 +177,7 @@ Subphase 5.1: Order & Inventory Management
 
 Subphase 5.2: Custom Tools
 
-    [ ] Dynamic Vendor Coupons: Build UI to generate random single-use codes with a custom, variable discount percentage input. Display a list tracking active vs used vendor codes.
+    [x] Dynamic Vendor Coupons (#64): /admin/coupons with built-in codes (read-only), generator form (discount %, vendor name, expiry, multi-use toggle), and vendor codes list. VND-XXXX-XXXX format from crypto.randomBytes, ambiguous-glyph alphabet. Single-use by default, multi-use sets max_uses N. Copy buttons + delete (only on unused codes; used codes preserved for audit).
 
     [ ] Manual Access Grants (Offline/Amazon Buyers): Build UI to input an email, select a book, and click "Grant Access" (triggers email link).
 

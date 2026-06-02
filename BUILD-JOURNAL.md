@@ -1740,20 +1740,59 @@ Spec lockdown:
   (reservation model) — not built; defer until volume actually
   needs it.
 
+### Phase 5.2 — Vendor coupon generator (#64, 2026-06-03)
+
+Built-in codes (student10, teacher10, test60) stay seeded via
+migration. Vendor codes are minted from /admin/coupons. Schema for
+coupons already supported everything — no migration needed.
+
+**Code generator (`src/lib/coupons/generate.ts`)**
+
+- `generateVendorCode()` → `VND-XXXX-XXXX`. crypto.randomBytes(8)
+  mod over a 32-char ambiguous-free alphabet (no 0/O, no 1/I/L).
+  32^8 ≈ 1.1 trillion combinations; DB UNIQUE on `coupons.code` is
+  the final guard. Server-only.
+
+**Server actions (`src/actions/admin-coupons.ts`)**
+
+- `listGlobalCoupons()` — `created_by IS NULL` (built-ins).
+- `listVendorCoupons()` — `created_by IS NOT NULL` (Mom-created).
+- `generateVendorCoupon({ discountPercent, vendorName, expiresAt?, maxUses })`
+  — inserts with `type='single_use'` when maxUses=1 (satisfies the
+  DB CHECK), `type='global'` with `max_uses=N` otherwise. Stamps
+  `created_by` to the calling admin. Retries up to 5 times on
+  unique-violation (vanishingly rare).
+- `deleteCoupon(code)` — only allowed on `created_by != null` AND
+  `uses_count = 0`. Used codes stay forever for the audit trail.
+
+**UI (`/admin/coupons`)**
+
+- Three cards on one page:
+  1. **Built-in codes** (read-only list)
+  2. **Generate vendor code** form with discount %, vendor name,
+     optional expiry date, and a Multi-use toggle that reveals a
+     max-uses input.
+  3. **Vendor codes** list with per-row code (copy button), status
+     badge (Active / Used up / Expired), discount %, vendor note,
+     usage X/Y, created + expires dates. Trash icon visible only
+     on unused vendor codes.
+- Generated codes flash a success block at the top with the code
+  + a Copy button + a "share this with the vendor — it's the only
+  copy you'll see" note (it isn't — we store it in the DB — but the
+  copy stays since Mom should distribute it once and remember
+  who has it).
+
 ### Next up
 
-1. **#64 vendor coupon generator** — user flagged earlier.
-2. **#97 admin refund UI** — closes the abuse-handling loop +
+1. **#97 admin refund UI** — closes the abuse-handling loop +
    handles the decrement-failed-on-paid case.
-3. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
-4. **3.5 GST/tax** at checkout.
-5. **3.4 Refund webhook expansion** + admin refund button.
-6. **Phase 4** — R2 + watermarked PDF + audio streaming.
-7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
-8. **#90 Mobile responsiveness** — pre-launch P0.
-9. **#91 Complete UI revamp** — pre-launch.
-8. **#90 Mobile responsiveness** — must close before launch.
-9. **#91 Complete UI revamp** — final sprint polish.
+2. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
+3. **3.5 GST/tax** at checkout.
+4. **3.4 Refund webhook expansion** + admin refund button.
+5. **Phase 4** — R2 + watermarked PDF + audio streaming.
+6. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+7. **#90 Mobile responsiveness** — pre-launch P0.
+8. **#91 Complete UI revamp** — pre-launch.
 
 ---
 
