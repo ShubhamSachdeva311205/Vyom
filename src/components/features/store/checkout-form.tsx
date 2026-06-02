@@ -79,8 +79,11 @@ export function CheckoutForm({
   const [paying, setPaying] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [pincode, setPincode] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  // Name + phone are uncontrolled (plain inputs with `required`)
+  // so browser autofill works without React's controlled-state bug
+  // where autofill doesn't fire onChange and we never know the field
+  // is filled. HTML5 required-attribute + the server action's zod
+  // schema cover the validation.
   const [preview, setPreview] = useState<PreviewSnapshot | null>(null);
 
   const validPincode = PINCODE_REGEX.test(pincode);
@@ -146,29 +149,24 @@ export function CheckoutForm({
   const totalPaise =
     ok?.totalPaise ?? Math.max(0, subtotalPaise + shippingPaise - discountPaise);
 
-  // Block Pay when required fields are missing, the pincode is
-  // unserviceable, the coupon was rejected, or we're still mid-flight.
-  // Hard-required: name + phone + pincode. Street fields are accepted
-  // empty for now (#94 will replace with a Places-autocompleted input).
-  const PHONE_OK = /^[6-9][0-9]{9}$/.test(phone);
+  // Block Pay when something we can actually see is wrong. Name + phone
+  // are enforced by the browser's required-attribute and the server's
+  // zod schema on submit, so we don't gate on them here — controlled
+  // inputs would break browser autofill (no onChange fires, state stays
+  // empty, button stays grey even though the field is visibly filled).
   const unserviceable = Boolean(ok?.shippingUnserviceable);
   const couponInvalid = Boolean(ok?.couponReason);
-  const blockedReason =
-    fullName.trim().length < 2
-      ? "Enter your full name."
-      : !PHONE_OK
-        ? "Enter a 10-digit Indian mobile number."
-        : !validPincode
-          ? "Enter a 6-digit shipping pincode."
-          : previewState.kind === "loading"
-            ? "Computing your total…"
-            : unserviceable
-              ? "No couriers serve this pincode."
-              : couponInvalid
-                ? ok?.couponReason ?? "Coupon is not valid."
-                : previewState.kind === "error"
-                  ? previewState.message
-                  : null;
+  const blockedReason = !validPincode
+    ? "Enter a 6-digit shipping pincode."
+    : previewState.kind === "loading"
+      ? "Computing your total…"
+      : unserviceable
+        ? "No couriers serve this pincode."
+        : couponInvalid
+          ? ok?.couponReason ?? "Coupon is not valid."
+          : previewState.kind === "error"
+            ? previewState.message
+            : null;
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -286,8 +284,6 @@ export function CheckoutForm({
                       autoComplete="name"
                       placeholder="Your name"
                       maxLength={120}
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
                       required
                     />
                   </FormField>
@@ -296,11 +292,10 @@ export function CheckoutForm({
                       name="phone"
                       type="tel"
                       inputMode="numeric"
+                      pattern="[6-9][0-9]{9}"
                       autoComplete="tel-national"
                       placeholder="9876543210"
                       maxLength={10}
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
                       required
                     />
                   </FormField>
