@@ -13,6 +13,7 @@ import {
 } from "@/actions/checkout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,6 +90,10 @@ export function CheckoutForm({
     fullName?: string;
     phone?: string;
   }>({});
+  // Customer must acknowledge no-refunds before Pay enables. Tracked
+  // in React state so the button gate sees it (no autofill concern —
+  // checkbox value isn't autofilled).
+  const [acknowledgedNoRefund, setAcknowledgedNoRefund] = useState(false);
   const [preview, setPreview] = useState<PreviewSnapshot | null>(null);
 
   const validPincode = PINCODE_REGEX.test(pincode);
@@ -475,11 +480,32 @@ export function CheckoutForm({
               </div>
             ) : null}
 
+            {/* No-refund acknowledgement. Required before Pay enables.
+                Disclosed in /legal/returns; this checkbox is the
+                explicit consent for that policy (Consumer Protection
+                Act 2019 expects opt-in for waiver-style clauses). */}
+            <label className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-3 cursor-pointer">
+              <Checkbox
+                checked={acknowledgedNoRefund}
+                onCheckedChange={(c) => setAcknowledgedNoRefund(Boolean(c))}
+              />
+              <span className="text-caption leading-relaxed">
+                I understand <strong>all sales are final</strong> — Advaita
+                does not offer returns or refunds. If a book arrives damaged
+                in transit, send a photo within 7 days for a free replacement.
+                Full policy: <a href="/legal/returns" target="_blank" className="underline">/legal/returns</a>.
+              </span>
+            </label>
+
             <Button
               type="submit"
               size="md"
               disabled={
-                pending || paying || !scriptReady || Boolean(blockedReason)
+                pending ||
+                paying ||
+                !scriptReady ||
+                Boolean(blockedReason) ||
+                !acknowledgedNoRefund
               }
               className="w-full"
             >
