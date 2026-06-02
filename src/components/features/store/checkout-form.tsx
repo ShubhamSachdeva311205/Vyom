@@ -82,8 +82,13 @@ export function CheckoutForm({
   // Name + phone are uncontrolled (plain inputs with `required`)
   // so browser autofill works without React's controlled-state bug
   // where autofill doesn't fire onChange and we never know the field
-  // is filled. HTML5 required-attribute + the server action's zod
-  // schema cover the validation.
+  // is filled. We do our own validation on submit (see handleSubmit)
+  // and show inline error captions — the browser's native popover is
+  // not styleable and looks broken in Zen / some other browsers.
+  const [fieldErrors, setFieldErrors] = useState<{
+    fullName?: string;
+    phone?: string;
+  }>({});
   const [preview, setPreview] = useState<PreviewSnapshot | null>(null);
 
   const validPincode = PINCODE_REGEX.test(pincode);
@@ -169,6 +174,18 @@ export function CheckoutForm({
             : null;
 
   const handleSubmit = (formData: FormData) => {
+    // Field-level validation BEFORE we hand off to the server. Sets
+    // inline errors keyed by field name. Native browser popovers are
+    // suppressed via noValidate on the <form>.
+    const fullName = (formData.get("fullName")?.toString() ?? "").trim();
+    const phone = (formData.get("phone")?.toString() ?? "").trim();
+    const errs: { fullName?: string; phone?: string } = {};
+    if (fullName.length < 2) errs.fullName = "Enter your full name.";
+    if (!/^[6-9][0-9]{9}$/.test(phone))
+      errs.phone = "Enter a 10-digit Indian mobile number starting with 6-9.";
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     startTransition(async () => {
       if (!scriptReady || !window.Razorpay) {
         toast.error("Payment library still loading. Try again in a second.");
@@ -247,7 +264,7 @@ export function CheckoutForm({
       />
 
       <Card variant="surface" padding="lg">
-        <form action={handleSubmit}>
+        <form action={handleSubmit} noValidate>
           <Stack gap={4}>
             <div>
               <FormField
@@ -278,27 +295,48 @@ export function CheckoutForm({
               <p className="text-eyebrow mb-3">Shipping address</p>
               <Stack gap={3}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormField label="Full name *">
-                    <Input
-                      name="fullName"
-                      autoComplete="name"
-                      placeholder="Your name"
-                      maxLength={120}
-                      required
-                    />
-                  </FormField>
-                  <FormField label="Phone (10-digit) *">
-                    <Input
-                      name="phone"
-                      type="tel"
-                      inputMode="numeric"
-                      pattern="[6-9][0-9]{9}"
-                      autoComplete="tel-national"
-                      placeholder="9876543210"
-                      maxLength={10}
-                      required
-                    />
-                  </FormField>
+                  <div>
+                    <FormField label="Full name *">
+                      <Input
+                        name="fullName"
+                        autoComplete="name"
+                        placeholder="Your name"
+                        maxLength={120}
+                        aria-invalid={Boolean(fieldErrors.fullName)}
+                        onInput={() =>
+                          fieldErrors.fullName &&
+                          setFieldErrors((e) => ({ ...e, fullName: undefined }))
+                        }
+                      />
+                    </FormField>
+                    {fieldErrors.fullName ? (
+                      <p className="text-caption text-destructive mt-1">
+                        {fieldErrors.fullName}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div>
+                    <FormField label="Phone (10-digit) *">
+                      <Input
+                        name="phone"
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        placeholder="9876543210"
+                        maxLength={10}
+                        aria-invalid={Boolean(fieldErrors.phone)}
+                        onInput={() =>
+                          fieldErrors.phone &&
+                          setFieldErrors((e) => ({ ...e, phone: undefined }))
+                        }
+                      />
+                    </FormField>
+                    {fieldErrors.phone ? (
+                      <p className="text-caption text-destructive mt-1">
+                        {fieldErrors.phone}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
 
                 <FormField
