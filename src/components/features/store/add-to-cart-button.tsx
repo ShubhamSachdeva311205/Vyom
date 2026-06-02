@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Loader2, ShoppingBag } from "lucide-react";
+import { Check, Loader2, PackageX, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { addToCart } from "@/actions/cart";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ interface AddToCartButtonProps {
   className?: string;
   /** Full-width vs auto. */
   block?: boolean;
+  /** When true, renders a disabled "Out of stock" button instead. */
+  outOfStock?: boolean;
 }
 
 /**
@@ -30,9 +32,26 @@ export function AddToCartButton({
   bookTitle,
   className,
   block = false,
+  outOfStock = false,
 }: AddToCartButtonProps) {
   const [pending, startTransition] = useTransition();
   const [justAdded, setJustAdded] = useState(false);
+
+  if (outOfStock) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled
+        className={cn(block && "w-full", className)}
+        aria-label={`${bookTitle} is out of stock`}
+      >
+        <PackageX className="size-4" aria-hidden="true" />
+        Out of stock
+      </Button>
+    );
+  }
 
   const handleClick = () => {
     startTransition(async () => {

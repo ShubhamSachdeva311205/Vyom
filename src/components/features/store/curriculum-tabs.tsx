@@ -110,7 +110,12 @@ function OrderBookCard({ book }: { book: Book }) {
           ) : null}
           <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
         </Stack>
-        <AddToCartButton bookId={book.id} bookTitle={book.title} block />
+        <AddToCartButton
+          bookId={book.id}
+          bookTitle={book.title}
+          block
+          outOfStock={book.inventory_count === 0}
+        />
       </Stack>
     </Card>
   );

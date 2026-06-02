@@ -61,10 +61,13 @@ export function BookCard({
             // Only zoom on hover when the card is actually clickable.
             // In hero contexts (asStatic) the zoom misleads users.
             !asStatic && "transition-transform duration-500 group-hover:scale-[1.02]",
-            book.inventory_count === 0 && "grayscale opacity-60",
+            // Sold-out treatment is for purchase contexts only — hero
+            // cards (asStatic) are decorative; greying them out would
+            // make the whole landing look broken.
+            !asStatic && book.inventory_count === 0 && "grayscale opacity-60",
           )}
         />
-        {book.inventory_count === 0 ? (
+        {!asStatic && book.inventory_count === 0 ? (
           <span className="absolute top-2 left-2 inline-flex items-center rounded-full bg-foreground/90 text-background text-[10px] font-medium px-2 py-1 uppercase tracking-wide">
             Sold out
           </span>
