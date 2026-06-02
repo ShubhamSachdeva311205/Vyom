@@ -18,6 +18,10 @@ export async function getBooks(opts: {
     .from("books")
     .select("*")
     .eq("is_active", true)
+    // Soft-deleted books (admin removed via Phase 5.3 CRUD) stay in
+    // the table for order-history reference but never re-appear on
+    // the storefront.
+    .is("deleted_at" as never, null)
     .order("curriculum", { ascending: true })
     .order("slug", { ascending: true });
 
@@ -41,6 +45,7 @@ export async function getBookBySlug(slug: string): Promise<Book | null> {
     .select("*")
     .eq("slug", slug)
     .eq("is_active", true)
+    .is("deleted_at" as never, null)
     .maybeSingle();
   if (error) {
     console.error("[books] getBookBySlug failed:", error.message);

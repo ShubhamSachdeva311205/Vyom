@@ -189,13 +189,13 @@ Subphase 5.2: Custom Tools
 
     [ ] Manual Access Grants (Offline/Amazon Buyers): Build UI to input an email, select a book, and click "Grant Access" (triggers email link).
 
-Subphase 5.3: Product CRUD + Image Upload (NEW)
+Subphase 5.3: Product CRUD + Image Upload (Issue #101)
 
-    [ ] Admin UI to create/edit/delete book records (title, subtitle, ISBN, publisher, slug, price, compare_at_price, curriculum, subject, has_audio, has_answer_key, discount_eligible, is_active, description).
+    [x] Admin UI to create/edit/delete book records. Full-book drawer on /admin/inventory with bilingual (EN+HI) title/subtitle/description, slug, curriculum, price, stock, weight + L×B×H, has_audio, has_answer_key, discount_eligible, is_active. Soft delete (deleted_at + is_active=false) so order history stays intact.
 
-    [ ] Image upload pipeline: admin uploads cover + sample images, server pushes to Cloudflare R2 (public bucket this time), DB stores R2 keys + alt text. Display via next/image with the appropriate sizes/priority.
+    [x] Image upload pipeline: Supabase Storage public bucket 'book-covers'. uploadCoverImage Server Action validates MIME (PNG/JPEG/WebP) + size (≤5MB), writes to {slug}.{ext}. RLS: public read, admin write. BookCard prefers DB cover_image_url with legacy /public/book-covers/{slug}.webp fallback.
 
-    [ ] Audio + answer-key file upload pipeline: admin uploads protected files to R2 private buckets, sets books.audio_r2_key / pdf_r2_key. Triggered when has_audio / has_answer_key is toggled on for a book.
+    [ ] Audio + answer-key file upload pipeline: tracked in Phase 4 (#102). Cloudflare R2 private buckets, books.audio_r2_key / pdf_r2_key, watermarked PDF render, audio stream proxy.
 
 Subphase 5.4: Customer Lookup + Admin Tools
 

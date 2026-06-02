@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { Check, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import {
-  updateBookActive,
-  updateBookPrice,
-  updateBookStock,
+  createBook,
+  getBookForEdit,
+  softDeleteBook,
+  updateBookFull,
+  uploadCoverImage,
 } from "@/actions/admin-inventory";
-import type { InventoryRow } from "@/lib/inventory/constants";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -21,156 +22,477 @@ import {
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Stack, Row } from "@/components/layouts/stack";
-import { formatINR } from "@/lib/format";
+import type { BookFull, InventoryRow } from "@/lib/inventory/constants";
+
+/** Empty starting state for the Add-new flow. */
+function emptyBook(): BookFull {
+  return {
+    id: "",
+    slug: "",
+    title: "",
+    title_hindi: null,
+    subtitle: null,
+    subtitle_hindi: null,
+    description: null,
+    description_hindi: null,
+    curriculum: "ibdp",
+    price_paise: 0,
+    compare_at_price_paise: null,
+    inventory_count: 0,
+    weight_grams: 300,
+    length_cm: 22,
+    breadth_cm: 15,
+    height_cm: 2,
+    has_audio: false,
+    has_answer_key: false,
+    discount_eligible: true,
+    is_active: true,
+    cover_image_url: null,
+    hsn_sac: "4901",
+  };
+}
+
+interface BookEditDrawerProps {
+  /** When set, drawer is in edit mode and fetches the full row. */
+  book: InventoryRow | null;
+  /** When true, drawer is in create mode (book ignored). */
+  createMode?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
 export function BookEditDrawer({
   book,
+  createMode = false,
   open,
   onOpenChange,
-}: {
-  book: InventoryRow | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  if (!book) return null;
+}: BookEditDrawerProps) {
+  if (!open) return null;
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>{book.title}</DrawerTitle>
-          {book.subtitle ? (
-            <DrawerDescription>{book.subtitle}</DrawerDescription>
-          ) : null}
+          <DrawerTitle>
+            {createMode ? "Add new book" : book?.title ?? "Edit book"}
+          </DrawerTitle>
+          <DrawerDescription>
+            {createMode
+              ? "Cover image, bilingual title + description, pricing, stock."
+              : "Edit all the details for this book."}
+          </DrawerDescription>
         </DrawerHeader>
-        <div className="px-6 pb-6 max-w-2xl mx-auto w-full">
-          <BookEditForm book={book} onSaved={() => onOpenChange(false)} />
+        <div className="px-6 pb-6 max-w-3xl mx-auto w-full overflow-y-auto max-h-[80vh]">
+          {createMode ? (
+            <BookForm
+              initial={emptyBook()}
+              mode="create"
+              onSaved={() => onOpenChange(false)}
+            />
+          ) : book ? (
+            <EditModeLoader bookId={book.id} onSaved={() => onOpenChange(false)} />
+          ) : null}
         </div>
       </DrawerContent>
     </Drawer>
   );
 }
 
-function BookEditForm({
-  book,
+function EditModeLoader({
+  bookId,
   onSaved,
 }: {
-  book: InventoryRow;
+  bookId: string;
   onSaved: () => void;
 }) {
-  const [stock, setStock] = useState(String(book.inventory_count));
-  const [priceRupees, setPriceRupees] = useState(
-    String(Math.round(book.price_paise / 100)),
-  );
-  const [active, setActive] = useState(book.is_active);
-  const [reason, setReason] = useState("");
+  const [initial, setInitial] = useState<BookFull | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const result = await getBookForEdit(bookId);
+      if (cancelled) return;
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      setInitial(result.data ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bookId]);
+
+  if (error) return <p className="text-sm text-destructive">{error}</p>;
+  if (!initial) {
+    return (
+      <p className="text-sm text-muted-foreground inline-flex items-center gap-2">
+        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        Loading…
+      </p>
+    );
+  }
+  return <BookForm initial={initial} mode="edit" onSaved={onSaved} />;
+}
+
+function BookForm({
+  initial,
+  mode,
+  onSaved,
+}: {
+  initial: BookFull;
+  mode: "create" | "edit";
+  onSaved: () => void;
+}) {
+  const [slug, setSlug] = useState(initial.slug);
+  const [title, setTitle] = useState(initial.title);
+  const [titleHindi, setTitleHindi] = useState(initial.title_hindi ?? "");
+  const [subtitle, setSubtitle] = useState(initial.subtitle ?? "");
+  const [subtitleHindi, setSubtitleHindi] = useState(initial.subtitle_hindi ?? "");
+  const [description, setDescription] = useState(initial.description ?? "");
+  const [descriptionHindi, setDescriptionHindi] = useState(initial.description_hindi ?? "");
+  const [curriculum, setCurriculum] = useState(initial.curriculum);
+  const [priceRupees, setPriceRupees] = useState(String(Math.round(initial.price_paise / 100)));
+  const [stock, setStock] = useState(String(initial.inventory_count));
+  const [weightG, setWeightG] = useState(String(initial.weight_grams));
+  const [lengthCm, setLengthCm] = useState(String(initial.length_cm));
+  const [breadthCm, setBreadthCm] = useState(String(initial.breadth_cm));
+  const [heightCm, setHeightCm] = useState(String(initial.height_cm));
+  const [hasAudio, setHasAudio] = useState(initial.has_audio);
+  const [hasAnswerKey, setHasAnswerKey] = useState(initial.has_answer_key);
+  const [discountEligible, setDiscountEligible] = useState(initial.discount_eligible);
+  const [isActive, setIsActive] = useState(initial.is_active);
+  const [coverUrl, setCoverUrl] = useState(initial.cover_image_url ?? "");
+
   const [pending, startTransition] = useTransition();
+  const [uploading, setUploading] = useState(false);
+
+  async function handleCoverUpload(file: File) {
+    if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+      toast.error("Set the slug first (lowercase, hyphens), then upload the cover.");
+      return;
+    }
+    setUploading(true);
+    const fd = new FormData();
+    fd.set("file", file);
+    fd.set("slug", slug);
+    const result = await uploadCoverImage(fd);
+    setUploading(false);
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+    setCoverUrl(result.data?.url ?? "");
+    toast.success("Cover uploaded.");
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const newStock = parseInt(stock, 10);
-    const newPricePaise = parseInt(priceRupees, 10) * 100;
+    const priceNum = parseInt(priceRupees || "0", 10);
+    const stockNum = parseInt(stock || "0", 10);
+    const weightNum = parseInt(weightG || "0", 10);
+    const lengthNum = parseFloat(lengthCm || "0");
+    const breadthNum = parseFloat(breadthCm || "0");
+    const heightNum = parseFloat(heightCm || "0");
 
-    if (!Number.isFinite(newStock) || newStock < 0) {
-      toast.error("Stock must be a non-negative number.");
-      return;
-    }
-    if (!Number.isFinite(newPricePaise) || newPricePaise < 0) {
-      toast.error("Price must be a non-negative number.");
-      return;
-    }
+    const payload = {
+      slug,
+      title,
+      titleHindi: titleHindi || undefined,
+      subtitle: subtitle || undefined,
+      subtitleHindi: subtitleHindi || undefined,
+      description: description || undefined,
+      descriptionHindi: descriptionHindi || undefined,
+      curriculum,
+      pricePaise: priceNum * 100,
+      inventoryCount: stockNum,
+      weightGrams: weightNum,
+      lengthCm: lengthNum,
+      breadthCm: breadthNum,
+      heightCm: heightNum,
+      hasAudio,
+      hasAnswerKey,
+      discountEligible,
+      isActive,
+      coverImageUrl: coverUrl || undefined,
+    };
 
     startTransition(async () => {
-      const ops: Array<Promise<{ success: boolean; error?: string }>> = [];
-      if (newStock !== book.inventory_count) {
-        ops.push(
-          updateBookStock({ bookId: book.id, newCount: newStock, reason: reason || undefined }),
-        );
-      }
-      if (newPricePaise !== book.price_paise) {
-        ops.push(updateBookPrice({ bookId: book.id, pricePaise: newPricePaise }));
-      }
-      if (active !== book.is_active) {
-        ops.push(updateBookActive({ bookId: book.id, isActive: active }));
-      }
-      if (ops.length === 0) {
-        toast.message("Nothing changed.");
+      const result =
+        mode === "create"
+          ? await createBook(payload)
+          : await updateBookFull({ ...payload, id: initial.id });
+      if (!result.success) {
+        toast.error(result.error);
         return;
       }
-      const results = await Promise.all(ops);
-      const firstErr = results.find((r) => !r.success);
-      if (firstErr) {
-        toast.error(firstErr.error ?? "Save failed.");
+      toast.success(mode === "create" ? "Book added." : "Book saved.");
+      onSaved();
+    });
+  }
+
+  function onDelete() {
+    if (!confirm(`Remove "${title}" from the catalogue? This hides it everywhere; order history is preserved.`)) {
+      return;
+    }
+    startTransition(async () => {
+      const result = await softDeleteBook({ bookId: initial.id });
+      if (!result.success) {
+        toast.error(result.error);
         return;
       }
-      toast.success("Saved.");
+      toast.success("Book removed.");
       onSaved();
     });
   }
 
   return (
     <form onSubmit={onSubmit}>
-      <Stack gap={4}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <FormField
-            label="Stock"
-            description={`Current: ${book.inventory_count}`}
-          >
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={stock}
-              onChange={(e) => setStock(e.target.value.replace(/[^0-9]/g, ""))}
-              required
-            />
-          </FormField>
-          <FormField label="Price (₹)" description={`Current: ${formatINR(book.price_paise)}`}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={priceRupees}
-              onChange={(e) => setPriceRupees(e.target.value.replace(/[^0-9]/g, ""))}
-              required
-            />
-          </FormField>
-        </div>
-
-        <FormField
-          label="Reason for stock change (optional)"
-          description="Shows up in admin audit log. Helps explain restocks later."
-        >
-          <Input
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. Restocked 20 from printer"
-            maxLength={200}
-          />
-        </FormField>
-
-        <label className="flex items-start gap-3 cursor-pointer">
-          <Checkbox
-            checked={active}
-            onCheckedChange={(c) => setActive(Boolean(c))}
-          />
-          <div>
-            <Label className="text-body font-medium">Listed on storefront</Label>
-            <p className="text-caption text-muted-foreground">
-              Uncheck to hide this book from /store, /ibdp, /igcse. Existing
-              orders are unaffected.
-            </p>
+      <Stack gap={6}>
+        {/* Identity */}
+        <Stack gap={3}>
+          <span className="text-eyebrow">Identity</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField
+              label="Slug *"
+              description="Lowercase letters, numbers, hyphens. Used in URLs + cover filename."
+            >
+              <Input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                placeholder="e.g. ibdp-hindi-b-sl-grammar"
+                required
+              />
+            </FormField>
+            <FormField label="Curriculum">
+              <Select
+                value={curriculum}
+                onValueChange={(v) => setCurriculum(v as typeof curriculum)}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ibdp">IBDP</SelectItem>
+                  <SelectItem value="igcse">IGCSE</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
           </div>
-        </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="Title (English) *">
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
+            </FormField>
+            <FormField label="शीर्षक (Hindi)">
+              <Input
+                value={titleHindi}
+                onChange={(e) => setTitleHindi(e.target.value)}
+                lang="hi"
+              />
+            </FormField>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="Subtitle (English)">
+              <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+            </FormField>
+            <FormField label="उपशीर्षक (Hindi)">
+              <Input
+                value={subtitleHindi}
+                onChange={(e) => setSubtitleHindi(e.target.value)}
+                lang="hi"
+              />
+            </FormField>
+          </div>
+        </Stack>
 
-        <Row gap={2} className="pt-2">
-          <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
-            <Check className="size-4" aria-hidden="true" />
-            Save changes
-          </Button>
+        {/* Description */}
+        <Stack gap={3}>
+          <span className="text-eyebrow">Description</span>
+          <FormField label="English">
+            <Textarea
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What's this book about? Who is it for?"
+            />
+          </FormField>
+          <FormField label="विवरण (Hindi)">
+            <Textarea
+              rows={4}
+              value={descriptionHindi}
+              onChange={(e) => setDescriptionHindi(e.target.value)}
+              lang="hi"
+            />
+          </FormField>
+        </Stack>
+
+        {/* Cover */}
+        <Stack gap={3}>
+          <span className="text-eyebrow">Cover image</span>
+          <Row gap={3} align="center" className="flex-wrap">
+            {coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={coverUrl}
+                alt="Cover preview"
+                className="size-24 rounded-md object-cover border border-border"
+              />
+            ) : (
+              <div className="size-24 rounded-md bg-muted border border-border flex items-center justify-center text-caption text-muted-foreground">
+                No cover
+              </div>
+            )}
+            <div className="flex-1 min-w-[200px]">
+              <label className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 cursor-pointer hover:bg-accent/40">
+                <Upload className="size-4" aria-hidden="true" />
+                <span className="text-sm">
+                  {uploading ? "Uploading…" : coverUrl ? "Replace cover" : "Upload cover"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleCoverUpload(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <p className="text-caption text-muted-foreground mt-1">
+                PNG / JPEG / WebP, max 5MB. Saved to Supabase Storage as
+                <code className="mx-1">book-covers/{slug || "<slug>"}.&lt;ext&gt;</code>.
+              </p>
+            </div>
+          </Row>
+        </Stack>
+
+        {/* Pricing + stock */}
+        <Stack gap={3}>
+          <span className="text-eyebrow">Pricing & stock</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <FormField label="Price (₹) *">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={priceRupees}
+                onChange={(e) => setPriceRupees(e.target.value.replace(/[^0-9]/g, ""))}
+                required
+              />
+            </FormField>
+            <FormField label="Stock *">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={stock}
+                onChange={(e) => setStock(e.target.value.replace(/[^0-9]/g, ""))}
+                required
+              />
+            </FormField>
+            <FormField label="Weight (g)">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={weightG}
+                onChange={(e) => setWeightG(e.target.value.replace(/[^0-9]/g, ""))}
+              />
+            </FormField>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <FormField label="Length (cm)">
+              <Input
+                type="number"
+                step="0.1"
+                value={lengthCm}
+                onChange={(e) => setLengthCm(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Breadth (cm)">
+              <Input
+                type="number"
+                step="0.1"
+                value={breadthCm}
+                onChange={(e) => setBreadthCm(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Height (cm)">
+              <Input
+                type="number"
+                step="0.1"
+                value={heightCm}
+                onChange={(e) => setHeightCm(e.target.value)}
+              />
+            </FormField>
+          </div>
+        </Stack>
+
+        {/* Toggles */}
+        <Stack gap={3}>
+          <span className="text-eyebrow">Companions & visibility</span>
+          <ToggleRow checked={hasAudio} onChange={setHasAudio} label="Has audio companion" desc="Toggle on if Mom has a listening track for this book." />
+          <ToggleRow checked={hasAnswerKey} onChange={setHasAnswerKey} label="Has answer key" desc="Toggle on if a PDF answer key is available." />
+          <ToggleRow checked={discountEligible} onChange={setDiscountEligible} label="Eligible for storewide coupons" desc="Uncheck only if this book is excluded from student10/teacher10 etc." />
+          <ToggleRow checked={isActive} onChange={setIsActive} label="Listed on storefront" desc="Uncheck to hide from /store, /ibdp, /igcse without deleting." />
+        </Stack>
+
+        <Row gap={2} justify="between" className="pt-2 border-t border-border">
+          <div>
+            {mode === "edit" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onDelete}
+                disabled={pending}
+                className="text-destructive"
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+                Remove from catalogue
+              </Button>
+            ) : null}
+          </div>
+          <Row gap={2}>
+            <Button type="submit" disabled={pending || uploading}>
+              {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+              <Check className="size-4" aria-hidden="true" />
+              {mode === "create" ? "Create book" : "Save changes"}
+            </Button>
+          </Row>
         </Row>
       </Stack>
     </form>
+  );
+}
+
+function ToggleRow({
+  checked,
+  onChange,
+  label,
+  desc,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  desc: string;
+}) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer">
+      <Checkbox checked={checked} onCheckedChange={(c) => onChange(Boolean(c))} />
+      <div>
+        <Label className="text-body font-medium">{label}</Label>
+        <p className="text-caption text-muted-foreground">{desc}</p>
+      </div>
+    </label>
   );
 }

@@ -5,7 +5,7 @@ import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
-type Book = Tables<"books">;
+type Book = Tables<"books"> & { cover_image_url?: string | null };
 
 const cardVariants = cva(
   "group relative overflow-hidden rounded-xl border border-border/40 bg-card",
@@ -45,7 +45,10 @@ export function BookCard({
   priority = false,
   showMeta = true,
 }: BookCardProps) {
-  const coverSrc = `/book-covers/${book.slug}.webp`;
+  // Prefer the admin-uploaded Supabase Storage URL when set. Falls
+  // back to the legacy /public/book-covers/{slug}.webp filename used
+  // for the seven launch books (produced by scripts/process-book-covers.py).
+  const coverSrc = book.cover_image_url ?? `/book-covers/${book.slug}.webp`;
 
   const inner = (
     <>

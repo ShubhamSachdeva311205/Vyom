@@ -1849,15 +1849,49 @@ Razorpay fee, and inventory restocks automatically.
 - Reports (#70) will pull `non_refundable_fee_paise` to show true
   net revenue.
 
+### Phase 5.3 — Admin Book CRUD (#101, 2026-06-03)
+
+Mom can now add, edit, and remove books without a code deploy. Bilingual fields throughout. Plus a no-refund acknowledgement checkbox at checkout (legally enforceable consent under Consumer Protection Act 2019).
+
+**Schema (`20260602211415_book_crud_and_covers_bucket.sql`)**
+
+- `books.deleted_at` (soft delete), `books.title_hindi`, `subtitle_hindi`, `description_hindi`.
+- `storage.buckets` entry for 'book-covers' (public). RLS: public read; admin write/update/delete via `is_admin()`.
+- Soft-deleted books filtered out everywhere (admin list, /store, getBookBySlug).
+
+**Server actions (`src/actions/admin-inventory.ts` extended)**
+
+- `getBookForEdit(bookId)` — full row for the drawer.
+- `createBook(input)` — Zod-validated, inserts row, writes admin_audit_logs.
+- `updateBookFull(input)` — patches every editable field.
+- `softDeleteBook({ bookId })` — sets `deleted_at + is_active=false`.
+- `uploadCoverImage(formData)` — Server Action accepting a File. Validates MIME + ≤5MB, uploads via service-role to `book-covers/{slug}.{ext}`, returns the public URL.
+
+**UI (`/admin/inventory`)**
+
+- "Add new book" button at the top opens an empty drawer.
+- Row click opens the same drawer in edit mode, lazy-fetches the full row.
+- Drawer sections: Identity (slug, curriculum, EN/HI titles + subtitles), Description (EN + HI textareas with `lang="hi"`), Cover (image upload with live preview), Pricing & stock (price, stock, weight, L×B×H), Companions & visibility (has_audio, has_answer_key, discount_eligible, is_active toggles).
+- Edit mode shows a destructive "Remove from catalogue" button at the bottom (soft delete).
+
+**Storefront (`BookCard`)**
+
+- Prefers `book.cover_image_url` (Supabase Storage URL for admin-uploaded books) over the legacy `/public/book-covers/{slug}.webp` filename. Backwards compatible with the seven launch books.
+
+**Plus: no-refund checkbox at checkout**
+
+- Required acknowledgement above Pay. Linked to `/legal/returns`. Documented under Phase 3.x.
+
 ### Next up
 
-1. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
-2. **3.5 GST/tax** at checkout.
-3. **Phase 4** — R2 + watermarked PDF + audio streaming.
-4. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
-5. **#90 Mobile responsiveness** — pre-launch P0.
-6. **#91 Complete UI revamp** — pre-launch.
-7. **#70 Sales reports** — net revenue, fees paid, refunds.
+1. **#102 Phase 4 — Secure digital delivery** (PDFs + audio + watermarking + access grants). User wants placeholders first; real files come later when R2 is set up.
+2. **#100 Password reset / forgot-password flow.**
+3. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
+4. **3.5 GST/tax** at checkout — user said defer to end.
+5. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+6. **#90 Mobile responsiveness** — pre-launch P0.
+7. **#91 Complete UI revamp** — pre-launch.
+8. **#70 Sales reports** — net revenue, fees paid, refunds.
 
 ---
 
