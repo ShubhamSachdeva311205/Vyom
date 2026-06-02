@@ -1656,17 +1656,102 @@ hardening layers + filed three issues.
 - #97 Admin refund UI + fee tracking (P1 — ops)
 - #98 Out-of-stock UI on PDP/store/cart (P1 — UX)
 
+### Price floor moved to settings + inventory bundle (2026-06-02)
+
+**Part A — price floor → /admin/settings**
+
+User asked to move the `MIN_PAYABLE_FRACTION = 0.30` from a hardcoded
+constant to an admin-editable value. New `checkout_safety` settings
+key (default `{ min_payable_fraction: 0.30 }`) with seed migration,
+`getCheckoutSafety()` query helper (clamped to [0,1]),
+`updateCheckoutSafety` server action, new "Checkout safety" card
+on /admin/settings with a percent input + live example.
+
+`createRazorpayOrder` now reads the fraction from settings instead
+of the hardcoded constant.
+
+**Part B — inventory bundle (#96 + #62 + partial #98)**
+
+Spec lockdown:
+- Decrement at `payment.captured` webhook (simplest; tiny race
+  window acceptable at our volume).
+- Edit UX: drawer per book on /admin/inventory.
+- Low-stock threshold = 5 (hardcoded for now). Tab bar with All /
+  Low / Sold out / Inactive counts.
+- Storefront: sold-out badge + add-to-cart guard. "Notify me"
+  subscription stays in #98 follow-up.
+
+**Schema (`20260602113523_inventory_decrement_restock_rpcs.sql`)**
+
+- `orders.inventory_decremented_at` — idempotency stamp.
+- `decrement_inventory(p_order_id)` SECURITY DEFINER RPC. For each
+  line: SELECT FOR UPDATE on the book row (deterministic order to
+  avoid deadlocks), decrement atomically, fail the whole tx if any
+  line would go negative. Stamps the idempotency column on success.
+  Returns `(ok, reason)` discriminated row.
+- `restock_book(p_book_id, p_new_count, p_reason)` SECURITY
+  DEFINER. Absolute set (not delta). Writes admin_audit_logs row
+  with old/new/delta/reason.
+
+**Webhook + inline verify**
+
+- Razorpay webhook's `payment.captured` handler now calls the
+  decrement RPC after the status flip (still flips inline if it
+  wasn't already paid).
+- `verifyPaymentAndCompleteOrder` mirrors the same — extracted to
+  a shared `decrementInventoryAfterPayment` helper.
+- If decrement fails (insufficient stock / book missing), stamps
+  `orders.admin_notes` with a "STOCK ISSUE on payment" banner so
+  Mom sees it on /admin/orders. Money has already cleared by then;
+  the proper refund automation lands with #97.
+
+**Admin UI**
+
+- `src/actions/admin-inventory.ts` — listBooksForInventory (with
+  filter + tab counts), updateBookStock (via RPC), updateBookActive,
+  updateBookPrice. Last two write admin_audit_logs directly.
+- `src/lib/inventory/constants.ts` — LOW_STOCK_THRESHOLD,
+  InventoryFilter, InventoryRow. Lives in lib/ so client components
+  can import without tripping the "use server" no-non-async-exports
+  rule.
+- `/admin/inventory` — server component with tabs + list. Click a
+  row → BookEditDrawer (vaul) with stock / price / active toggle +
+  optional reason for audit log. Multiple changes batched via
+  Promise.all.
+- Admin nav: "Books" entry renamed "Inventory" and points to
+  /admin/inventory.
+
+**Storefront**
+
+- BookCard: when `inventory_count === 0`, cover gets grayscale +
+  60% opacity AND a "Sold out" pill renders top-left.
+- `addToCart` server action: refuses if book is inactive OR
+  inventory_count <= 0 OR requested total would exceed stock.
+  Friendly error copy includes the book title + remaining capacity.
+- `updateCartItemQuantity`: same gate on increase.
+
+**Open follow-ups**
+
+- "Notify me when back" email subscription on sold-out PDP/store
+  stays in #98 — needs Phase 7 Resend.
+- Admin refund automation when decrement fails on a paid order —
+  in #97.
+- Decrement triggered at order-create instead of payment success
+  (reservation model) — not built; defer until volume actually
+  needs it.
+
 ### Next up
 
-1. **#96 + #62 inventory decrement + UI** — bundled. Pre-launch
-   critical so we don't oversell.
-2. **#64 vendor coupon generator** — user flagged.
-3. **#97 admin refund UI** — closes the abuse-handling loop.
-4. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
-5. **3.5 GST/tax** at checkout.
+1. **#64 vendor coupon generator** — user flagged earlier.
+2. **#97 admin refund UI** — closes the abuse-handling loop +
+   handles the decrement-failed-on-paid case.
+3. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
+4. **3.5 GST/tax** at checkout.
 5. **3.4 Refund webhook expansion** + admin refund button.
 6. **Phase 4** — R2 + watermarked PDF + audio streaming.
 7. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+8. **#90 Mobile responsiveness** — pre-launch P0.
+9. **#91 Complete UI revamp** — pre-launch.
 8. **#90 Mobile responsiveness** — must close before launch.
 9. **#91 Complete UI revamp** — final sprint polish.
 

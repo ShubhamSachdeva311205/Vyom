@@ -57,6 +57,20 @@ export async function addToCart(
 
   const supabase = createServiceClient();
 
+  // Stock gate. Reads inventory_count + is_active. If the book is
+  // inactive OR adding qty would exceed available stock, refuse.
+  const { data: book } = await supabase
+    .from("books")
+    .select("inventory_count, is_active, title")
+    .eq("id", bookIdParsed.data)
+    .maybeSingle();
+  if (!book || !book.is_active) {
+    return { success: false, error: "This book isn't available." };
+  }
+  if (book.inventory_count <= 0) {
+    return { success: false, error: `"${book.title}" is sold out.` };
+  }
+
   // Read existing line; either insert or increment.
   const { data: existing } = await supabase
     .from("cart_items")
@@ -65,8 +79,21 @@ export async function addToCart(
     .eq("book_id", bookIdParsed.data)
     .maybeSingle();
 
+  const currentInCart = existing?.quantity ?? 0;
+  const requestedTotal = currentInCart + qtyParsed.data;
+  if (requestedTotal > book.inventory_count) {
+    const can = Math.max(0, book.inventory_count - currentInCart);
+    return {
+      success: false,
+      error:
+        can === 0
+          ? `Only ${book.inventory_count} of "${book.title}" available — already in your cart.`
+          : `Only ${book.inventory_count} of "${book.title}" available. You can add ${can} more.`,
+    };
+  }
+
   if (existing) {
-    const nextQty = Math.min(existing.quantity + qtyParsed.data, 99);
+    const nextQty = Math.min(requestedTotal, 99);
     const { error: updErr } = await supabase
       .from("cart_items")
       .update({ quantity: nextQty })
@@ -108,7 +135,7 @@ export async function updateCartItemQuantity(
   // Verify ownership: the cart item must belong to this owner's cart.
   const { data: item } = await supabase
     .from("cart_items")
-    .select("id, cart_id")
+    .select("id, cart_id, book_id")
     .eq("id", idParsed.data)
     .maybeSingle();
   if (!item || item.cart_id !== cart.id) {
@@ -119,6 +146,22 @@ export async function updateCartItemQuantity(
     const { error } = await supabase.from("cart_items").delete().eq("id", idParsed.data);
     if (error) return { success: false, error: "Could not remove item." };
   } else {
+    // Stock check on increase. Pull current book stock; refuse if the
+    // new quantity would exceed available.
+    const { data: book } = await supabase
+      .from("books")
+      .select("inventory_count, is_active, title")
+      .eq("id", item.book_id)
+      .maybeSingle();
+    if (!book || !book.is_active) {
+      return { success: false, error: "This book isn't available." };
+    }
+    if (qty > book.inventory_count) {
+      return {
+        success: false,
+        error: `Only ${book.inventory_count} of "${book.title}" available.`,
+      };
+    }
     const { error } = await supabase
       .from("cart_items")
       .update({ quantity: qty })

@@ -171,7 +171,7 @@ Subphase 5.1: Order & Inventory Management
 
     [x] Build Order Management UI for active orders: tabs + search + date range, mobile-first list, /admin/orders/[id] detail with status timeline + tracking capture + copy address (see Issue #61).
 
-    [ ] Build Inventory UI: Real-time stock list with automated red warnings if stock < 5.
+    [x] Build Inventory UI: Real-time stock list at /admin/inventory with tabs (All / Low / Sold out / Inactive), per-book drawer for stock+price+is_active edit. Atomic decrement_inventory + restock_book RPCs. Webhook + inline verify both call decrement on payment.captured. Sold out badge + add-to-cart guard on storefront. (Issues #96 #62 #98)
 
     [ ] Build Customer Lookup: Search by email to see order history, shipping status, and digital access.
 

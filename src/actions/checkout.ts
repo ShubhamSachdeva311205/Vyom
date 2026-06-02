@@ -95,6 +95,37 @@ const cancelInput = z.object({
 });
 
 /* -----------------------------------------------------------------
+ * Helpers shared by the verify + webhook paths
+ * ----------------------------------------------------------------- */
+async function decrementInventoryAfterPayment(orderId: string): Promise<void> {
+  const service = createServiceClient();
+  type RpcRow = { ok: boolean; reason: string };
+  const { data, error } = await service.rpc(
+    "decrement_inventory" as never,
+    { p_order_id: orderId } as never,
+  );
+  if (error) {
+    console.error("[checkout] decrement_inventory threw:", error);
+    return;
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as RpcRow | null;
+  if (!row || row.ok || row.reason === "already_done") return;
+
+  console.error("[checkout] inventory decrement failed for paid order:", {
+    orderId,
+    reason: row.reason,
+  });
+  await service
+    .from("orders")
+    .update({
+      admin_notes:
+        `STOCK ISSUE on payment: decrement_inventory returned "${row.reason}". ` +
+        "Manual refund + restock required.",
+    } as never)
+    .eq("id", orderId);
+}
+
+/* -----------------------------------------------------------------
  * previewCheckoutTotals — read-only breakdown for the live UI.
  *
  * Mirrors the math inside createRazorpayOrder but inserts nothing
@@ -612,24 +643,29 @@ export async function verifyPaymentAndCompleteOrder(
     return { success: false, error: "Order does not belong to you." };
   }
 
-  // Idempotent: if already paid (e.g. webhook beat us here), short-circuit.
-  if (order.status !== "pending_payment") {
-    return { success: true, data: { orderId: order.id } };
+  // Idempotent: if already paid (e.g. webhook beat us here), short-circuit
+  // the status flip — but still attempt inventory decrement below (the
+  // RPC has its own idempotency stamp).
+  if (order.status === "pending_payment") {
+    const { error: updErr } = await service
+      .from("orders")
+      .update({
+        status: "paid",
+        razorpay_payment_id,
+        razorpay_signature,
+        paid_at: new Date().toISOString(),
+      })
+      .eq("id", order.id);
+
+    if (updErr) {
+      return { success: false, error: "Could not finalise the order." };
+    }
   }
 
-  const { error: updErr } = await service
-    .from("orders")
-    .update({
-      status: "paid",
-      razorpay_payment_id,
-      razorpay_signature,
-      paid_at: new Date().toISOString(),
-    })
-    .eq("id", order.id);
-
-  if (updErr) {
-    return { success: false, error: "Could not finalise the order." };
-  }
+  // Atomic inventory decrement (idempotent). Failures are logged + the
+  // order is flagged for admin attention; we don't fail the user-facing
+  // path because the money has already cleared.
+  await decrementInventoryAfterPayment(order.id);
 
   // NOW redeem the coupon — only after payment succeeded. If the
   // redeem fails (e.g. someone else used a single-use vendor code in

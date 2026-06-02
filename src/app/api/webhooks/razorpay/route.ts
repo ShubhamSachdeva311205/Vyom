@@ -94,17 +94,56 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
     .maybeSingle();
   if (!order) return;
 
-  // Idempotent: if the inline verify already flipped us, leave it.
-  if (order.status !== "pending_payment") return;
+  // Idempotent: if the inline verify already flipped us, leave the
+  // status untouched but STILL attempt inventory decrement below (the
+  // RPC has its own idempotency stamp).
+  if (order.status === "pending_payment") {
+    await service
+      .from("orders")
+      .update({
+        status: "paid",
+        razorpay_payment_id: payment.id,
+        paid_at: new Date().toISOString(),
+      })
+      .eq("id", order.id);
+  }
 
+  // Atomic inventory decrement. Refunds the payment if any line is out
+  // of stock — but that's a Phase 3.4 follow-up (#97 refund UI); for
+  // now we just flag the order via admin_notes so Mom can act.
+  await decrementInventoryForOrder(order.id);
+}
+
+async function decrementInventoryForOrder(orderId: string): Promise<void> {
+  const service = createServiceClient();
+  type RpcRow = { ok: boolean; reason: string };
+  const { data, error } = await service.rpc(
+    "decrement_inventory" as never,
+    { p_order_id: orderId } as never,
+  );
+  if (error) {
+    console.error("[razorpay-webhook] decrement_inventory threw:", error);
+    return;
+  }
+  const row = (Array.isArray(data) ? data[0] : data) as RpcRow | null;
+  if (!row) return;
+  if (row.ok) return;
+  if (row.reason === "already_done") return;
+
+  // Insufficient stock or book-not-found. Flag the order so Mom sees it
+  // on /admin/orders. Refund automation lands with #97.
+  console.error(
+    "[razorpay-webhook] inventory decrement failed for paid order:",
+    { orderId, reason: row.reason },
+  );
   await service
     .from("orders")
     .update({
-      status: "paid",
-      razorpay_payment_id: payment.id,
-      paid_at: new Date().toISOString(),
-    })
-    .eq("id", order.id);
+      admin_notes:
+        `STOCK ISSUE on payment: decrement_inventory returned "${row.reason}". ` +
+        "Manual refund + restock required.",
+    } as never)
+    .eq("id", orderId);
 }
 
 async function handlePaymentFailed(payload: WebhookPayload): Promise<void> {

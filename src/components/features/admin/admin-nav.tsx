@@ -21,7 +21,7 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: BarChart3 },
   { href: "/admin/orders", label: "Orders", icon: Inbox },
-  { href: "/admin/books", label: "Books", icon: Library },
+  { href: "/admin/inventory", label: "Inventory", icon: Library },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
