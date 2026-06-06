@@ -1,14 +1,15 @@
-import { Library } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
-import { Stack } from "@/components/layouts/stack";
+import { Stack, Row } from "@/components/layouts/stack";
 
 export const metadata = { title: "Your library" };
 
@@ -27,21 +28,34 @@ export default function DashboardPage() {
             </p>
           </Stack>
 
-          <Card variant="surface" padding="none" className="overflow-hidden">
-            <EmptyState
-              icon={Library}
-              title="No purchases yet"
-              description="Once you buy a book or digital companion, it'll appear here."
-            />
+          <Card variant="surface" padding="lg">
+            <CardHeader>
+              <Row gap={3} align="center" justify="between" className="flex-wrap">
+                <Stack gap={1}>
+                  <CardTitle>My Library</CardTitle>
+                  <CardDescription>
+                    Stream audio companions and open watermarked answer keys
+                    for the books you own.
+                  </CardDescription>
+                </Stack>
+                <Button asChild>
+                  <Link href="/dashboard/library">
+                    Open library
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </Row>
+            </CardHeader>
           </Card>
 
           <Card variant="surface" padding="lg">
             <CardHeader>
               <CardTitle>Access from Amazon?</CardTitle>
               <CardDescription>
-                Email <span className="text-mono">team@advaita.in</span>{" "}
-                with your Amazon order ID and the team will grant your
-                digital access manually within 24 hours.
+                Email{" "}
+                <span className="text-mono">shubhamhelpseries@gmail.com</span>{" "}
+                with your Amazon order ID and we&rsquo;ll grant your digital
+                access manually within 24 hours.
               </CardDescription>
             </CardHeader>
           </Card>

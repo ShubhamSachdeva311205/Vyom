@@ -124,6 +124,16 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
   // of stock — but that's a Phase 3.4 follow-up (#97 refund UI); for
   // now we just flag the order via admin_notes so Mom can act.
   await decrementInventoryForOrder(order.id);
+
+  // Grant digital access (audio / answer-key) for books with companions.
+  // Idempotent — the inline verify may have already done it.
+  const { error: grantErr } = await service.rpc(
+    "grant_digital_access" as never,
+    { p_order_id: order.id } as never,
+  );
+  if (grantErr) {
+    console.error("[razorpay-webhook] grant_digital_access threw:", grantErr);
+  }
 }
 
 async function decrementInventoryForOrder(orderId: string): Promise<void> {

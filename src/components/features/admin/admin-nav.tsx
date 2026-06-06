@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Inbox,
+  KeyRound,
   Library,
   Settings as SettingsIcon,
   Tag,
@@ -23,6 +24,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/orders", label: "Orders", icon: Inbox },
   { href: "/admin/inventory", label: "Inventory", icon: Library },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
+  { href: "/admin/access-grants", label: "Access", icon: KeyRound },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -71,7 +73,7 @@ export function AdminNav() {
         aria-label="Admin"
         className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background"
       >
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-flow-col auto-cols-fr">
           {ITEMS.map((item) => {
             const active = isActive(pathname, item.href);
             return (
@@ -80,7 +82,7 @@ export function AdminNav() {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex flex-col items-center justify-center gap-1 py-2 px-1",
+                    "flex flex-col items-center justify-center gap-1 py-2 px-0.5",
                     "min-h-[56px] text-[10px]",
                     active ? "text-foreground" : "text-muted-foreground",
                   )}

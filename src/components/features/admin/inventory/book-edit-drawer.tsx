@@ -10,6 +10,7 @@ import {
   updateBookFull,
   uploadCoverImage,
 } from "@/actions/admin-inventory";
+import { uploadBookContent } from "@/actions/admin-access";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -446,6 +447,28 @@ function BookForm({
           <ToggleRow checked={isActive} onChange={setIsActive} label="Listed on storefront" desc="Uncheck to hide from /store, /ibdp, /igcse without deleting." />
         </Stack>
 
+        {/* Companion files — edit mode only (need a book id to attach to) */}
+        {mode === "edit" ? (
+          <Stack gap={3}>
+            <span className="text-eyebrow">Companion files (private)</span>
+            <p className="text-caption text-muted-foreground">
+              Uploaded to private storage. Only customers with access can
+              stream / view them. PDFs are watermarked per-viewer.
+            </p>
+            {hasAudio ? (
+              <ContentUpload bookId={initial.id} slug={slug} kind="audio" />
+            ) : null}
+            {hasAnswerKey ? (
+              <ContentUpload bookId={initial.id} slug={slug} kind="pdf" />
+            ) : null}
+            {!hasAudio && !hasAnswerKey ? (
+              <p className="text-caption text-muted-foreground">
+                Turn on a companion toggle above to upload its file.
+              </p>
+            ) : null}
+          </Stack>
+        ) : null}
+
         <Row gap={2} justify="between" className="pt-2 border-t border-border">
           <div>
             {mode === "edit" ? (
@@ -494,5 +517,68 @@ function ToggleRow({
         <p className="text-caption text-muted-foreground">{desc}</p>
       </div>
     </label>
+  );
+}
+
+function ContentUpload({
+  bookId,
+  slug,
+  kind,
+}: {
+  bookId: string;
+  slug: string;
+  kind: "audio" | "pdf";
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [done, setDone] = useState(false);
+  const label = kind === "audio" ? "Audio file" : "Answer-key PDF";
+  const accept = kind === "audio" ? "audio/*" : "application/pdf";
+
+  async function handle(file: File) {
+    setUploading(true);
+    setDone(false);
+    const fd = new FormData();
+    fd.set("file", file);
+    fd.set("bookId", bookId);
+    fd.set("slug", slug);
+    fd.set("kind", kind);
+    const result = await uploadBookContent(fd);
+    setUploading(false);
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+    setDone(true);
+    toast.success(`${label} uploaded.`);
+  }
+
+  return (
+    <Row gap={3} align="center" className="flex-wrap">
+      <label className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 cursor-pointer hover:bg-accent/40">
+        {uploading ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <Upload className="size-4" aria-hidden="true" />
+        )}
+        <span className="text-sm">
+          {uploading ? "Uploading…" : done ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`}
+        </span>
+        <input
+          type="file"
+          accept={accept}
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handle(f);
+            e.target.value = "";
+          }}
+        />
+      </label>
+      {done ? (
+        <span className="inline-flex items-center gap-1 text-caption text-success">
+          <Check className="size-4" aria-hidden="true" /> Uploaded
+        </span>
+      ) : null}
+    </Row>
   );
 }

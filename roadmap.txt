@@ -158,19 +158,21 @@ Subphase 3.5: GST / Tax (NEW)
 
     [ ] Compute and display tax at checkout for non-exempt SKUs.
 
-PHASE 4: ZERO-EXPOSURE CONTENT DELIVERY
+PHASE 4: ZERO-EXPOSURE CONTENT DELIVERY (Issue #102)
 
 Goal: Render premium files without ever exposing raw URLs to the browser.
 
-    [ ] Create private Cloudflare R2 buckets (audio-private, papers-private). For v1, files are uploaded via the R2 dashboard manually; admin upload tooling is Phase 5.3.
+    [x] Private storage buckets (book-audio, book-pdfs) — Supabase Storage, public=false (chosen over R2: free at our scale, already configured, zero new creds). Admin-only write RLS; no SELECT policy so only the service-role API routes can read. Files uploaded via admin book drawer (companion-files section).
 
-    [ ] Audio Protection: Build Next.js API route to fetch audio from R2 and pipe/stream it directly to the client (no signed URLs sent to browser).
+    [x] Audio Protection: /api/stream-audio?grant=<id> — verifies live grant, downloads from private bucket via service role, proxies bytes with HTTP Range support for seeking. Raw URL never reaches browser. controlsList=nodownload on the player.
 
-    [ ] PDF Protection: Build API route to buffer PDF from R2.
+    [x] PDF Protection: /api/protected-pdf?grant=<id> — verifies grant, buffers PDF from private bucket. Placeholder PDF generated when file not uploaded yet (testable before real files).
 
-    [ ] Viewer Rendering: Use pdf.js to render the buffer into HTML <canvas> elements page-by-page.
+    [x] Viewer Rendering: PdfCanvasViewer renders the buffer via pdf.js onto <canvas> page-by-page. No text layer (no copy/select), right-click suppressed, no download button. Loaded via next/dynamic ssr:false.
 
-    [ ] Watermarking: Server dynamically stamps User Email + Order ID onto the PDF buffer before sending it to the canvas.
+    [x] Watermarking: watermarkPdf stamps buyer email + order number diagonally across every page + a footer line with download date. (Can't use password — Supabase hashes it; email+order# is the legal trace identifier.)
+
+    [x] access_grants table + grant_digital_access RPC (auto-grant on paid order, idempotent) + grant_access_manual / revoke_access RPCs. /dashboard/library shows the buyer's audio players + answer-key viewers. /admin/access-grants for manual grants to Amazon/offline buyers + revoke (Issues #65, #59).
 
 PHASE 5: THE ADMIN COMMAND CENTER (Mom's Panel)
 
@@ -187,7 +189,7 @@ Subphase 5.2: Custom Tools
 
     [x] Dynamic Vendor Coupons (#64): /admin/coupons with built-in codes (read-only), generator form (discount %, vendor name, expiry, multi-use toggle), and vendor codes list. VND-XXXX-XXXX format from crypto.randomBytes, ambiguous-glyph alphabet. Single-use by default, multi-use sets max_uses N. Copy buttons + delete (only on unused codes; used codes preserved for audit).
 
-    [ ] Manual Access Grants (Offline/Amazon Buyers): Build UI to input an email, select a book, and click "Grant Access" (triggers email link).
+    [x] Manual Access Grants (Offline/Amazon Buyers): /admin/access-grants — search a customer's grants by email, manual grant form (email + book + content kind + note), revoke button. grant_access_manual RPC resolves email→user, audit-logged. (Email-link trigger is Phase 7 Resend.)
 
 Subphase 5.3: Product CRUD + Image Upload (Issue #101)
 

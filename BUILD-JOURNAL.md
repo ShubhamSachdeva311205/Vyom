@@ -1882,16 +1882,94 @@ Mom can now add, edit, and remove books without a code deploy. Bilingual fields 
 
 - Required acknowledgement above Pay. Linked to `/legal/returns`. Documented under Phase 3.x.
 
+### Phase 4 — Secure digital delivery (#102, 2026-06-05)
+
+The big one. Audio + answer-key PDFs locked behind access grants,
+served only through our API (raw storage URL never reaches the
+browser), PDFs watermarked per-viewer. Built with placeholders so the
+whole pipeline is testable before Mom uploads real files.
+
+**Storage decision: Supabase Storage, not R2.** Free at our scale
+(1GB + 2GB egress/mo), already configured, zero new creds. R2's only
+edge is free egress at high volume — doesn't matter yet. Two PRIVATE
+buckets: book-audio, book-pdfs (public=false). Admin-only write RLS,
+NO select policy → only the service-role client (our API routes) can
+read.
+
+**Schema (`20260605112220_access_grants_and_private_buckets.sql`)**
+
+- `access_grants` (user_id, book_id, content_kind enum audio|pdf,
+  source enum purchase|manual|amazon, granted_by, order_id,
+  granted_at, revoked_at, notes). Unique on (user, book, kind) so a
+  revoked grant can be re-granted (on-conflict reactivates).
+- `orders.access_granted_at` idempotency stamp.
+- `grant_digital_access(p_order_id)` SECURITY DEFINER — for each book
+  in the order with has_audio/has_answer_key, inserts the grant rows.
+  Idempotent. Called from inline verify + webhook (same pattern as
+  inventory decrement).
+- `grant_access_manual(email, book, kind, notes)` — resolves
+  email→user, inserts grant, audit-logs. For Amazon/offline buyers.
+- `revoke_access(grant_id)` — soft revoke + audit log.
+- Reuses existing `books.audio_r2_key` / `pdf_r2_key` columns as the
+  storage object paths.
+
+**API routes**
+
+- `/api/stream-audio?grant=<id>` — auth + live-grant check, downloads
+  from book-audio via service role, proxies bytes with HTTP Range
+  support (206 partial content) so the <audio> element can seek.
+  Cache-Control: private, no-store.
+- `/api/protected-pdf?grant=<id>` — auth + grant check, buffers PDF
+  from book-pdfs, watermarks every page (pdf-lib) with email + order#
+  diagonally + a footer line, returns inline. Placeholder PDF when
+  the file isn't uploaded yet.
+
+**Viewer (`PdfCanvasViewer`)**
+
+- pdfjs-dist rendering onto <canvas> page-by-page. No text layer (no
+  select/copy), onContextMenu suppressed, no download button, paging
+  controls. Loaded via next/dynamic ssr:false (heavy + browser-only).
+  Worker resolved via `new URL("pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url)`.
+
+**UI**
+
+- `/dashboard/library` — groups a buyer's grants by book; audio
+  player (controlsList=nodownload) + "View answer key" dialog with the
+  canvas viewer. Coming-soon copy when a file isn't uploaded.
+- `/admin/access-grants` — manual grant form + search-by-email +
+  revoke. Admin nav gains an "Access" item (mobile bottom bar switched
+  to grid-flow-col auto-cols to fit 6 items).
+- Book edit drawer (Phase 5.3) gains a "Companion files" section in
+  edit mode: upload audio → book-audio, PDF → book-pdfs, stamps the
+  storage key on the book. `uploadBookContent` action in admin-access.ts.
+- Dashboard home links to the library; Amazon-access copy now points
+  at shubhamhelpseries@gmail.com.
+
+**Legal note baked into the UI**: the PDF viewer + library page state
+the copy is watermarked with the buyer's identity and not to be
+shared. Full terms paragraph to be added to /legal when launch nears.
+
+**Deps added**: pdf-lib (server watermark), pdfjs-dist (client viewer).
+
+**Open / next**
+
+- Build passed locally (the transient failure was the sandbox blocking
+  Google Fonts fetch, not our code — fonts fetch fine with network).
+- Per-user audio fingerprinting deferred to v2.
+- "Access granted" / "refund processed" emails are Phase 7 Resend.
+- Real audio + PDF files: Mom uploads via the admin book drawer when
+  ready; placeholders serve until then.
+
 ### Next up
 
-1. **#102 Phase 4 — Secure digital delivery** (PDFs + audio + watermarking + access grants). User wants placeholders first; real files come later when R2 is set up.
-2. **#100 Password reset / forgot-password flow.**
-3. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
-4. **3.5 GST/tax** at checkout — user said defer to end.
-5. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
-6. **#90 Mobile responsiveness** — pre-launch P0.
-7. **#91 Complete UI revamp** — pre-launch.
-8. **#70 Sales reports** — net revenue, fees paid, refunds.
+1. **#100 Password reset / forgot-password flow.**
+2. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
+3. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+4. **#90 Mobile responsiveness** — pre-launch P0.
+5. **#91 Complete UI revamp** — pre-launch (terraink.app aesthetic).
+6. **#70 Sales reports** — net revenue, fees paid, refunds.
+7. **3.5 GST/tax** at checkout — user deferred to end (not registered yet).
 
 ---
 

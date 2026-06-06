@@ -125,6 +125,21 @@ async function decrementInventoryAfterPayment(orderId: string): Promise<void> {
     .eq("id", orderId);
 }
 
+/**
+ * Grant digital access (audio / answer-key PDF) for every book in a
+ * paid order that has companions. Idempotent via the RPC's stamp.
+ */
+async function grantDigitalAccessAfterPayment(orderId: string): Promise<void> {
+  const service = createServiceClient();
+  const { error } = await service.rpc(
+    "grant_digital_access" as never,
+    { p_order_id: orderId } as never,
+  );
+  if (error) {
+    console.error("[checkout] grant_digital_access threw:", error);
+  }
+}
+
 /* -----------------------------------------------------------------
  * previewCheckoutTotals — read-only breakdown for the live UI.
  *
@@ -666,6 +681,7 @@ export async function verifyPaymentAndCompleteOrder(
   // order is flagged for admin attention; we don't fail the user-facing
   // path because the money has already cleared.
   await decrementInventoryAfterPayment(order.id);
+  await grantDigitalAccessAfterPayment(order.id);
 
   // NOW redeem the coupon — only after payment succeeded. If the
   // redeem fails (e.g. someone else used a single-use vendor code in
