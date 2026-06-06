@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react";
 import dynamic from "next/dynamic";
-import { Eye, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Eye, Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { getBookSamples, type SampleItem } from "@/actions/samples";
 import { Button } from "@/components/ui/button";
@@ -46,14 +48,22 @@ export function ViewSampleButton({
 }) {
   const [open, setOpen] = useState(false);
   const [samples, setSamples] = useState<SampleItem[] | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
   const [pending, startTransition] = useTransition();
+  const pathname = usePathname();
 
   function onOpen() {
     setOpen(true);
+    setNeedsAuth(false);
     if (samples) return;
     startTransition(async () => {
       const result = await getBookSamples(bookId);
       if (!result.success) {
+        if (result.code === "auth") {
+          // Keep the dialog open and show a sign-in prompt inside it.
+          setNeedsAuth(true);
+          return;
+        }
         toast.error(result.error);
         setOpen(false);
         return;
@@ -85,7 +95,20 @@ export function ViewSampleButton({
           <DialogHeader>
             <DialogTitle>{bookTitle} — Sample</DialogTitle>
           </DialogHeader>
-          {pending || !samples ? (
+          {needsAuth ? (
+            <Stack gap={4} className="py-8 items-center text-center">
+              <p className="text-body text-muted-foreground max-w-sm">
+                Samples are for signed-in readers. Sign in (or create a free
+                account) to preview this book before buying.
+              </p>
+              <Button asChild>
+                <Link href={`/sign-in?next=${encodeURIComponent(pathname)}`}>
+                  <LogIn className="size-4" aria-hidden="true" />
+                  Sign in to view sample
+                </Link>
+              </Button>
+            </Stack>
+          ) : pending || !samples ? (
             <div className="py-16 inline-flex items-center gap-2 text-muted-foreground justify-center w-full">
               <Loader2 className="size-5 animate-spin" aria-hidden="true" />
               Loading sample…
