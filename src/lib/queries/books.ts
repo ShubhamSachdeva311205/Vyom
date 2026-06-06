@@ -1,7 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
-export type Book = Tables<"books">;
+export type Book = Tables<"books"> & { hasSample?: boolean };
+
+/** Returns the set of book ids that have at least one sample. */
+async function getSampleBookIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<Set<string>> {
+  const { data } = await supabase.from("book_samples").select("book_id");
+  return new Set((data ?? []).map((r) => r.book_id as string));
+}
 
 /**
  * Fetch published books. Optionally filter by curriculum.
@@ -34,7 +42,8 @@ export async function getBooks(opts: {
     console.error("[books] fetch failed:", error.message);
     return [];
   }
-  return data ?? [];
+  const sampleIds = await getSampleBookIds(supabase);
+  return (data ?? []).map((b) => ({ ...b, hasSample: sampleIds.has(b.id) }));
 }
 
 /** Get one book by slug. Returns null if not found. */

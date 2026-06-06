@@ -4,100 +4,115 @@ import { createServiceClient } from "@/lib/supabase/server";
 /**
  * Access-grant verification helpers (Phase 4).
  *
- * The API routes (/api/stream-audio, /api/protected-pdf) and the
- * /dashboard/library page use these to check a user holds a live grant
- * for a piece of content before any bytes are served.
+ * Grants are per-(user, book) — owning the book unlocks ALL of its
+ * digital companions (audio tracks + answer-key PDF). Audio is
+ * multi-track (book_audio_tracks); the PDF is a single watermarked
+ * file (books.pdf_r2_key).
  *
- * Service-role client: grant rows + storage keys must be readable
- * server-side regardless of the caller's RLS context. The user-id
- * ownership check is done in code (the caller passes a verified
- * auth.uid()).
+ * Service-role client — grant rows + storage keys must be readable
+ * server-side regardless of RLS context. Ownership is checked in code
+ * against a verified auth.uid().
  */
 
-export type ContentKind = "audio" | "pdf";
+export interface AudioTrack {
+  id: string;
+  title: string;
+}
 
-export interface LibraryGrant {
-  grantId: string;
+export interface LibraryBook {
   bookId: string;
   bookTitle: string;
   bookSlug: string;
   coverImageUrl: string | null;
-  contentKind: ContentKind;
-  /** Storage object key in the private bucket; null = file not uploaded yet. */
-  storageKey: string | null;
-  source: string;
-  grantedAt: string;
+  grantId: string;
+  /** Audio tracks if the book has audio (empty if not uploaded yet). */
+  audioTracks: AudioTrack[];
+  hasAudio: boolean;
+  /** Answer-key availability. */
+  hasPdf: boolean;
+  pdfReady: boolean;
 }
 
-/** All live (non-revoked) grants for a user, hydrated for the library UI. */
-export async function getUserLibrary(userId: string): Promise<LibraryGrant[]> {
+/** Books the user has a live grant for, hydrated for the library. */
+export async function getUserLibrary(userId: string): Promise<LibraryBook[]> {
   const service = createServiceClient();
   const { data, error } = await service
     .from("access_grants")
     .select(
-      `id, book_id, content_kind, source, granted_at, revoked_at,
-       book:books(id, title, slug, cover_image_url, audio_r2_key, pdf_r2_key)`,
+      `id, book_id, revoked_at,
+       book:books(id, title, slug, cover_image_url, has_audio, has_answer_key, pdf_r2_key)`,
     )
     .eq("user_id", userId)
-    .is("revoked_at", null)
-    .order("granted_at", { ascending: false });
+    .is("revoked_at", null);
   if (error || !data) return [];
 
   type Row = {
     id: string;
     book_id: string;
-    content_kind: ContentKind;
-    source: string;
-    granted_at: string;
     book: {
       id: string;
       title: string;
       slug: string;
       cover_image_url: string | null;
-      audio_r2_key: string | null;
+      has_audio: boolean;
+      has_answer_key: boolean;
       pdf_r2_key: string | null;
     } | null;
   };
+  const rows = (data as unknown as Row[]).filter((r) => r.book);
 
-  return (data as unknown as Row[])
-    .filter((r) => r.book)
-    .map((r) => ({
-      grantId: r.id,
+  // Fetch audio tracks for books that have audio.
+  const audioBookIds = rows.filter((r) => r.book!.has_audio).map((r) => r.book_id);
+  const tracksByBook = new Map<string, AudioTrack[]>();
+  if (audioBookIds.length > 0) {
+    const { data: tracks } = await service
+      .from("book_audio_tracks")
+      .select("id, book_id, title, sort_order")
+      .in("book_id", audioBookIds)
+      .order("sort_order", { ascending: true });
+    for (const t of (tracks ?? []) as Array<{ id: string; book_id: string; title: string }>) {
+      const list = tracksByBook.get(t.book_id) ?? [];
+      list.push({ id: t.id, title: t.title });
+      tracksByBook.set(t.book_id, list);
+    }
+  }
+
+  return rows.map((r) => {
+    const book = r.book!;
+    return {
       bookId: r.book_id,
-      bookTitle: r.book!.title,
-      bookSlug: r.book!.slug,
-      coverImageUrl: r.book!.cover_image_url,
-      contentKind: r.content_kind,
-      storageKey:
-        r.content_kind === "audio" ? r.book!.audio_r2_key : r.book!.pdf_r2_key,
-      source: r.source,
-      grantedAt: r.granted_at,
-    }));
+      bookTitle: book.title,
+      bookSlug: book.slug,
+      coverImageUrl: book.cover_image_url,
+      grantId: r.id,
+      hasAudio: book.has_audio,
+      audioTracks: tracksByBook.get(r.book_id) ?? [],
+      hasPdf: book.has_answer_key,
+      pdfReady: Boolean(book.pdf_r2_key),
+    };
+  });
 }
 
-export interface VerifiedGrant {
-  bucket: "book-audio" | "book-pdfs";
+/* ============================================================
+ * verifyPdfGrant — for /api/protected-pdf. Confirms a live grant for
+ * the book behind this grant id, returns the pdf storage location.
+ * ============================================================ */
+export interface VerifiedPdf {
   storageKey: string | null;
-  contentKind: ContentKind;
   bookTitle: string;
   orderNumber: string | null;
 }
 
-/**
- * Verify a user holds a live grant identified by grantId, and return
- * the storage location + display metadata. Returns null when the grant
- * doesn't exist, is revoked, or belongs to a different user.
- */
-export async function verifyGrant(
+export async function verifyPdfGrant(
   grantId: string,
   userId: string,
-): Promise<VerifiedGrant | null> {
+): Promise<VerifiedPdf | null> {
   const service = createServiceClient();
   const { data, error } = await service
     .from("access_grants")
     .select(
-      `id, user_id, content_kind, revoked_at, order_id,
-       book:books(title, audio_r2_key, pdf_r2_key)`,
+      `user_id, revoked_at, order_id,
+       book:books(title, has_answer_key, pdf_r2_key)`,
     )
     .eq("id", grantId)
     .maybeSingle();
@@ -105,21 +120,14 @@ export async function verifyGrant(
 
   const row = data as unknown as {
     user_id: string;
-    content_kind: ContentKind;
     revoked_at: string | null;
     order_id: string | null;
-    book: {
-      title: string;
-      audio_r2_key: string | null;
-      pdf_r2_key: string | null;
-    } | null;
+    book: { title: string; has_answer_key: boolean; pdf_r2_key: string | null } | null;
   };
+  if (row.user_id !== userId || row.revoked_at || !row.book || !row.book.has_answer_key) {
+    return null;
+  }
 
-  if (row.user_id !== userId) return null;
-  if (row.revoked_at) return null;
-  if (!row.book) return null;
-
-  // Resolve the order number for the watermark (best-effort).
   let orderNumber: string | null = null;
   if (row.order_id) {
     const { data: order } = await service
@@ -131,11 +139,85 @@ export async function verifyGrant(
   }
 
   return {
-    bucket: row.content_kind === "audio" ? "book-audio" : "book-pdfs",
-    storageKey:
-      row.content_kind === "audio" ? row.book.audio_r2_key : row.book.pdf_r2_key,
-    contentKind: row.content_kind,
+    storageKey: row.book.pdf_r2_key,
     bookTitle: row.book.title,
     orderNumber,
   };
+}
+
+/* ============================================================
+ * verifyAudioTrack — for /api/stream-audio. Confirms the user holds a
+ * live grant for the track's book, returns where the file lives.
+ * ============================================================ */
+export interface VerifiedTrack {
+  bucket: string; // 'r2' | 'supabase'
+  storageKey: string;
+  title: string;
+}
+
+export async function verifyAudioTrack(
+  trackId: string,
+  userId: string,
+): Promise<VerifiedTrack | null> {
+  const service = createServiceClient();
+  const { data: track } = await service
+    .from("book_audio_tracks")
+    .select("book_id, title, storage_key, bucket")
+    .eq("id", trackId)
+    .maybeSingle();
+  if (!track) return null;
+
+  const t = track as unknown as {
+    book_id: string;
+    title: string;
+    storage_key: string;
+    bucket: string;
+  };
+
+  const { data: grant } = await service
+    .from("access_grants")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("book_id", t.book_id)
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (!grant) return null;
+
+  return { bucket: t.bucket, storageKey: t.storage_key, title: t.title };
+}
+
+/* ============================================================
+ * Samples — metadata for the storefront button + byte resolution.
+ * ============================================================ */
+export interface BookSample {
+  id: string;
+  kind: "pdf" | "image";
+  sortOrder: number;
+}
+
+export async function getBookSampleMeta(bookId: string): Promise<BookSample[]> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("book_samples")
+    .select("id, kind, sort_order")
+    .eq("book_id", bookId)
+    .order("sort_order", { ascending: true });
+  return (data ?? []).map((s) => ({
+    id: s.id,
+    kind: s.kind as "pdf" | "image",
+    sortOrder: s.sort_order,
+  }));
+}
+
+export async function getSampleObject(
+  sampleId: string,
+): Promise<{ storageKey: string; kind: "pdf" | "image" } | null> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("book_samples")
+    .select("storage_key, kind")
+    .eq("id", sampleId)
+    .maybeSingle();
+  if (!data) return null;
+  return { storageKey: data.storage_key, kind: data.kind as "pdf" | "image" };
 }

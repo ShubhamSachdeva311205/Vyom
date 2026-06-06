@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { verifyGrant } from "@/lib/access/queries";
+import { verifyPdfGrant } from "@/lib/access/queries";
 import { placeholderAnswerKeyPdf, watermarkPdf } from "@/lib/access/watermark";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const grant = await verifyGrant(grantId, user.id);
-  if (!grant || grant.contentKind !== "pdf") {
+  const grant = await verifyPdfGrant(grantId, user.id);
+  if (!grant) {
     return NextResponse.json({ error: "No access" }, { status: 403 });
   }
 

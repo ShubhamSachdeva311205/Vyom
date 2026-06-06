@@ -1,27 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { verifyGrant } from "@/lib/access/queries";
+import { verifyAudioTrack } from "@/lib/access/queries";
+import { getR2Object } from "@/lib/r2/client";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 /**
- * GET /api/stream-audio?grant=<grantId>
+ * GET /api/stream-audio?track=<trackId>
  *
- * Proxies the audio bytes from the PRIVATE `book-audio` bucket through
- * our server so the raw storage URL never reaches the browser. Requires
- * the signed-in user to hold a live grant for the content.
+ * Streams one audio track. Requires the signed-in user to hold a live
+ * audio grant for the track's book. The file lives in R2 (default, free
+ * egress) or Supabase Storage (`bucket` column = 'supabase', used for
+ * local testing before R2 creds are set). Either way the raw object URL
+ * never reaches the browser — we proxy the bytes.
  *
- * Supports HTTP Range requests so the <audio> element can seek without
- * pulling the whole file. The storage download returns the full object;
- * we slice the requested byte range out of the buffer. For our file
- * sizes (a few MB of compressed audio) buffering is fine — if files
- * grow large, swap to a signed-URL passthrough with Range forwarding.
+ * HTTP Range is forwarded to R2 natively; for the Supabase fallback we
+ * slice the buffer ourselves.
  */
 export async function GET(req: NextRequest) {
-  const grantId = req.nextUrl.searchParams.get("grant");
-  if (!grantId) {
-    return NextResponse.json({ error: "Missing grant" }, { status: 400 });
+  const trackId = req.nextUrl.searchParams.get("track");
+  if (!trackId) {
+    return NextResponse.json({ error: "Missing track" }, { status: 400 });
   }
 
-  // AuthN
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,37 +29,49 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  // AuthZ — live grant for this user.
-  const grant = await verifyGrant(grantId, user.id);
-  if (!grant || grant.contentKind !== "audio") {
+  const track = await verifyAudioTrack(trackId, user.id);
+  if (!track) {
     return NextResponse.json({ error: "No access" }, { status: 403 });
   }
-  if (!grant.storageKey) {
-    return NextResponse.json(
-      { error: "Audio not uploaded yet." },
-      { status: 404 },
+
+  const range = req.headers.get("range");
+
+  // R2 path — forward Range, stream straight through.
+  if (track.bucket === "r2") {
+    const obj = await getR2Object(
+      process.env.R2_AUDIO_BUCKET ?? "",
+      track.storageKey,
+      range,
     );
+    if (!obj) {
+      return NextResponse.json({ error: "Audio unavailable" }, { status: 404 });
+    }
+    const headers: Record<string, string> = {
+      "Content-Type": obj.contentType || "audio/mpeg",
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "private, no-store",
+    };
+    if (obj.contentLength) headers["Content-Length"] = String(obj.contentLength);
+    if (obj.contentRange) headers["Content-Range"] = obj.contentRange;
+    return new NextResponse(obj.body, { status: obj.status, headers });
   }
 
-  // Download from the private bucket via service role.
+  // Supabase fallback — download + slice for Range.
   const service = createServiceClient();
   const { data: blob, error } = await service.storage
     .from("book-audio")
-    .download(grant.storageKey);
+    .download(track.storageKey);
   if (error || !blob) {
     return NextResponse.json({ error: "Audio unavailable" }, { status: 404 });
   }
-
   const full = Buffer.from(await blob.arrayBuffer());
   const total = full.length;
   const contentType = blob.type || "audio/mpeg";
 
-  // Range handling.
-  const range = req.headers.get("range");
   if (range) {
-    const match = /bytes=(\d*)-(\d*)/.exec(range);
-    const start = match && match[1] ? parseInt(match[1], 10) : 0;
-    const end = match && match[2] ? parseInt(match[2], 10) : total - 1;
+    const m = /bytes=(\d*)-(\d*)/.exec(range);
+    const start = m && m[1] ? parseInt(m[1], 10) : 0;
+    const end = m && m[2] ? parseInt(m[2], 10) : total - 1;
     if (start >= total || end >= total || start > end) {
       return new NextResponse(null, {
         status: 416,

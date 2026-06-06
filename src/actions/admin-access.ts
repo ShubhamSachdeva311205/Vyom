@@ -36,7 +36,6 @@ export interface AdminGrantRow {
   id: string;
   email: string;
   bookTitle: string;
-  contentKind: "audio" | "pdf";
   source: string;
   grantedAt: string;
   revokedAt: string | null;
@@ -69,18 +68,17 @@ export async function searchGrantsByEmail(
   const { data, error } = await service
     .from("access_grants")
     .select(
-      `id, content_kind, source, granted_at, revoked_at,
+      `id, source, created_at, revoked_at,
        user:users(email), book:books(title)`,
     )
     .eq("user_id", targetUser.id)
-    .order("granted_at", { ascending: false });
+    .order("created_at", { ascending: false });
   if (error) return { success: false, error: error.message };
 
   type Row = {
     id: string;
-    content_kind: "audio" | "pdf";
     source: string;
-    granted_at: string;
+    created_at: string;
     revoked_at: string | null;
     user: { email: string } | null;
     book: { title: string } | null;
@@ -89,9 +87,8 @@ export async function searchGrantsByEmail(
     id: r.id,
     email: r.user?.email ?? parsed.data.email,
     bookTitle: r.book?.title ?? "—",
-    contentKind: r.content_kind,
     source: r.source,
-    grantedAt: r.granted_at,
+    grantedAt: r.created_at,
     revokedAt: r.revoked_at,
   }));
   return { success: true, data: rows };
@@ -103,7 +100,6 @@ export async function searchGrantsByEmail(
 const grantInput = z.object({
   email: z.string().email(),
   bookId: z.string().uuid(),
-  contentKind: z.enum(["audio", "pdf"]),
   notes: z.string().trim().max(300).optional().or(z.literal("")),
 });
 
@@ -121,7 +117,6 @@ export async function grantAccessManual(
   const { error } = await service.rpc("grant_access_manual" as never, {
     p_email: parsed.data.email,
     p_book_id: parsed.data.bookId,
-    p_content_kind: parsed.data.contentKind,
     p_notes: parsed.data.notes || null,
   } as never);
   if (error) {

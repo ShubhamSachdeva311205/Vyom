@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Row, Stack } from "@/components/layouts/stack";
 import { AddToCartButton } from "@/components/features/store/add-to-cart-button";
+import { ViewSampleButton } from "@/components/features/store/view-sample-button";
 import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
-type Book = Tables<"books">;
+type Book = Tables<"books"> & { hasSample?: boolean };
 
 type FilterKey = "all" | "ibdp" | "igcse";
 
@@ -96,12 +97,17 @@ function StoreBookCard({ book }: { book: Book }) {
           ) : null}
           <span className="text-lg font-semibold">{formatINR(book.price_paise)}</span>
         </Stack>
-        <AddToCartButton
-          bookId={book.id}
-          bookTitle={book.title}
-          block
-          outOfStock={book.inventory_count === 0}
-        />
+        <Stack gap={2}>
+          <AddToCartButton
+            bookId={book.id}
+            bookTitle={book.title}
+            block
+            outOfStock={book.inventory_count === 0}
+          />
+          {book.hasSample ? (
+            <ViewSampleButton bookId={book.id} bookTitle={book.title} block />
+          ) : null}
+        </Stack>
       </Stack>
     </Card>
   );

@@ -1961,15 +1961,68 @@ shared. Full terms paragraph to be added to /legal when launch nears.
 - Real audio + PDF files: Mom uploads via the admin book drawer when
   ready; placeholders serve until then.
 
+### Phase 4 follow-up — real materials + multi-track audio + samples + 2 new books (2026-06-06)
+
+Owner dropped the full materials set (answer keys, 55 audio tracks, samples,
+2 new book covers). Loaded everything + fixed a schema bug from the prior
+Phase 4 session.
+
+**BUG FIXED: access_grants schema conflict.** The prior session's Phase 4
+migration did `create table access_grants` with a content_kind column — but
+that table already existed from Phase 2.3 (per-book grants, access_source
+enum, no content_kind). The create silently errored on every DB, so the
+grant functions were broken (referenced a nonexistent column). Reworked to
+the existing **per-book** model: one grant per (user, book) unlocks ALL of
+that book's companions (audio + answer key). There's no real case where you
+own the book but not its companions, so content_kind granularity was wrong.
+Rewrote migration 20260605112220 (ALTER not CREATE; functions without
+content_kind), queries.ts, both API routes, admin-access actions + UI.
+`db reset` now replays clean.
+
+**Multi-track audio.** Listening books have 20–30 mp3s each — a single
+audio_key per book was wrong. New `book_audio_tracks` table (book_id, title,
+storage_key, bucket, sort_order). Library shows a playlist (click a track →
+loads in the player). `/api/stream-audio?track=<id>` verifies the book grant
++ streams from R2 (bucket='r2') or Supabase (bucket='supabase') with Range.
+
+**R2 wired (src/lib/r2/client.ts).** Audio belongs on R2 (free egress;
+622MB would blow Supabase's 2GB/mo egress). Code reads R2 when the 4 env
+vars are set, else Supabase local. Owner is setting up the R2 account; until
+then audio is on Supabase local so it's testable. Migration steps + script
+in #104.
+
+**Samples (signed-in only).** New `book_samples` table + private
+`book-samples` bucket. `/api/sample?id=<id>` gates on sign-in, serves
+PDF/image. "View sample" button beside Add to cart on /store + /ibdp +
+/igcse (only shows when the book has samples). PDF samples render in the
+canvas viewer; image samples in a gallery.
+
+**2 new IBDP books** (in seed.sql so they survive resets):
+- Writing Skills (Paper 1) — ₹1950, sample only.
+- SL-IO New Edition — ₹1999, has IOA audio (5 tracks). Old SL-IO kept
+  visible but inventory 0 (out of stock) per owner.
+Covers converted from the supplied PNGs → public/book-covers/*.webp (note:
+source scans are landscape, so they crop oddly in the 3:4 card — replace
+with proper front-cover crops later).
+
+**Materials uploaded** (scripts/upload-materials.mjs, idempotent):
+- 3 answer-key PDFs → book-pdfs + pdf_r2_key set.
+- 11 samples across 8 books → book-samples + book_samples rows.
+- 55 audio tracks (5 + 30 + 20) → Supabase local + book_audio_tracks rows.
+
+**Seed now sets inventory_count=50** on all active books (was defaulting to
+0 = everything sold out after a reset). Old SL-IO = 0.
+
 ### Next up
 
-1. **#100 Password reset / forgot-password flow.**
-2. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
-3. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
-4. **#90 Mobile responsiveness** — pre-launch P0.
-5. **#91 Complete UI revamp** — pre-launch (terraink.app aesthetic).
-6. **#70 Sales reports** — net revenue, fees paid, refunds.
-7. **3.5 GST/tax** at checkout — user deferred to end (not registered yet).
+1. **#104 Move audio to R2** — owner sets up account; re-run upload script.
+2. **#100 Password reset / forgot-password flow.**
+3. **#87 Shiprocket status webhook** — needs tunnel/deploy to test.
+4. **Phase 8.7 security P0s** — admin gate drift (#74, #75).
+5. **#90 Mobile responsiveness** — pre-launch P0.
+6. **#91 Complete UI revamp** — pre-launch (terraink.app aesthetic).
+7. **#70 Sales reports** — net revenue, fees paid, refunds.
+8. **3.5 GST/tax** at checkout — deferred (not registered yet).
 
 ---
 

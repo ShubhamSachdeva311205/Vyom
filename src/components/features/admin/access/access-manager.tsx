@@ -133,7 +133,6 @@ function GrantForm({
 }) {
   const [email, setEmail] = useState("");
   const [bookId, setBookId] = useState("");
-  const [contentKind, setContentKind] = useState<"audio" | "pdf">("pdf");
   const [notes, setNotes] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -147,7 +146,6 @@ function GrantForm({
       const result = await grantAccessManual({
         email,
         bookId,
-        contentKind,
         notes: notes || undefined,
       });
       if (!result.success) {
@@ -188,19 +186,10 @@ function GrantForm({
           </FormField>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <FormField label="Content">
-            <Select
-              value={contentKind}
-              onValueChange={(v) => setContentKind(v as "audio" | "pdf")}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pdf">Answer key (PDF)</SelectItem>
-                <SelectItem value="audio">Listening audio</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="Note (optional)">
+          <FormField
+            label="Note (optional)"
+            description="Grants access to all of the book's digital companions (audio + answer key)."
+          >
             <Input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -235,7 +224,7 @@ function GrantRowItem({
   const revoked = Boolean(row.revokedAt);
 
   function onRevoke() {
-    if (!confirm(`Revoke ${row.contentKind} access to "${row.bookTitle}"?`)) return;
+    if (!confirm(`Revoke digital access to "${row.bookTitle}"?`)) return;
     startTransition(async () => {
       const result = await revokeAccessGrant({ grantId: row.id });
       if (!result.success) {
@@ -252,7 +241,6 @@ function GrantRowItem({
       <Stack gap={1} className="min-w-0">
         <Row gap={2} align="center" className="flex-wrap">
           <span className="text-sm font-medium truncate">{row.bookTitle}</span>
-          <Badge variant="secondary">{row.contentKind === "pdf" ? "Answer key" : "Audio"}</Badge>
           <Badge variant="outline">{row.source}</Badge>
           {revoked ? <Badge variant="destructive">Revoked</Badge> : <Badge variant="success">Active</Badge>}
         </Row>

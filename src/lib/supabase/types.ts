@@ -159,81 +159,181 @@ export type Database = {
           },
         ]
       }
+      book_audio_tracks: {
+        Row: {
+          book_id: string
+          bucket: string
+          created_at: string
+          id: string
+          sort_order: number
+          storage_key: string
+          title: string
+        }
+        Insert: {
+          book_id: string
+          bucket?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          storage_key: string
+          title: string
+        }
+        Update: {
+          book_id?: string
+          bucket?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          storage_key?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_audio_tracks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_samples: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["sample_kind"]
+          sort_order: number
+          storage_key: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["sample_kind"]
+          sort_order?: number
+          storage_key: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["sample_kind"]
+          sort_order?: number
+          storage_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_samples_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       books: {
         Row: {
           audio_r2_key: string | null
           author: string | null
+          breadth_cm: number
           compare_at_price_paise: number | null
           cover_image_url: string | null
           created_at: string
           curriculum: Database["public"]["Enums"]["curriculum"]
+          deleted_at: string | null
           description: string | null
+          description_hindi: string | null
           discount_eligible: boolean
           gst_class: Database["public"]["Enums"]["gst_class"]
           has_answer_key: boolean
           has_audio: boolean
+          height_cm: number
+          hsn_sac: string
           id: string
           inventory_count: number
           is_active: boolean
           isbn: string | null
+          length_cm: number
           pdf_r2_key: string | null
           price_paise: number
           publisher: string | null
           slug: string
           subject: string | null
           subtitle: string | null
+          subtitle_hindi: string | null
           title: string
+          title_hindi: string | null
           updated_at: string
+          weight_grams: number
         }
         Insert: {
           audio_r2_key?: string | null
           author?: string | null
+          breadth_cm?: number
           compare_at_price_paise?: number | null
           cover_image_url?: string | null
           created_at?: string
           curriculum: Database["public"]["Enums"]["curriculum"]
+          deleted_at?: string | null
           description?: string | null
+          description_hindi?: string | null
           discount_eligible?: boolean
           gst_class?: Database["public"]["Enums"]["gst_class"]
           has_answer_key?: boolean
           has_audio?: boolean
+          height_cm?: number
+          hsn_sac?: string
           id?: string
           inventory_count?: number
           is_active?: boolean
           isbn?: string | null
+          length_cm?: number
           pdf_r2_key?: string | null
           price_paise: number
           publisher?: string | null
           slug: string
           subject?: string | null
           subtitle?: string | null
+          subtitle_hindi?: string | null
           title: string
+          title_hindi?: string | null
           updated_at?: string
+          weight_grams?: number
         }
         Update: {
           audio_r2_key?: string | null
           author?: string | null
+          breadth_cm?: number
           compare_at_price_paise?: number | null
           cover_image_url?: string | null
           created_at?: string
           curriculum?: Database["public"]["Enums"]["curriculum"]
+          deleted_at?: string | null
           description?: string | null
+          description_hindi?: string | null
           discount_eligible?: boolean
           gst_class?: Database["public"]["Enums"]["gst_class"]
           has_answer_key?: boolean
           has_audio?: boolean
+          height_cm?: number
+          hsn_sac?: string
           id?: string
           inventory_count?: number
           is_active?: boolean
           isbn?: string | null
+          length_cm?: number
           pdf_r2_key?: string | null
           price_paise?: number
           publisher?: string | null
           slug?: string
           subject?: string | null
           subtitle?: string | null
+          subtitle_hindi?: string | null
           title?: string
+          title_hindi?: string | null
           updated_at?: string
+          weight_grams?: number
         }
         Relationships: []
       }
@@ -577,17 +677,29 @@ export type Database = {
       }
       orders: {
         Row: {
+          access_granted_at: string | null
+          admin_notes: string | null
           coupon_code: string | null
+          courier_name: string | null
           created_at: string
+          delivered_at: string | null
           discount_paise: number
           id: string
+          inventory_decremented_at: string | null
+          inventory_restocked_at: string | null
+          invoice_generated_at: string | null
+          invoice_number: string | null
+          non_refundable_fee_paise: number | null
           notes: string | null
+          on_hold_at: string | null
           order_number: string
           packed_at: string | null
           paid_at: string | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
           razorpay_signature: string | null
+          refunded_at: string | null
+          refunded_paise: number
           shipped_at: string | null
           shipping_address: Json | null
           shipping_paise: number
@@ -596,22 +708,35 @@ export type Database = {
           subtotal_paise: number
           tax_paise: number
           total_paise: number
+          tracking_number: string | null
           tracking_url: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          access_granted_at?: string | null
+          admin_notes?: string | null
           coupon_code?: string | null
+          courier_name?: string | null
           created_at?: string
+          delivered_at?: string | null
           discount_paise?: number
           id?: string
+          inventory_decremented_at?: string | null
+          inventory_restocked_at?: string | null
+          invoice_generated_at?: string | null
+          invoice_number?: string | null
+          non_refundable_fee_paise?: number | null
           notes?: string | null
+          on_hold_at?: string | null
           order_number: string
           packed_at?: string | null
           paid_at?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           razorpay_signature?: string | null
+          refunded_at?: string | null
+          refunded_paise?: number
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_paise?: number
@@ -620,22 +745,35 @@ export type Database = {
           subtotal_paise: number
           tax_paise?: number
           total_paise: number
+          tracking_number?: string | null
           tracking_url?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          access_granted_at?: string | null
+          admin_notes?: string | null
           coupon_code?: string | null
+          courier_name?: string | null
           created_at?: string
+          delivered_at?: string | null
           discount_paise?: number
           id?: string
+          inventory_decremented_at?: string | null
+          inventory_restocked_at?: string | null
+          invoice_generated_at?: string | null
+          invoice_number?: string | null
+          non_refundable_fee_paise?: number | null
           notes?: string | null
+          on_hold_at?: string | null
           order_number?: string
           packed_at?: string | null
           paid_at?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           razorpay_signature?: string | null
+          refunded_at?: string | null
+          refunded_paise?: number
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_paise?: number
@@ -644,6 +782,7 @@ export type Database = {
           subtotal_paise?: number
           tax_paise?: number
           total_paise?: number
+          tracking_number?: string | null
           tracking_url?: string | null
           updated_at?: string
           user_id?: string
@@ -722,7 +861,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrement_inventory: {
+        Args: { p_order_id: string }
+        Returns: {
+          ok: boolean
+          reason: string
+        }[]
+      }
+      grant_access_manual: {
+        Args: { p_book_id: string; p_email: string; p_notes?: string }
+        Returns: {
+          book_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          revoked_at: string | null
+          source: Database["public"]["Enums"]["access_source"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "access_grants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      grant_digital_access: {
+        Args: { p_order_id: string }
+        Returns: {
+          ok: boolean
+          reason: string
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
+      next_invoice_number: { Args: never; Returns: string }
       preview_coupon: {
         Args: {
           p_code: string
@@ -748,6 +921,158 @@ export type Database = {
           success: boolean
         }[]
       }
+      restock_book: {
+        Args: { p_book_id: string; p_new_count: number; p_reason?: string }
+        Returns: {
+          audio_r2_key: string | null
+          author: string | null
+          breadth_cm: number
+          compare_at_price_paise: number | null
+          cover_image_url: string | null
+          created_at: string
+          curriculum: Database["public"]["Enums"]["curriculum"]
+          deleted_at: string | null
+          description: string | null
+          description_hindi: string | null
+          discount_eligible: boolean
+          gst_class: Database["public"]["Enums"]["gst_class"]
+          has_answer_key: boolean
+          has_audio: boolean
+          height_cm: number
+          hsn_sac: string
+          id: string
+          inventory_count: number
+          is_active: boolean
+          isbn: string | null
+          length_cm: number
+          pdf_r2_key: string | null
+          price_paise: number
+          publisher: string | null
+          slug: string
+          subject: string | null
+          subtitle: string | null
+          subtitle_hindi: string | null
+          title: string
+          title_hindi: string | null
+          updated_at: string
+          weight_grams: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "books"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      restock_inventory: {
+        Args: { p_order_id: string }
+        Returns: {
+          ok: boolean
+          reason: string
+        }[]
+      }
+      revoke_access: { Args: { p_grant_id: string }; Returns: undefined }
+      set_order_tracking: {
+        Args: {
+          p_courier_name: string
+          p_order_id: string
+          p_tracking_number: string
+          p_tracking_url?: string
+        }
+        Returns: {
+          access_granted_at: string | null
+          admin_notes: string | null
+          coupon_code: string | null
+          courier_name: string | null
+          created_at: string
+          delivered_at: string | null
+          discount_paise: number
+          id: string
+          inventory_decremented_at: string | null
+          inventory_restocked_at: string | null
+          invoice_generated_at: string | null
+          invoice_number: string | null
+          non_refundable_fee_paise: number | null
+          notes: string | null
+          on_hold_at: string | null
+          order_number: string
+          packed_at: string | null
+          paid_at: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          refunded_at: string | null
+          refunded_paise: number
+          shipped_at: string | null
+          shipping_address: Json | null
+          shipping_paise: number
+          shipping_pincode: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal_paise: number
+          tax_paise: number
+          total_paise: number
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_order_status: {
+        Args: {
+          p_new_status: Database["public"]["Enums"]["order_status"]
+          p_notes?: string
+          p_order_id: string
+        }
+        Returns: {
+          access_granted_at: string | null
+          admin_notes: string | null
+          coupon_code: string | null
+          courier_name: string | null
+          created_at: string
+          delivered_at: string | null
+          discount_paise: number
+          id: string
+          inventory_decremented_at: string | null
+          inventory_restocked_at: string | null
+          invoice_generated_at: string | null
+          invoice_number: string | null
+          non_refundable_fee_paise: number | null
+          notes: string | null
+          on_hold_at: string | null
+          order_number: string
+          packed_at: string | null
+          paid_at: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          refunded_at: string | null
+          refunded_paise: number
+          shipped_at: string | null
+          shipping_address: Json | null
+          shipping_paise: number
+          shipping_pincode: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal_paise: number
+          tax_paise: number
+          total_paise: number
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       access_source: "order" | "amazon" | "manual" | "refund_revoked"
@@ -769,6 +1094,9 @@ export type Database = {
         | "delivered"
         | "cancelled"
         | "refunded"
+        | "on_hold"
+        | "partially_refunded"
+      sample_kind: "pdf" | "image"
       submission_kind: "poem" | "story" | "drama" | "essay" | "other"
       user_role: "customer" | "admin"
     }
@@ -921,7 +1249,10 @@ export const Constants = {
         "delivered",
         "cancelled",
         "refunded",
+        "on_hold",
+        "partially_refunded",
       ],
+      sample_kind: ["pdf", "image"],
       submission_kind: ["poem", "story", "drama", "essay", "other"],
       user_role: ["customer", "admin"],
     },

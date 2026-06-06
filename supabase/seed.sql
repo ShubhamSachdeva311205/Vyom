@@ -11,7 +11,8 @@
 
 insert into public.books (
   slug, title, subtitle, isbn, curriculum, subject, publisher,
-  price_paise, discount_eligible, has_audio, has_answer_key, is_active
+  price_paise, discount_eligible, has_audio, has_answer_key, is_active,
+  inventory_count
 ) values
   -- ---- IBDP ----
   (
@@ -20,7 +21,7 @@ insert into public.books (
     'पठन – उच्च स्तर',
     '9789348898029',
     'ibdp', 'Hindi', 'Gyaanmudra',
-    195000, true, false, true, true
+    195000, true, false, true, true, 50
   ),
   (
     'ibdp-hindi-b-sl-reading',
@@ -28,15 +29,26 @@ insert into public.books (
     'पठन – मानक स्तर',
     '9789348898470',
     'ibdp', 'Hindi', 'Gyaanmudra',
-    195000, true, false, true, true
+    195000, true, false, true, true, 50
   ),
+  -- OLD SL-IO — replaced by the new edition below. Kept visible but
+  -- permanently out of stock (inventory_count 0) per owner request.
   (
     'ibdp-hindi-b-sl-io',
-    'Shubham IBDP Hindi B-SL-IO',
+    'Shubham IBDP Hindi B-SL-IO (old edition)',
     'Moukhik pareeksha par aadharit — मानक स्तर',
     '978-93-48898-15-9',
     'ibdp', 'Hindi', 'Gyaanmudra',
-    105000, true, false, false, true
+    105000, true, false, false, true, 0
+  ),
+  -- NEW SL-IO edition — has listening (IOA) audio companion.
+  (
+    'ibdp-hindi-b-sl-io-new',
+    'Shubham IBDP Hindi B SL-IO (New Edition)',
+    'मौखिक कौशल — मानक स्तर (नवीन संस्करण)',
+    '978-93-5912-170-3',
+    'ibdp', 'Hindi', 'Self (Seema Sachdeva)',
+    199900, true, true, false, true, 50
   ),
   (
     'ibdp-hindi-b-hl-io',
@@ -44,7 +56,16 @@ insert into public.books (
     'Moukhik pareeksha par aadharit — उच्च स्तर',
     '978-93-48898-32-6',
     'ibdp', 'Hindi', 'Gyaanmudra',
-    105000, true, false, false, true
+    105000, true, false, false, true, 50
+  ),
+  -- NEW Writing Skills (Paper 1) — SL & HL.
+  (
+    'ibdp-hindi-b-writing-skills',
+    'Shubham IBDP Hindi B SL & HL — Writing Skills (Paper 1)',
+    'लेखन कौशल — मानक तथा उच्च स्तर',
+    '978-93-5782-432-3',
+    'ibdp', 'Hindi', 'Self (Seema Sachdeva)',
+    195000, true, false, false, true, 50  -- no audio/AK files yet; sample only
   ),
   (
     'ibdp-hindi-b-shravan-lekhan',
@@ -52,7 +73,7 @@ insert into public.books (
     'मानक तथा उच्च स्तर',
     '978-93-5810-024-2',
     'ibdp', 'Hindi', 'Self (Seema Sachdeva)',
-    195000, true, true, false, true
+    195000, true, true, false, true, 50
   ),
   -- ---- IGCSE ----
   (
@@ -61,7 +82,7 @@ insert into public.books (
     'New curriculum',
     '978-93-5782-125-4',
     'igcse', 'Hindi', 'Self (Seema Sachdeva)',
-    195000, true, false, true, true
+    195000, true, false, true, true, 50
   ),
   (
     'igcse-hindi-paper-2-listening',
@@ -69,5 +90,5 @@ insert into public.books (
     'New curriculum',
     '978-93-5813-838-2',
     'igcse', 'Hindi', 'Self (Seema Sachdeva)',
-    199900, true, true, false, true
+    199900, true, true, false, true, 50
   );
