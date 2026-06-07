@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { FileText, Headphones, Loader2, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -100,22 +100,56 @@ export function LibraryBookCard({ book }: { book: LibraryBook }) {
   );
 }
 
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
+
 function AudioPlaylist({ tracks }: { tracks: { id: string; title: string }[] }) {
   const [active, setActive] = useState(tracks[0]?.id ?? null);
+  const [speed, setSpeed] = useState(1);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // playbackRate resets when the <audio> loads a new src, so re-apply
+  // the chosen speed whenever the track changes or the user picks a speed.
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = speed;
+  }, [speed, active]);
 
   return (
     <Stack gap={3}>
       {active ? (
-        <audio
-          controls
-          controlsList="nodownload noplaybackrate"
-          onContextMenu={(e) => e.preventDefault()}
-          className="w-full"
-          src={`/api/stream-audio?track=${active}`}
-          autoPlay
-        >
-          Your browser doesn&apos;t support audio playback.
-        </audio>
+        <Stack gap={2}>
+          <audio
+            ref={audioRef}
+            controls
+            controlsList="nodownload noplaybackrate"
+            onContextMenu={(e) => e.preventDefault()}
+            onLoadedMetadata={(e) => {
+              e.currentTarget.playbackRate = speed;
+            }}
+            className="w-full"
+            src={`/api/stream-audio?track=${active}`}
+            autoPlay
+          >
+            Your browser doesn&apos;t support audio playback.
+          </audio>
+          <Row gap={1} align="center" className="flex-wrap">
+            <span className="text-caption text-muted-foreground mr-1">Speed</span>
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSpeed(s)}
+                className={
+                  "rounded-md px-2 py-1 text-caption tabular-nums transition-colors " +
+                  (speed === s
+                    ? "bg-foreground text-background"
+                    : "bg-muted text-muted-foreground hover:bg-accent")
+                }
+              >
+                {s}×
+              </button>
+            ))}
+          </Row>
+        </Stack>
       ) : null}
       <ul className="flex flex-col divide-y divide-border rounded-md border border-border overflow-hidden">
         {tracks.map((t, i) => {
