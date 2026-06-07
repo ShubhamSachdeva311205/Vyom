@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Headphones, Lock, BookOpenCheck, ShoppingBag } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Headphones, Lock, BookOpenCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,6 +29,8 @@ type Book = Tables<"books"> & { hasSample?: boolean };
 
 interface CurriculumTabsProps {
   books: Book[];
+  /** Book ids the signed-in user already owns digital access to. */
+  grantedBookIds?: string[];
 }
 
 type TabKey = "books" | "keys" | "audio";
@@ -38,8 +41,9 @@ const TABS: { key: TabKey; label: string; icon: typeof Headphones }[] = [
   { key: "audio", label: "Listening Audio", icon: Headphones },
 ];
 
-export function CurriculumTabs({ books }: CurriculumTabsProps) {
+export function CurriculumTabs({ books, grantedBookIds = [] }: CurriculumTabsProps) {
   const [active, setActive] = useState<TabKey>("books");
+  const granted = new Set(grantedBookIds);
 
   return (
     <Stack gap={6}>
@@ -66,8 +70,12 @@ export function CurriculumTabs({ books }: CurriculumTabsProps) {
       </Row>
 
       {active === "books" ? <OrderBooksList books={books} /> : null}
-      {active === "keys" ? <AccessList books={books.filter((b) => b.has_answer_key)} kind="answer_key" /> : null}
-      {active === "audio" ? <AccessList books={books.filter((b) => b.has_audio)} kind="audio" /> : null}
+      {active === "keys" ? (
+        <AccessList books={books.filter((b) => b.has_answer_key)} kind="answer_key" granted={granted} />
+      ) : null}
+      {active === "audio" ? (
+        <AccessList books={books.filter((b) => b.has_audio)} kind="audio" granted={granted} />
+      ) : null}
     </Stack>
   );
 }
@@ -127,7 +135,15 @@ function OrderBookCard({ book }: { book: Book }) {
   );
 }
 
-function AccessList({ books, kind }: { books: Book[]; kind: "audio" | "answer_key" }) {
+function AccessList({
+  books,
+  kind,
+  granted,
+}: {
+  books: Book[];
+  kind: "audio" | "answer_key";
+  granted: Set<string>;
+}) {
   if (books.length === 0) {
     const isAudio = kind === "audio";
     return (
@@ -145,13 +161,26 @@ function AccessList({ books, kind }: { books: Book[]; kind: "audio" | "answer_ke
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {books.map((book) => (
-        <LockedAccessCard key={book.id} book={book} kind={kind} />
+        <LockedAccessCard
+          key={book.id}
+          book={book}
+          kind={kind}
+          unlocked={granted.has(book.id)}
+        />
       ))}
     </div>
   );
 }
 
-function LockedAccessCard({ book, kind }: { book: Book; kind: "audio" | "answer_key" }) {
+function LockedAccessCard({
+  book,
+  kind,
+  unlocked,
+}: {
+  book: Book;
+  kind: "audio" | "answer_key";
+  unlocked: boolean;
+}) {
   return (
     <Card variant="surface" padding="lg">
       <Stack gap={4}>
@@ -175,15 +204,30 @@ function LockedAccessCard({ book, kind }: { book: Book; kind: "audio" | "answer_
           </Stack>
         </Row>
         <Row gap={2} align="center" justify="between">
-          <Row gap={2} align="center">
-            <Lock className="size-4 text-muted-foreground" aria-hidden="true" />
-            <span className="text-caption">
-              Unlocks when you own the physical book.
-            </span>
-          </Row>
-          <Button size="sm" variant="outline" disabled>
-            Locked
-          </Button>
+          {unlocked ? (
+            <>
+              <Row gap={2} align="center">
+                <BookOpenCheck className="size-4 text-success" aria-hidden="true" />
+                <span className="text-caption">You own this — open it in your library.</span>
+              </Row>
+              <Button asChild size="sm">
+                <Link href="/dashboard/library">
+                  Open
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Row gap={2} align="center">
+                <Lock className="size-4 text-muted-foreground" aria-hidden="true" />
+                <span className="text-caption">Unlocks when you own the book.</span>
+              </Row>
+              <Button size="sm" variant="outline" disabled>
+                Locked
+              </Button>
+            </>
+          )}
         </Row>
       </Stack>
     </Card>

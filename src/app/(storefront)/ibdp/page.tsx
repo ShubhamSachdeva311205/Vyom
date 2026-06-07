@@ -5,6 +5,8 @@ import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack } from "@/components/layouts/stack";
 import { getBooks } from "@/lib/queries/books";
+import { getUserGrantedBookIds } from "@/lib/access/queries";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "IBDP",
@@ -13,6 +15,11 @@ export const metadata = {
 
 export default async function IBDPPage() {
   const books = await getBooks({ curriculum: "ibdp" });
+
+  // Unlock the Audio / Answer-key tabs for books the signed-in user owns.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const grantedBookIds = user ? [...(await getUserGrantedBookIds(user.id))] : [];
 
   // HL Reading as the centre. 2 left + 2 right of the remaining 4.
   const centre = books.find((b) => b.slug === "ibdp-hindi-b-hl-reading") ?? books[0];
@@ -58,7 +65,7 @@ export default async function IBDPPage() {
                 (or granted manually for Amazon / offline buyers).
               </p>
             </Stack>
-            <CurriculumTabs books={books} />
+            <CurriculumTabs books={books} grantedBookIds={grantedBookIds} />
           </Stack>
         </Container>
       </Section>

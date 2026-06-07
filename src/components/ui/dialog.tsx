@@ -43,6 +43,9 @@ const DialogContent = forwardRef<
       className={cn(
         "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
         "w-[calc(100%-2rem)] max-w-lg",
+        // Cap height + scroll so tall content (PDF viewer, sample images,
+        // long forms) stays inside the viewport instead of overflowing.
+        "max-h-[90vh] overflow-y-auto",
         "bg-popover text-popover-foreground border border-border shadow-xl",
         "rounded-2xl op:rounded-lg",
         "p-6",

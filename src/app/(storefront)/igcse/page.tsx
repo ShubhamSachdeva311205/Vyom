@@ -5,6 +5,8 @@ import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack } from "@/components/layouts/stack";
 import { getBooks } from "@/lib/queries/books";
+import { getUserGrantedBookIds } from "@/lib/access/queries";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "IGCSE",
@@ -13,6 +15,11 @@ export const metadata = {
 
 export default async function IGCSEPage() {
   const books = await getBooks({ curriculum: "igcse" });
+
+  // Unlock the Audio / Answer-key tabs for books the signed-in user owns.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const grantedBookIds = user ? [...(await getUserGrantedBookIds(user.id))] : [];
 
   const centre = books.find((b) => b.slug === "igcse-hindi-paper-1") ?? books[0];
   const second = books.find((b) => b.slug === "igcse-hindi-paper-2-listening");
@@ -55,7 +62,7 @@ export default async function IGCSEPage() {
                 audio unlocks once the physical book is purchased.
               </p>
             </Stack>
-            <CurriculumTabs books={books} />
+            <CurriculumTabs books={books} grantedBookIds={grantedBookIds} />
           </Stack>
         </Container>
       </Section>

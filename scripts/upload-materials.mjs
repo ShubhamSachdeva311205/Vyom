@@ -66,6 +66,8 @@ async function loadBooks() {
   for (const b of data) bookIdBySlug.set(b.slug, b.id);
 }
 
+// Natural sort so QP2 comes before QP10 (not lexicographic).
+const natColl = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 function listFiles(dir, exts) {
   const abs = join(ROOT, dir);
   try {
@@ -73,7 +75,7 @@ function listFiles(dir, exts) {
       .filter((f) => !f.startsWith(".") && exts.includes(extname(f).toLowerCase()))
       .map((f) => join(abs, f))
       .filter((p) => statSync(p).isFile())
-      .sort();
+      .sort((a, b) => natColl.compare(basename(a), basename(b)));
   } catch {
     return [];
   }

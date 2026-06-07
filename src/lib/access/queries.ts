@@ -93,6 +93,18 @@ export async function getUserLibrary(userId: string): Promise<LibraryBook[]> {
   });
 }
 
+/** Set of book ids the user holds a live grant for — used to unlock the
+ *  Audio / Answer-key tabs on /ibdp + /igcse. */
+export async function getUserGrantedBookIds(userId: string): Promise<Set<string>> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("access_grants")
+    .select("book_id")
+    .eq("user_id", userId)
+    .is("revoked_at", null);
+  return new Set((data ?? []).map((r) => r.book_id as string));
+}
+
 /* ============================================================
  * verifyPdfGrant — for /api/protected-pdf. Confirms a live grant for
  * the book behind this grant id, returns the pdf storage location.
