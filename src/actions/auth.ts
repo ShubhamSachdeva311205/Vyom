@@ -185,6 +185,66 @@ export async function verifyOtp(formData: FormData): Promise<ActionResult> {
 }
 
 /* -----------------------------------------------------------------
+ * Forgot password — send a reset link.
+ *
+ * Always returns success regardless of whether the email is registered
+ * (no account enumeration). Supabase rate-limits these emails server-
+ * side. The link lands on /reset-password with a recovery session.
+ * ----------------------------------------------------------------- */
+export async function requestPasswordReset(
+  formData: FormData,
+): Promise<ActionResult> {
+  const parsed = emailSchema.safeParse(formData.get("email")?.toString() ?? "");
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid email" };
+  }
+
+  const supabase = await createClient();
+  const siteUrl = await resolveSiteUrl();
+  // Best-effort — we ignore the result so we never reveal whether the
+  // address exists.
+  await supabase.auth.resetPasswordForEmail(parsed.data, {
+    redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+  });
+  return { success: true };
+}
+
+/* -----------------------------------------------------------------
+ * Reset password — set a new password using the recovery session that
+ * the email link established.
+ * ----------------------------------------------------------------- */
+export async function updatePassword(
+  formData: FormData,
+): Promise<ActionResult> {
+  const password = formData.get("password")?.toString() ?? "";
+  const confirm = formData.get("confirm")?.toString() ?? "";
+  const parsed = passwordSchema.safeParse(password);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid password" };
+  }
+  if (password !== confirm) {
+    return { success: false, error: "Passwords don't match." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      success: false,
+      error: "Your reset link has expired. Request a new one from Forgot password.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data });
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
+/* -----------------------------------------------------------------
  * Sign out
  * ----------------------------------------------------------------- */
 export async function signOut(): Promise<void> {

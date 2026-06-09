@@ -58,6 +58,15 @@ export function SignInForm() {
             <Input name="password" type="password" autoComplete="current-password" required />
           </FormField>
 
+          <div className="-mt-2">
+            <a
+              href="/forgot-password"
+              className="text-caption text-muted-foreground hover:text-foreground underline"
+            >
+              Forgot password?
+            </a>
+          </div>
+
           {error ? (
             <p className="text-sm text-destructive" role="alert">
               {error}
