@@ -322,7 +322,8 @@ export async function cancelPendingOrder(
     .update({ status: "cancelled" })
     .eq("id", parsed.data.orderId);
   if (error) {
-    return { success: false, error: error.message };
+    console.error("[checkout] cancelPendingOrder failed:", error.message);
+    return { success: false, error: "Could not cancel the order. Please try again." };
   }
   return { success: true };
 }
@@ -693,12 +694,23 @@ export async function verifyPaymentAndCompleteOrder(
     // now we just pass the order's full subtotal_paise; if eligibility
     // mattered (some books not eligible) the discount was already
     // applied at preview time so this re-check will match.
-    const { data: redeem, error: redeemErr } = await service.rpc("redeem_coupon", {
-      p_code: order.coupon_code,
-      p_user_id: order.user_id,
-      p_order_id: order.id,
-      p_eligible_subtotal_paise: order.subtotal_paise,
-    });
+    //
+    // Idempotency: the webhook path also redeems (#78). Skip if a
+    // redemption already exists for this order so the two paths can't
+    // double-count the code.
+    const { data: existingRedemption } = await service
+      .from("coupon_redemptions")
+      .select("id")
+      .eq("order_id", order.id)
+      .maybeSingle();
+    const { data: redeem, error: redeemErr } = existingRedemption
+      ? { data: [{ success: true, reason: "already_done" }], error: null }
+      : await service.rpc("redeem_coupon", {
+          p_code: order.coupon_code,
+          p_user_id: order.user_id,
+          p_order_id: order.id,
+          p_eligible_subtotal_paise: order.subtotal_paise,
+        });
     const row = Array.isArray(redeem) ? redeem[0] : redeem;
     if (redeemErr || !row?.success) {
       await service

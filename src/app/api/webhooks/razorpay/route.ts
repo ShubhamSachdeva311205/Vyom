@@ -89,7 +89,7 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
   // Look up our order by Razorpay's order id.
   const { data: order } = await service
     .from("orders")
-    .select("id, status")
+    .select("id, status, coupon_code, user_id, subtotal_paise")
     .eq("razorpay_order_id", payment.order_id)
     .maybeSingle();
   if (!order) return;
@@ -133,6 +133,46 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
   );
   if (grantErr) {
     console.error("[razorpay-webhook] grant_digital_access threw:", grantErr);
+  }
+
+  // Redeem the coupon. When the customer closes the tab before the inline
+  // verify path runs, this webhook is the ONLY thing that completes the
+  // order — without this, a single-use vendor code stays "unused" and can
+  // be redeemed again (#78). Guard against double-redeem (the inline path
+  // may have already written a redemption for this order).
+  await redeemCouponForOrder(order.id, order.coupon_code, order.user_id, order.subtotal_paise);
+}
+
+async function redeemCouponForOrder(
+  orderId: string,
+  couponCode: string | null,
+  userId: string | null,
+  subtotalPaise: number | null,
+): Promise<void> {
+  if (!couponCode || !userId) return;
+  const service = createServiceClient();
+
+  // Idempotency: skip if a redemption already exists for this order.
+  const { data: existing } = await service
+    .from("coupon_redemptions")
+    .select("id")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (existing) return;
+
+  const { data: redeem, error: redeemErr } = await service.rpc("redeem_coupon" as never, {
+    p_code: couponCode,
+    p_user_id: userId,
+    p_order_id: orderId,
+    p_eligible_subtotal_paise: subtotalPaise ?? 0,
+  } as never);
+  type RpcRow = { success: boolean; reason: string };
+  const row = (Array.isArray(redeem) ? redeem[0] : redeem) as RpcRow | null;
+  if (redeemErr || !row?.success) {
+    console.error("[razorpay-webhook] coupon redeem failed:", {
+      orderId,
+      reason: row?.reason ?? redeemErr?.message ?? "unknown",
+    });
   }
 }
 

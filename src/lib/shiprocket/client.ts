@@ -12,6 +12,7 @@
  * would leak to the browser bundle.
  */
 
+import "server-only";
 import { env } from "@/lib/env";
 
 const BASE = "https://apiv2.shiprocket.in/v1/external";

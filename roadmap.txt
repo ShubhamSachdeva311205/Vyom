@@ -41,7 +41,7 @@ Subphase 1.3: Page Shells & Layouts
 
     [x] Create Legal Shell: /legal (Strict "No Returns / Final Sale" policy and TOS).
 
-    [ ] Secure PDF viewer shell route (Phase 4 wires up the rendering).
+    [x] Secure PDF viewer shell route (Phase 4 wired the rendering: PdfCanvasViewer in /dashboard/library, fed by /api/protected-pdf).
 
 Subphase 1.4: Hardening (NEW)
 
@@ -51,7 +51,7 @@ Subphase 1.4: Hardening (NEW)
 
     [x] sitemap.ts and robots.ts shells. Auto-populate the storefront routes; exclude /admin, /dashboard, /design-tokens.
 
-    [x] Metadata audit: per-route OG image generator via next/og.
+    [ ] Metadata audit: per-route OG image generator via next/og. (Only a single global app/opengraph-image.tsx exists — no per-route generators yet. Tracked in #115.)
 
     [ ] Contact details page (/contact): email, location (Bangalore), order-support hours. Linked from Footer + Community.
 
@@ -197,7 +197,7 @@ Subphase 5.3: Product CRUD + Image Upload (Issue #101)
 
     [x] Image upload pipeline: Supabase Storage public bucket 'book-covers'. uploadCoverImage Server Action validates MIME (PNG/JPEG/WebP) + size (≤5MB), writes to {slug}.{ext}. RLS: public read, admin write. BookCard prefers DB cover_image_url with legacy /public/book-covers/{slug}.webp fallback.
 
-    [ ] Audio + answer-key file upload pipeline: tracked in Phase 4 (#102). Cloudflare R2 private buckets, books.audio_r2_key / pdf_r2_key, watermarked PDF render, audio stream proxy.
+    [x] Audio + answer-key file upload pipeline: delivered via Phase 4 — uploadCompanionFile (admin-access.ts) into private Supabase Storage buckets, wired into book-edit-drawer. (On Supabase Storage, not R2; R2 migration tracked in #104.)
 
 Subphase 5.4: Customer Lookup + Admin Tools
 
@@ -287,7 +287,7 @@ Goal: Verify the site is fast, accessible, observable, and discoverable before f
 
 Subphase 8.1: SEO
 
-    [ ] Populate sitemap.ts with all storefront URLs (excluding /admin, /dashboard, /design-tokens).
+    [x] Populate sitemap.ts with all storefront URLs (excluding /admin, /dashboard, /design-tokens). (app/sitemap.ts lists the 9 storefront routes; per-book /store/[slug] entries pending that route.)
 
     [ ] Per-route OG images via next/og.
 
@@ -357,26 +357,26 @@ PHASE 8.7: Security hardening sweep (Issue #76 umbrella)  [added 2026-05-27]
 
 Cross-cutting hardening pass before launch. Audit findings dated 2026-05-27 in BUILD-JOURNAL.md "Pre-Phase-3 security audit" section. Run `/security-audit` skill any time to re-probe.
 
-    [ ] P0: Admin gate drift — middleware reads ADMIN_EMAILS env, is_admin() reads DB. Replace isAdminEmail() with SECURITY DEFINER RPC. Issue #74.
+    [x] P0: Admin gate drift — isAdminEmail() is now async + DB-backed (reads admin_emails table), awaited in middleware; is_admin() RPC reads the same table. Drift resolved. (Env still a bootstrap fallback — see #74/#75.) Issue #74.
 
     [ ] P0: First-admin takeover — magic-link fires for any address in env without DB verification. Require admin_emails ⨝ auth.users before OTP. Issue #75.
 
-    [ ] P1: Open redirect — `//evil.com` bypasses `startsWith("/")` filter in callback + middleware.
+    [x] P1: Open redirect — callback now rejects `//` and `/\` prefixes (same-origin only), matching the sign-in/OAuth guards. (Was already neutralized by origin-concat; now hardened explicitly.)
 
     [ ] P1: Cart cookie unsigned bearer — HMAC-sign, shorten TTL, add __Host- prefix.
 
     [ ] P1: CSRF — add experimental.serverActions.allowedOrigins to next.config.ts.
 
-    [ ] P1: Coupon public SELECT lets anon enumerate codes — drop policy, gate via redeem_coupon() RPC.
+    [x] P1: Coupon public SELECT lets anon enumerate codes — policy dropped in 20260527010000_coupon_redemption_rpc.sql:16; reads go through the definer RPCs.
 
-    [ ] P1: Coupon race condition — implement redeem_coupon() with SELECT … FOR UPDATE.
+    [x] P1: Coupon race condition — redeem_coupon() locks the coupon row with SELECT … FOR UPDATE.
 
     [ ] P1: Disposable-email bypass — canonicalize Gmail, punycode-normalize domains, reject mixed-script local-parts.
 
     [ ] P1: Service-role in cart user-facing path — refactor to anon client + RLS via set_config.
 
-    [ ] P1: Sign-in error oracle — collapse all auth errors to one user-facing string.
+    [x] P1: Sign-in error oracle — sign-in + OTP errors collapsed to one generic string; real reason logged server-side only.
 
-    [ ] P1: Security headers absent — CSP, HSTS, X-Frame-Options, etc. in next.config.ts.
+    [x] P1: Security headers absent — CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy added via headers() in next.config.ts. Issue #114.
 
-    [ ] P1: No rate limiting — add in-process token bucket per IP until Cloudflare lands.
+    [x] P1: No rate limiting — in-process token bucket per IP added on sign-in/sign-up/OTP/forgot-password/admin-magic-link (src/lib/auth/rate-limit.ts). Cloudflare WAF still the Phase 9 edge layer. Issue #110.

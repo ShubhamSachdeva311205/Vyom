@@ -63,11 +63,14 @@ const DEFAULT_SHIPPING: ShippingSettings = {
   pickupLocation: "Primary",
 };
 
+// Placeholders only — the real bank details live in the `settings` table
+// (key 'bank_details'), editable via /admin/settings. Never hardcode the
+// real account number here: this file is in a public repo (#106).
 const DEFAULT_BANK: BankDetails = {
-  name: "State Bank of India",
-  accountNumber: "***REDACTED***",
-  ifsc: "***REDACTED***",
-  branch: "Marathahalli",
+  name: "",
+  accountNumber: "",
+  ifsc: "",
+  branch: "",
 };
 
 const DEFAULT_CHECKOUT_SAFETY: CheckoutSafety = {

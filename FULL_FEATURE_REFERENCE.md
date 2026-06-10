@@ -16,7 +16,7 @@ Read alongside:
 This is the complete current catalogue. Use this data when seeding the database,
 building product cards, or rendering any book listing. Do not invent titles or ISBNs.
 
-Contact: shubhamhelpseries@gmail.com | Mobile: ***REDACTED***
+Contact: shubhamhelpseries@gmail.com | Mobile: [redacted — public repo]
 Publisher note: Books 1–4 published by Gyaanmudra. Books 5–7 self-published by Seema Sachdeva.
 Sold by: Author / Seema Sachdeva for all titles.
 

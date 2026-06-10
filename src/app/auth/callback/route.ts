@@ -26,7 +26,14 @@ export async function GET(request: Request) {
       // recover anyway.
       await mergeAnonymousCartIntoUserCart().catch(() => undefined);
 
-      const safeNext = next.startsWith("/") ? next : "/";
+      // Same-origin only. Reject protocol-relative (`//evil.com`) and
+      // backslash (`/\evil.com`) prefixes so `next` can't become a
+      // cross-origin open redirect — matching the sign-in form + OAuth
+      // guards (#76 / roadmap 8.7).
+      const safeNext =
+        next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")
+          ? next
+          : "/";
       return NextResponse.redirect(`${origin}${safeNext}`);
     }
   }

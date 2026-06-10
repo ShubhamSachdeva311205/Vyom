@@ -10,15 +10,20 @@
 
 import { z } from "zod";
 
-const productionOnly = (msg: string) =>
-  z.string().refine((val) => process.env.NODE_ENV !== "production" || val.length > 0, {
-    message: msg,
-  });
-
 // Only refuse rzp_test_ on Vercel production deploys, not on local
 // `pnpm build` (which also runs with NODE_ENV=production but shouldn't
 // require live keys — local dev + CI use test keys).
 const isProdDeploy = process.env.VERCEL_ENV === "production";
+
+// A secret that MUST be present on a real production deploy. Stays optional
+// on local dev / CI / `pnpm build` so those don't need live creds. Fixes the
+// fail-open hole where a prod deploy missing the service-role key or webhook
+// secret booted cleanly instead of failing fast (#112).
+const requiredOnProdDeploy = (msg: string) =>
+  z
+    .string()
+    .optional()
+    .refine((val) => !isProdDeploy || (!!val && val.length > 0), { message: msg });
 
 const razorpayKeyId = z
   .string()
@@ -27,9 +32,6 @@ const razorpayKeyId = z
     (val) => !isProdDeploy || !val || val.startsWith("rzp_live_"),
     { message: "RAZORPAY_KEY_ID must start with rzp_live_ in production" },
   );
-
-// Avoid `productionOnly` unused-import warning at boot.
-void productionOnly;
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -42,9 +44,15 @@ const envSchema = z.object({
     .default("http://localhost:3000"),
 
   // ---- Supabase (Phase 2) ----
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  NEXT_PUBLIC_SUPABASE_URL: isProdDeploy
+    ? z.string().url("NEXT_PUBLIC_SUPABASE_URL is required in production")
+    : z.string().url().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: requiredOnProdDeploy(
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY is required in production",
+  ),
+  SUPABASE_SERVICE_ROLE_KEY: requiredOnProdDeploy(
+    "SUPABASE_SERVICE_ROLE_KEY is required in production",
+  ),
 
   // ---- Google OAuth (read by supabase/config.toml — see SETUP-PHASE-2.md §4) ----
   SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: z.string().optional(),
@@ -52,8 +60,12 @@ const envSchema = z.object({
 
   // ---- Razorpay (Phase 3) ----
   RAZORPAY_KEY_ID: razorpayKeyId,
-  RAZORPAY_KEY_SECRET: z.string().optional(),
-  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  RAZORPAY_KEY_SECRET: requiredOnProdDeploy(
+    "RAZORPAY_KEY_SECRET is required in production",
+  ),
+  RAZORPAY_WEBHOOK_SECRET: requiredOnProdDeploy(
+    "RAZORPAY_WEBHOOK_SECRET is required in production",
+  ),
 
   // ---- Shiprocket (Phase 3.3) ----
   SHIPROCKET_EMAIL: z.string().email().optional(),

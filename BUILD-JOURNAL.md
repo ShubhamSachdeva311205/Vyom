@@ -1380,8 +1380,8 @@ out for GST records without a screenshot detour.
 - `RUPEE = "Rs."` fallback — pdfkit's bundled Helvetica lacks the
   ₹ glyph and would render tofu. Swap to a bundled DejaVu font in a
   follow-up if we want the real symbol.
-- Bank details hardcoded to SBI Marathahalli / ***REDACTED*** /
-  ***REDACTED*** per the spec PDF.
+- Bank details now seeded as empty placeholders; real values entered
+  via /admin/settings (account number is PII, repo is public — #106).
 
 **Route (`/api/orders/[id]/invoice.pdf`)**
 

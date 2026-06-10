@@ -85,16 +85,37 @@ export async function refundOrder(
     inventory_decremented_at: string | null;
     inventory_restocked_at: string | null;
   };
-  const alreadyRefunded = orderExtra.refunded_paise ?? 0;
-  const remaining = order.total_paise - alreadyRefunded;
-  if (parsed.data.amountPaise > remaining) {
-    return {
-      success: false,
-      error: `Can only refund up to ₹${Math.round(remaining / 100)}.`,
-    };
-  }
 
-  // Call Razorpay.
+  // Atomically reserve the refund headroom BEFORE calling Razorpay. This
+  // locks the order row (SELECT … FOR UPDATE inside the RPC) and rejects if
+  // the cumulative refund would exceed total_paise, so two concurrent
+  // refund requests can't both disburse money (#111). On any failure after
+  // this point we release the reservation.
+  type ReserveRow = { ok: boolean; reason: string; refunded_paise: number | null };
+  const { data: reserveData, error: reserveErr } = await service.rpc(
+    "reserve_refund" as never,
+    { p_order_id: order.id, p_amount_paise: parsed.data.amountPaise } as never,
+  );
+  if (reserveErr) {
+    console.error("[admin-refunds] reserve_refund failed:", reserveErr);
+    return { success: false, error: "Could not reserve the refund. Please retry." };
+  }
+  const reserve = (Array.isArray(reserveData) ? reserveData[0] : reserveData) as
+    | ReserveRow
+    | null;
+  if (!reserve?.ok) {
+    if (reserve?.reason === "exceeds_total") {
+      const remaining = order.total_paise - (reserve.refunded_paise ?? 0);
+      return {
+        success: false,
+        error: `Can only refund up to ₹${Math.round(remaining / 100)}.`,
+      };
+    }
+    return { success: false, error: "Refund could not be processed." };
+  }
+  const newRefunded = reserve.refunded_paise ?? parsed.data.amountPaise;
+
+  // Call Razorpay. If it throws, release the reservation we just took.
   type RefundResp = { id: string; status: string; amount: number };
   let refund: RefundResp;
   try {
@@ -104,22 +125,16 @@ export async function refundOrder(
       notes: { reason: parsed.data.reason, admin_email: gate.email },
     })) as unknown as RefundResp;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Razorpay refund failed.";
+    await service.rpc("release_refund" as never, {
+      p_order_id: order.id,
+      p_amount_paise: parsed.data.amountPaise,
+    } as never);
     console.error("[admin-refunds] Razorpay refund threw:", err);
-    return { success: false, error: msg };
+    return { success: false, error: "Razorpay refund failed. Please retry." };
   }
 
-  // Update our row.
-  const newRefunded = Math.min(order.total_paise, alreadyRefunded + parsed.data.amountPaise);
   const newStatus =
     newRefunded >= order.total_paise ? "refunded" : "partially_refunded";
-
-  await service
-    .from("orders")
-    .update({
-      refunded_paise: newRefunded,
-    } as never)
-    .eq("id", order.id);
 
   // Status flip + audit log via the existing SECURITY DEFINER RPC.
   await service.rpc("update_order_status" as never, {
@@ -166,8 +181,8 @@ export async function refundOrder(
     },
   });
 
-  // Phase 7 hook: trigger "refund processed" email once Resend is wired.
-  // TODO(Phase 7): await sendRefundEmail({ orderId, amountPaise, reason });
+  // Phase 7 hook (Issue #69): trigger the "refund processed" email here once
+  // Resend is wired — sendRefundEmail({ orderId, amountPaise, reason }).
 
   revalidatePath(`/admin/orders/${order.id}`);
   revalidatePath("/admin/orders");

@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { mergeAnonymousCartIntoUserCart } from "@/actions/cart";
 import { isDisposableEmail } from "@/lib/auth/disposable";
+import { rateLimit, TOO_MANY_ATTEMPTS } from "@/lib/auth/rate-limit";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -57,6 +58,9 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
 
   const { email, password, fullName } = parsed.data;
 
+  const rl = await rateLimit("signup", { limit: 5, windowSec: 60 });
+  if (!rl.ok) return { success: false, error: TOO_MANY_ATTEMPTS };
+
   if (isDisposableEmail(email)) {
     return { success: false, error: "Nice try, smarty pants." };
   }
@@ -93,11 +97,18 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
+  const rl = await rateLimit("signin", { limit: 8, windowSec: 60 });
+  if (!rl.ok) return { success: false, error: TOO_MANY_ATTEMPTS };
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
-    return { success: false, error: error.message };
+    // Collapse all auth errors to one generic string so the response can't
+    // be used as an account-enumeration oracle ("Email not confirmed" vs
+    // "Invalid login credentials"). Log the real reason server-side (#113).
+    console.error("[auth] sign-in failed:", error.message);
+    return { success: false, error: "Invalid email or password." };
   }
 
   // Best-effort cart merge — never block sign-in success on it.
@@ -170,6 +181,14 @@ export async function verifyOtp(formData: FormData): Promise<ActionResult> {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
+  // Tight limit — this is the OTP brute-force surface (10^6 space, 1h window).
+  // Keyed per email+IP so an attacker can't grind one address from one host.
+  const rl = await rateLimit(`otp:${parsed.data.email.toLowerCase()}`, {
+    limit: 6,
+    windowSec: 300,
+  });
+  if (!rl.ok) return { success: false, error: TOO_MANY_ATTEMPTS };
+
   const supabase = await createClient();
   const { error } = await supabase.auth.verifyOtp({
     email: parsed.data.email,
@@ -178,7 +197,8 @@ export async function verifyOtp(formData: FormData): Promise<ActionResult> {
   });
 
   if (error) {
-    return { success: false, error: error.message };
+    console.error("[auth] OTP verify failed:", error.message);
+    return { success: false, error: "That code is invalid or has expired." };
   }
 
   return { success: true };
@@ -198,6 +218,10 @@ export async function requestPasswordReset(
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid email" };
   }
+
+  // Throttle to curb reset-email bombing of a victim address.
+  const rl = await rateLimit("reset", { limit: 4, windowSec: 300 });
+  if (!rl.ok) return { success: false, error: TOO_MANY_ATTEMPTS };
 
   const supabase = await createClient();
   const siteUrl = await resolveSiteUrl();

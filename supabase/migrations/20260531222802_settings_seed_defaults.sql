@@ -40,14 +40,17 @@ insert into public.settings (key, value) values
   )
 on conflict (key) do nothing;
 
+-- Bank details are PII (account number) and this repo is public (#106).
+-- Seed an empty placeholder row; the owner enters the real values via
+-- /admin/settings, which persist in this same row.
 insert into public.settings (key, value) values
   (
     'bank_details',
     jsonb_build_object(
-      'name', 'State Bank of India',
-      'account_number', '***REDACTED***',
-      'ifsc', '***REDACTED***',
-      'branch', 'Marathahalli'
+      'name', '',
+      'account_number', '',
+      'ifsc', '',
+      'branch', ''
     )
   )
 on conflict (key) do nothing;

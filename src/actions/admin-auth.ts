@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { rateLimit, TOO_MANY_ATTEMPTS } from "@/lib/auth/rate-limit";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,6 +27,12 @@ export async function sendAdminMagicLink(formData: FormData): Promise<ActionResu
   }
 
   const { email } = parsed.data;
+
+  // Throttle to slow the admin-OTP brute-force precursor (#110): an attacker
+  // triggers a magic-link to the admin, then grinds verifyOtp. Limit how
+  // often link-sends can be requested per IP.
+  const rl = await rateLimit("admin-magic-link", { limit: 5, windowSec: 300 });
+  if (!rl.ok) return { success: false, error: TOO_MANY_ATTEMPTS };
 
   if (!(await isAdminEmail(email))) {
     // Deliberately vague — don't leak which addresses are admin.

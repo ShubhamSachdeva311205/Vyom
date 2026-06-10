@@ -230,7 +230,11 @@ export function CheckoutForm({
           startTransition(async () => {
             const verifyResult = await verifyPaymentAndCompleteOrder(response);
             if (!verifyResult.success) {
-              console.error("[checkout] verify failed:", verifyResult.error, response);
+              // Don't log the Razorpay response (payment_id/order_id/
+              // signature) to the browser console in production (#113).
+              if (process.env.NODE_ENV !== "production") {
+                console.error("[checkout] verify failed:", verifyResult.error, response);
+              }
               toast.error(verifyResult.error);
               setPaying(false);
               return;
