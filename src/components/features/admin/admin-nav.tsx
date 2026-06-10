@@ -7,6 +7,7 @@ import {
   Inbox,
   KeyRound,
   Library,
+  LineChart,
   Settings as SettingsIcon,
   Tag,
   Users,
@@ -26,6 +27,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/inventory", label: "Inventory", icon: Library },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/reports", label: "Reports", icon: LineChart },
   { href: "/admin/access-grants", label: "Access", icon: KeyRound },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
