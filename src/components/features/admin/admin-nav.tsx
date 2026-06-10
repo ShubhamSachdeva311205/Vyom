@@ -9,6 +9,7 @@ import {
   Library,
   Settings as SettingsIcon,
   Tag,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/orders", label: "Orders", icon: Inbox },
   { href: "/admin/inventory", label: "Inventory", icon: Library },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
+  { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/access-grants", label: "Access", icon: KeyRound },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
