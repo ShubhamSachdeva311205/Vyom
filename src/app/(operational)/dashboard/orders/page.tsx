@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Download, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -96,9 +97,12 @@ export default async function MyOrdersPage() {
                       <Row gap={3} justify="between" align="start" className="flex-wrap">
                         <Stack gap={1}>
                           <Row gap={2} align="center" className="flex-wrap">
-                            <span className="font-mono text-sm font-medium">
+                            <Link
+                              href={`/dashboard/orders/${o.id}`}
+                              className="font-mono text-sm font-medium hover:underline"
+                            >
                               {o.order_number}
-                            </span>
+                            </Link>
                             <Badge variant={s.variant}>{s.label}</Badge>
                           </Row>
                           <span className="text-caption text-muted-foreground">
