@@ -183,3 +183,35 @@ Empty states must never feel broken. Every empty state must:
   messages.** Commits go in as Shubham only. (User asked 2026-05-27 —
   they don't want Claude credited as a co-author.) Same rule for PR
   bodies: no "🤖 Generated with Claude Code" footer.
+
+---
+
+## 15. DEV TOOLING AVAILABLE (set up 2026-06-11)
+
+Three assistant tools are wired up for this project. Use them instead of
+slower manual workarounds where they fit.
+
+- **graphify** (knowledge-graph of the codebase). Installed via `uv`
+  (`graphifyy` on PyPI); the `/graphify` skill is registered. Graph lives in
+  `graphify-out/` (git-ignored — regenerated locally, ~1.3 MB).
+  - Rebuild after big changes: `graphify update .` (code-only, no LLM, local).
+  - Useful **without** an LLM key: `graphify-out/GRAPH_REPORT.md` (god nodes /
+    most-connected abstractions, surprising connections, import cycles) and
+    `graph.html` (interactive map). `graphify path "A" "B"`, `explain "X"`,
+    `affected "X"` work on exact node names.
+  - **Limitation:** natural-language `graphify query "..."` and community
+    naming are weak in pure-local mode — they want a semantic LLM backend
+    (`GEMINI_API_KEY` / `GOOGLE_API_KEY`, free tier fine). Not set yet.
+- **Playwright MCP** (`playwright`, stdio). Browser automation for visual QA,
+  screenshots, and E2E flows — primarily for the mobile-responsiveness pass
+  (#90) and storefront checks. Points at the local dev server.
+- **Supabase MCP** (`supabase`, hosted HTTP, `read_only=true`). **STAGED but
+  inert until hosting:** the hosted MCP manages a *cloud* Supabase project, and
+  there is no cloud project yet (local docker only until Phase 9). It needs a
+  Personal Access Token + project_ref before it does anything. For live access
+  to the *local* dev DB right now, use direct `psql` via the
+  `supabase_db_advaita` docker container (or add a Postgres MCP pointed at
+  `postgresql://postgres:postgres@127.0.0.1:54322/postgres`).
+
+MCP servers are registered at **local** scope (`~/.claude.json`, not committed).
+Keep the active set lean (≤5) to avoid context-token bloat.
