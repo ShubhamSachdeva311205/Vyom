@@ -69,6 +69,25 @@ export default function DashboardPage() {
 
           <Card variant="surface" padding="lg">
             <CardHeader>
+              <Row gap={3} align="center" justify="between" className="flex-wrap">
+                <Stack gap={1}>
+                  <CardTitle>Account settings</CardTitle>
+                  <CardDescription>
+                    Update your name, email, or password.
+                  </CardDescription>
+                </Stack>
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/settings">
+                    Manage
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </Row>
+            </CardHeader>
+          </Card>
+
+          <Card variant="surface" padding="lg">
+            <CardHeader>
               <CardTitle>Access from Amazon?</CardTitle>
               <CardDescription>
                 Email{" "}
