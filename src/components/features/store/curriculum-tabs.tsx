@@ -100,20 +100,31 @@ function OrderBooksList({ books }: { books: Book[] }) {
 }
 
 function OrderBookCard({ book }: { book: Book }) {
+  const coverSrc =
+    (book as { cover_image_url?: string | null }).cover_image_url ??
+    `/book-covers/${book.slug}.webp`;
   return (
     <Card variant="surface" padding="lg">
       <Stack gap={4}>
-        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-muted">
+        <Link
+          href={`/store/${book.slug}`}
+          className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-muted group"
+        >
           <Image
-            src={`/book-covers/${book.slug}.webp`}
+            src={coverSrc}
             alt={book.title}
             fill
             sizes="(min-width: 1024px) 280px, (min-width: 640px) 320px, 100vw"
-            className="object-cover"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
           />
-        </div>
+        </Link>
         <Stack gap={2}>
-          <p className="text-sm font-medium leading-tight line-clamp-3">{book.title}</p>
+          <Link
+            href={`/store/${book.slug}`}
+            className="text-sm font-medium leading-tight line-clamp-3 hover:underline"
+          >
+            {book.title}
+          </Link>
           {book.subtitle ? (
             <p className="text-caption">{book.subtitle}</p>
           ) : null}

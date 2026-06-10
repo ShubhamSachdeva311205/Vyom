@@ -56,11 +56,16 @@ export async function getBookBySlug(slug: string): Promise<Book | null> {
     .eq("is_active", true)
     .is("deleted_at" as never, null)
     .maybeSingle();
-  if (error) {
-    console.error("[books] getBookBySlug failed:", error.message);
+  if (error || !data) {
+    if (error) console.error("[books] getBookBySlug failed:", error.message);
     return null;
   }
-  return data;
+  // Does this book have any samples? (drives the "View sample" button)
+  const { count } = await supabase
+    .from("book_samples")
+    .select("id", { count: "exact", head: true })
+    .eq("book_id", data.id);
+  return { ...data, hasSample: (count ?? 0) > 0 };
 }
 
 export { formatINR } from "@/lib/format";
