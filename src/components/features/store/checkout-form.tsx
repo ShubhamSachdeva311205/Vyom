@@ -11,6 +11,7 @@ import {
   previewCheckoutTotals,
   verifyPaymentAndCompleteOrder,
 } from "@/actions/checkout";
+import { lookupPincode } from "@/actions/pincode";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -80,6 +81,11 @@ export function CheckoutForm({
   const [paying, setPaying] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [pincode, setPincode] = useState("");
+  // City + State are controlled so a pincode lookup can auto-fill them
+  // (#117). The customer can still edit them by hand.
+  const [city, setCity] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [pincodeResolving, setPincodeResolving] = useState(false);
   // Name + phone are uncontrolled (plain inputs with `required`)
   // so browser autofill works without React's controlled-state bug
   // where autofill doesn't fire onChange and we never know the field
@@ -98,6 +104,30 @@ export function CheckoutForm({
 
   const validPincode = PINCODE_REGEX.test(pincode);
   const validCoupon = couponCode === "" || COUPON_REGEX.test(couponCode);
+
+  // Auto-fill City + State from a valid pincode (#117). Debounced;
+  // overwrites on each new valid pincode (a pincode change means a new
+  // location). Manual edits afterwards stick until the pincode changes.
+  useEffect(() => {
+    if (!validPincode) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      // setState inside the async callback (not directly in the effect
+      // body) to satisfy React 19's set-state-in-effect rule.
+      setPincodeResolving(true);
+      const r = await lookupPincode(pincode);
+      if (cancelled) return;
+      setPincodeResolving(false);
+      if (r.success && r.data) {
+        setCity(r.data.city);
+        setStateName(r.data.state);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [pincode, validPincode]);
 
   // Match the last preview against the current inputs. If they don't
   // match, we're either loading or idle.
@@ -370,11 +400,37 @@ export function CheckoutForm({
                 </FormField>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormField
+                    label="Pincode *"
+                    description="Fills city + state automatically."
+                  >
+                    <div className="relative">
+                      <Input
+                        name="pincode"
+                        inputMode="numeric"
+                        pattern="[1-9][0-9]{5}"
+                        placeholder="560001"
+                        autoComplete="postal-code"
+                        maxLength={6}
+                        value={pincode}
+                        onChange={(e) => setPincode(e.target.value.replace(/[^0-9]/g, ""))}
+                        required
+                      />
+                      {pincodeResolving ? (
+                        <Loader2
+                          className="size-4 absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      ) : null}
+                    </div>
+                  </FormField>
                   <FormField label="City">
                     <Input
                       name="city"
                       autoComplete="address-level2"
                       maxLength={80}
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
                     />
                   </FormField>
                   <FormField label="State">
@@ -382,22 +438,8 @@ export function CheckoutForm({
                       name="state"
                       autoComplete="address-level1"
                       maxLength={80}
-                    />
-                  </FormField>
-                  <FormField
-                    label="Pincode *"
-                    description="Used for live shipping quote."
-                  >
-                    <Input
-                      name="pincode"
-                      inputMode="numeric"
-                      pattern="[1-9][0-9]{5}"
-                      placeholder="560001"
-                      autoComplete="postal-code"
-                      maxLength={6}
-                      value={pincode}
-                      onChange={(e) => setPincode(e.target.value.replace(/[^0-9]/g, ""))}
-                      required
+                      value={stateName}
+                      onChange={(e) => setStateName(e.target.value)}
                     />
                   </FormField>
                 </div>
