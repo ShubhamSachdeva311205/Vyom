@@ -113,8 +113,11 @@ export async function grantAccessManual(
   const gate = await assertAdmin();
   if (!gate.ok) return { success: false, error: gate.error };
 
-  const service = createServiceClient();
-  const { error } = await service.rpc("grant_access_manual" as never, {
+  // Call via the AUTHENTICATED client (not service-role): the RPC checks
+  // is_admin() internally, which reads auth.uid() — null under service-role.
+  // The action is already admin-gated by assertAdmin() above (#128).
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("grant_access_manual" as never, {
     p_email: parsed.data.email,
     p_book_id: parsed.data.bookId,
     p_notes: parsed.data.notes || null,
@@ -139,8 +142,10 @@ export async function revokeAccessGrant(
   const gate = await assertAdmin();
   if (!gate.ok) return { success: false, error: gate.error };
 
-  const service = createServiceClient();
-  const { error } = await service.rpc("revoke_access" as never, {
+  // Authenticated client so the RPC's is_admin() check sees the admin's
+  // auth.uid() (service-role would be null → "caller is not admin"). #128
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("revoke_access" as never, {
     p_grant_id: input.grantId,
   } as never);
   if (error) return { success: false, error: error.message };
