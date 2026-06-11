@@ -24,7 +24,7 @@ import {
 } from "@/lib/feedback/constants";
 
 interface FeedbackFormProps {
-  /** When set, the feedback is tagged to this book (PDP). */
+  /** When set, the form offers an "about this book" vs "general" toggle (PDP). */
   bookId?: string;
   title?: string;
   description?: string;
@@ -37,6 +37,11 @@ export function FeedbackForm({
 }: FeedbackFormProps) {
   const [pending, startTransition] = useTransition();
   const [kind, setKind] = useState<FeedbackKind>(bookId ? "content_request" : "other");
+  // On a product page, let the customer choose whether this note is about
+  // the book or general. Off the product page there's no book to tag.
+  const [scope, setScope] = useState<"product" | "general">(
+    bookId ? "product" : "general",
+  );
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -50,7 +55,7 @@ export function FeedbackForm({
         body: String(fd.get("body") ?? ""),
         name: String(fd.get("name") ?? "") || undefined,
         email: String(fd.get("email") ?? "") || undefined,
-        bookId,
+        bookId: scope === "product" ? bookId : undefined,
       });
       if (!res.success) {
         setError(res.error);
@@ -84,6 +89,42 @@ export function FeedbackForm({
             <h3 className="text-title">{title}</h3>
             <p className="text-sm text-muted-foreground">{description}</p>
           </Stack>
+
+          {bookId && (
+            <FormField label="What's this about?" required>
+              <div
+                role="radiogroup"
+                aria-label="Feedback scope"
+                className="inline-flex rounded-md border border-border p-0.5"
+              >
+                {(
+                  [
+                    ["product", "This book"],
+                    ["general", "General"],
+                  ] as const
+                ).map(([value, label]) => {
+                  const active = scope === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setScope(value)}
+                      className={
+                        "min-h-[40px] rounded-[5px] px-4 text-sm transition-colors " +
+                        (active
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground")
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </FormField>
+          )}
 
           <FormField label="Topic" required className="sm:w-64">
             <Select value={kind} onValueChange={(v) => setKind(v as FeedbackKind)}>
