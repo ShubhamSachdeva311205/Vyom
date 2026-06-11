@@ -80,6 +80,30 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const addressBlock = formatAddressBlock(addr, customer?.full_name ?? null);
   const status = order.status as OrderStatusV2;
 
+  // Plain-text block to paste into Vyapar (desktop billing app). Name,
+  // phone, address, line items, totals — everything needed to raise an
+  // invoice there without retyping.
+  const vyaparBlock = [
+    `Order: ${order.order_number}`,
+    `Name: ${addr?.name ?? customer?.full_name ?? "—"}`,
+    addr?.phone ? `Phone: ${addr.phone}` : null,
+    `Email: ${customer?.email ?? "—"}`,
+    addressBlock ? `Address:\n${addressBlock}` : null,
+    "",
+    "Items:",
+    ...items.map(
+      (it) =>
+        `- ${it.book?.title ?? "Book"} x${it.quantity} @ ${formatINR(it.unit_price_paise)} = ${formatINR(it.unit_price_paise * it.quantity)}`,
+    ),
+    "",
+    `Subtotal: ${formatINR(order.subtotal_paise)}`,
+    order.discount_paise > 0 ? `Discount: -${formatINR(order.discount_paise)}` : null,
+    `Shipping: ${order.shipping_paise === 0 ? "Free" : formatINR(order.shipping_paise)}`,
+    `Total: ${formatINR(order.total_paise)}`,
+  ]
+    .filter((l) => l !== null)
+    .join("\n");
+
   const timeline: Array<{ label: string; at: string | null }> = [
     { label: "Paid", at: fmtDateTime(order.paid_at) },
     { label: "Packed", at: fmtDateTime(order.packed_at) },
@@ -149,9 +173,12 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                           </p>
                         )}
                       </Stack>
-                      {addressBlock ? (
-                        <CopyButton text={addressBlock} label="Copy address" />
-                      ) : null}
+                      <Stack gap={2} align="end">
+                        {addressBlock ? (
+                          <CopyButton text={addressBlock} label="Copy address" />
+                        ) : null}
+                        <CopyButton text={vyaparBlock} label="Copy for Vyapar" />
+                      </Stack>
                     </Row>
                   </div>
                 </Stack>

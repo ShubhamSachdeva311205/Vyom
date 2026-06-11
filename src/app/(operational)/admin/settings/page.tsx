@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
-import { Stack } from "@/components/layouts/stack";
+import { Stack, Row } from "@/components/layouts/stack";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/error-state";
 import { AdminEmailsForm } from "@/components/features/admin/settings/admin-emails-form";
@@ -119,6 +121,20 @@ export default async function AdminSettingsPage() {
                 />
               )}
             </Stack>
+          </Card>
+
+          <Card variant="surface" padding="lg">
+            <Row gap={3} align="center" justify="between" className="flex-wrap">
+              <Stack gap={1}>
+                <span className="text-eyebrow">Audit log</span>
+                <p className="text-caption text-muted-foreground">
+                  Every admin action — refunds, status changes, grants, restocks.
+                </p>
+              </Stack>
+              <Button asChild variant="outline">
+                <Link href="/admin/audit">View activity →</Link>
+              </Button>
+            </Row>
           </Card>
         </Stack>
       </Container>
