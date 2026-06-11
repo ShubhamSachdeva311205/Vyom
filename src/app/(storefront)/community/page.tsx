@@ -1,5 +1,6 @@
 import { SubmissionCard } from "@/components/features/community/submission-card";
 import { SubmissionForm } from "@/components/features/community/submission-form";
+import { FeedbackForm } from "@/components/features/feedback/feedback-form";
 import { Card } from "@/components/ui/card";
 import { Mascot } from "@/components/ui/mascot";
 import { Container } from "@/components/layouts/container";
@@ -57,6 +58,21 @@ export default async function CommunityPage() {
                 ))}
               </div>
             )}
+          </Stack>
+
+          {/* The Feedback line — general (no book), straight to admin */}
+          <Stack gap={3}>
+            <Stack gap={1}>
+              <span className="text-eyebrow">Feedback line</span>
+              <h2 className="text-title">Tell us anything</h2>
+              <p className="text-body text-muted-foreground max-w-2xl">
+                Not about a specific book? Share a thought, a request, or a bug.
+                It goes straight to us — anonymous welcome.
+              </p>
+            </Stack>
+            <div className="max-w-2xl">
+              <FeedbackForm title="Send us a note" />
+            </div>
           </Stack>
         </Stack>
       </Container>

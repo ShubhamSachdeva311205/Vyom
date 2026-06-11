@@ -14,6 +14,7 @@ import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
 import { AddToCartButton } from "@/components/features/store/add-to-cart-button";
+import { FeedbackForm } from "@/components/features/feedback/feedback-form";
 import { ProductReviews } from "@/components/features/store/product-reviews";
 import { ViewSampleButton } from "@/components/features/store/view-sample-button";
 import { getBookBySlug } from "@/lib/queries/books";
@@ -223,6 +224,15 @@ export default async function BookDetailPage({ params }: PageProps) {
           {/* Reviews (public, moderated) */}
           <div className="border-t border-border pt-8">
             <ProductReviews bookId={book.id} summary={reviews} />
+          </div>
+
+          {/* Private feedback on this book (goes to admin, not public) */}
+          <div className="max-w-2xl">
+            <FeedbackForm
+              bookId={book.id}
+              title="Feedback on this book"
+              description="Spotted a typo, want a topic added, or have a question? Send it privately — it goes straight to us, not the public reviews."
+            />
           </div>
         </Stack>
       </Container>
