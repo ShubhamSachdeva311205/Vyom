@@ -39,7 +39,52 @@ export async function GET(req: NextRequest) {
 
   const bytes = new Uint8Array(await blob.arrayBuffer());
   const contentType =
-    sample.kind === "pdf" ? "application/pdf" : blob.type || "image/png";
+    sample.kind === "pdf"
+      ? "application/pdf"
+      : sample.kind === "audio"
+        ? blob.type || "audio/mpeg"
+        : blob.type || "image/png";
+
+  // Audio needs HTTP Range support so the <audio> element can play/seek
+  // (iOS Safari refuses to play without a 206 on a range request). Samples
+  // are small, so we buffer the whole file and slice the requested range.
+  if (sample.kind === "audio") {
+    const range = req.headers.get("range");
+    const total = bytes.length;
+    if (range) {
+      const m = /bytes=(\d*)-(\d*)/.exec(range);
+      const start = m && m[1] ? parseInt(m[1], 10) : 0;
+      const end = m && m[2] ? parseInt(m[2], 10) : total - 1;
+      if (start >= total || start > end) {
+        return new NextResponse(null, {
+          status: 416,
+          headers: { "Content-Range": `bytes */${total}` },
+        });
+      }
+      const chunk = bytes.subarray(start, end + 1);
+      return new NextResponse(chunk, {
+        status: 206,
+        headers: {
+          "Content-Type": contentType,
+          "Content-Length": String(chunk.length),
+          "Content-Range": `bytes ${start}-${end}/${total}`,
+          "Accept-Ranges": "bytes",
+          "Content-Disposition": "inline",
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
+    return new NextResponse(bytes, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Content-Length": String(total),
+        "Accept-Ranges": "bytes",
+        "Content-Disposition": "inline",
+        "Cache-Control": "private, no-store",
+      },
+    });
+  }
 
   return new NextResponse(
     new ReadableStream({

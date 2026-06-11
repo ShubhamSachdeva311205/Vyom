@@ -201,9 +201,11 @@ export async function verifyAudioTrack(
 /* ============================================================
  * Samples — metadata for the storefront button + byte resolution.
  * ============================================================ */
+export type SampleKind = "pdf" | "image" | "audio";
+
 export interface BookSample {
   id: string;
-  kind: "pdf" | "image";
+  kind: SampleKind;
   sortOrder: number;
 }
 
@@ -216,14 +218,14 @@ export async function getBookSampleMeta(bookId: string): Promise<BookSample[]> {
     .order("sort_order", { ascending: true });
   return (data ?? []).map((s) => ({
     id: s.id,
-    kind: s.kind as "pdf" | "image",
+    kind: s.kind as SampleKind,
     sortOrder: s.sort_order,
   }));
 }
 
 export async function getSampleObject(
   sampleId: string,
-): Promise<{ storageKey: string; kind: "pdf" | "image" } | null> {
+): Promise<{ storageKey: string; kind: SampleKind } | null> {
   const service = createServiceClient();
   const { data } = await service
     .from("book_samples")
@@ -231,5 +233,5 @@ export async function getSampleObject(
     .eq("id", sampleId)
     .maybeSingle();
   if (!data) return null;
-  return { storageKey: data.storage_key, kind: data.kind as "pdf" | "image" };
+  return { storageKey: data.storage_key, kind: data.kind as SampleKind };
 }

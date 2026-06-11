@@ -9,7 +9,7 @@ type ActionResult<T> =
 
 export interface SampleItem {
   id: string;
-  kind: "pdf" | "image";
+  kind: "pdf" | "image" | "audio";
 }
 
 /**

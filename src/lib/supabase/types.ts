@@ -1185,7 +1185,7 @@ export type Database = {
         | "refunded"
         | "on_hold"
         | "partially_refunded"
-      sample_kind: "pdf" | "image"
+      sample_kind: "pdf" | "image" | "audio"
       submission_kind: "poem" | "story" | "drama" | "essay" | "other"
       user_role: "customer" | "admin"
     }
@@ -1341,7 +1341,7 @@ export const Constants = {
         "on_hold",
         "partially_refunded",
       ],
-      sample_kind: ["pdf", "image"],
+      sample_kind: ["pdf", "image", "audio"],
       submission_kind: ["poem", "story", "drama", "essay", "other"],
       user_role: ["customer", "admin"],
     },

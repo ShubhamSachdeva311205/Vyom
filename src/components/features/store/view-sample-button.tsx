@@ -122,6 +122,25 @@ export function ViewSampleButton({
                     src={`/api/sample?id=${s.id}`}
                     title="sample"
                   />
+                ) : s.kind === "audio" ? (
+                  <div
+                    key={s.id}
+                    className="rounded-md border border-border bg-muted/30 p-4"
+                  >
+                    <p className="text-caption text-muted-foreground mb-2">
+                      Listening sample
+                    </p>
+                    <audio
+                      controls
+                      controlsList="nodownload"
+                      preload="metadata"
+                      className="w-full"
+                      onContextMenu={(e) => e.preventDefault()}
+                      src={`/api/sample?id=${s.id}`}
+                    >
+                      Your browser doesn&rsquo;t support audio playback.
+                    </audio>
+                  </div>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
