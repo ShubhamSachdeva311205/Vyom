@@ -14,8 +14,10 @@ import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
 import { AddToCartButton } from "@/components/features/store/add-to-cart-button";
+import { ProductReviews } from "@/components/features/store/product-reviews";
 import { ViewSampleButton } from "@/components/features/store/view-sample-button";
 import { getBookBySlug } from "@/lib/queries/books";
+import { getBookReviews } from "@/lib/queries/reviews";
 import { formatINR } from "@/lib/format";
 
 interface PageProps {
@@ -39,6 +41,7 @@ export default async function BookDetailPage({ params }: PageProps) {
   const book = await getBookBySlug(slug);
   if (!book) notFound();
 
+  const reviews = await getBookReviews(book.id);
   const coverSrc = book.cover_image_url ?? `/book-covers/${book.slug}.webp`;
   const soldOut = book.inventory_count === 0;
   const hasCompare =
@@ -215,6 +218,11 @@ export default async function BookDetailPage({ params }: PageProps) {
                 <span>Shipping calculated at checkout from your pincode.</span>
               </Row>
             </Stack>
+          </div>
+
+          {/* Reviews (public, moderated) */}
+          <div className="border-t border-border pt-8">
+            <ProductReviews bookId={book.id} summary={reviews} />
           </div>
         </Stack>
       </Container>

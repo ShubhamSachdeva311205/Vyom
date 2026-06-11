@@ -197,6 +197,73 @@ export type Database = {
           },
         ]
       }
+      book_reviews: {
+        Row: {
+          body: string
+          book_id: string
+          created_at: string
+          id: string
+          moderated_at: string | null
+          moderated_by: string | null
+          moderator_notes: string | null
+          rating: number
+          reviewer_name: string
+          status: Database["public"]["Enums"]["moderation_status"]
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          book_id: string
+          created_at?: string
+          id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderator_notes?: string | null
+          rating: number
+          reviewer_name: string
+          status?: Database["public"]["Enums"]["moderation_status"]
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          book_id?: string
+          created_at?: string
+          id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderator_notes?: string | null
+          rating?: number
+          reviewer_name?: string
+          status?: Database["public"]["Enums"]["moderation_status"]
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_reviews_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_reviews_moderated_by_fkey"
+            columns: ["moderated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       book_samples: {
         Row: {
           book_id: string
@@ -579,6 +646,7 @@ export type Database = {
       feedback: {
         Row: {
           body: string
+          book_id: string | null
           created_at: string
           id: string
           kind: Database["public"]["Enums"]["feedback_kind"]
@@ -591,6 +659,7 @@ export type Database = {
         }
         Insert: {
           body: string
+          book_id?: string | null
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["feedback_kind"]
@@ -603,6 +672,7 @@ export type Database = {
         }
         Update: {
           body?: string
+          book_id?: string | null
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["feedback_kind"]
@@ -614,6 +684,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "feedback_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "feedback_resolved_by_fkey"
             columns: ["resolved_by"]
@@ -919,6 +996,18 @@ export type Database = {
           discount_paise: number
           reason: string
           success: boolean
+        }[]
+      }
+      release_refund: {
+        Args: { p_amount_paise: number; p_order_id: string }
+        Returns: undefined
+      }
+      reserve_refund: {
+        Args: { p_amount_paise: number; p_order_id: string }
+        Returns: {
+          ok: boolean
+          reason: string
+          refunded_paise: number
         }[]
       }
       restock_book: {
