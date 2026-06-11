@@ -8,6 +8,8 @@ import {
   KeyRound,
   Library,
   LineChart,
+  MessageSquare,
+  PenLine,
   Settings as SettingsIcon,
   Tag,
   Users,
@@ -29,6 +31,8 @@ const ITEMS: NavItem[] = [
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/reports", label: "Reports", icon: LineChart },
   { href: "/admin/access-grants", label: "Access", icon: KeyRound },
+  { href: "/admin/community", label: "Community", icon: PenLine },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 
