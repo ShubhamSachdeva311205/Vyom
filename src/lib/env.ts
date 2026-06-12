@@ -62,6 +62,9 @@ const envSchema = z.object({
   // The browser uploads directly to Cloudinary so media never touches Supabase.
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().optional(),
   NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: z.string().optional(),
+  // Server-only (NO NEXT_PUBLIC) — usage dashboard (#129). Never sent to client.
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
 
   // ---- Razorpay (Phase 3) ----
   RAZORPAY_KEY_ID: razorpayKeyId,
