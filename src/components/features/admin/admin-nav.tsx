@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Gauge,
   Inbox,
   KeyRound,
   Library,
@@ -33,6 +34,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/access-grants", label: "Access", icon: KeyRound },
   { href: "/admin/community", label: "Community", icon: PenLine },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/admin/usage", label: "Usage", icon: Gauge },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 
