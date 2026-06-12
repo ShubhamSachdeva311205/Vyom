@@ -11,6 +11,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { notifyRestock } from "@/lib/email/restock";
 import {
   LOW_STOCK_THRESHOLD,
   type BookFull,
@@ -111,7 +112,7 @@ const stockInput = z.object({
 
 export async function updateBookStock(
   input: z.input<typeof stockInput>,
-): Promise<ActionResult<{ id: string; inventory_count: number }>> {
+): Promise<ActionResult<{ id: string; inventory_count: number; notified: number }>> {
   const parsed = stockInput.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -120,6 +121,15 @@ export async function updateBookStock(
   if (!gate.ok) return { success: false, error: gate.error };
 
   const supabase = await createClient();
+
+  // Was it sold out before this restock? (to decide whether to notify)
+  const { data: before } = await supabase
+    .from("books")
+    .select("inventory_count")
+    .eq("id", parsed.data.bookId)
+    .maybeSingle();
+  const wasSoldOut = (before?.inventory_count ?? 0) === 0;
+
   const { data, error } = await supabase.rpc(
     "restock_book" as never,
     {
@@ -130,6 +140,12 @@ export async function updateBookStock(
   );
   if (error) return { success: false, error: error.message };
 
+  // 0 → in stock: email the waitlist.
+  let notified = 0;
+  if (wasSoldOut && parsed.data.newCount > 0) {
+    notified = await notifyRestock(parsed.data.bookId);
+  }
+
   revalidatePath("/admin/inventory");
   revalidatePath("/store");
   revalidatePath("/ibdp");
@@ -138,7 +154,11 @@ export async function updateBookStock(
   const row = (data as unknown as { id: string; inventory_count: number } | null) ?? null;
   return {
     success: true,
-    data: { id: row?.id ?? parsed.data.bookId, inventory_count: row?.inventory_count ?? parsed.data.newCount },
+    data: {
+      id: row?.id ?? parsed.data.bookId,
+      inventory_count: row?.inventory_count ?? parsed.data.newCount,
+      notified,
+    },
   };
 }
 
