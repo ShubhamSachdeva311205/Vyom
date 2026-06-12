@@ -3,13 +3,26 @@
 import { useEffect, useState, useTransition } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { getSalesSummary, type SalesSummary } from "@/actions/admin-reports";
+import {
+  getSalesSummary,
+  getSalesTimeSeries,
+  type Granularity,
+  type SalesPoint,
+  type SalesSummary,
+} from "@/actions/admin-reports";
+import { RevenueChart } from "./revenue-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Stack, Row } from "@/components/layouts/stack";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+const GRANULARITIES: { key: Granularity; label: string }[] = [
+  { key: "day", label: "Daily" },
+  { key: "week", label: "Weekly" },
+  { key: "month", label: "Monthly" },
+];
 
 type PeriodKey = "today" | "7d" | "30d" | "all";
 const PERIODS: { key: PeriodKey; label: string }[] = [
@@ -31,7 +44,9 @@ function rangeFor(p: PeriodKey): { from: string; to: string } {
 
 export function SalesReport() {
   const [period, setPeriod] = useState<PeriodKey>("30d");
+  const [granularity, setGranularity] = useState<Granularity>("day");
   const [summary, setSummary] = useState<SalesSummary | null>(null);
+  const [series, setSeries] = useState<SalesPoint[] | null>(null);
   const [pending, start] = useTransition();
 
   useEffect(() => {
@@ -45,6 +60,13 @@ export function SalesReport() {
       setSummary(r.data);
     });
   }, [period]);
+
+  useEffect(() => {
+    const { from, to } = rangeFor(period);
+    getSalesTimeSeries(from, to, granularity).then((r) => {
+      if (r.success) setSeries(r.data);
+    });
+  }, [period, granularity]);
 
   const { from, to } = rangeFor(period);
   const csvHref = `/api/admin/orders.csv?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
@@ -94,6 +116,33 @@ export function SalesReport() {
             <Kpi label="Shipping collected" value={formatINR(summary.shippingCollectedPaise)} />
             <Kpi label="Discounts given" value={formatINR(summary.discountGivenPaise)} />
           </div>
+
+          {/* Revenue chart */}
+          <Card variant="surface" padding="lg">
+            <Stack gap={4}>
+              <Row gap={2} align="center" justify="between" className="flex-wrap">
+                <span className="text-eyebrow">Revenue over time</span>
+                <Row gap={1}>
+                  {GRANULARITIES.map((g) => (
+                    <button
+                      key={g.key}
+                      type="button"
+                      onClick={() => setGranularity(g.key)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-sm transition-colors",
+                        granularity === g.key
+                          ? "bg-foreground text-background"
+                          : "bg-muted text-muted-foreground hover:bg-accent",
+                      )}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </Row>
+              </Row>
+              {series ? <RevenueChart points={series} /> : null}
+            </Stack>
+          </Card>
 
           {Object.keys(summary.byStatus).length > 0 ? (
             <Card variant="surface" padding="lg">

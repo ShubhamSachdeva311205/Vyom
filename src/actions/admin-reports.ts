@@ -106,3 +106,70 @@ export async function getSalesSummary(
     },
   };
 }
+
+export type Granularity = "day" | "week" | "month";
+export interface SalesPoint {
+  /** Bucket start (ISO date), for sorting. */
+  key: string;
+  /** Human label for the axis. */
+  label: string;
+  revenuePaise: number;
+  orders: number;
+}
+
+function bucketKey(d: Date, g: Granularity): { key: string; label: string } {
+  const y = d.getFullYear();
+  if (g === "month") {
+    const key = `${y}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return { key, label: d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" }) };
+  }
+  if (g === "week") {
+    // Week starting Monday.
+    const monday = new Date(d);
+    const dow = (monday.getDay() + 6) % 7; // 0 = Monday
+    monday.setDate(monday.getDate() - dow);
+    monday.setHours(0, 0, 0, 0);
+    const key = monday.toISOString().slice(0, 10);
+    return { key, label: monday.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) };
+  }
+  const key = d.toISOString().slice(0, 10);
+  return { key, label: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) };
+}
+
+/**
+ * Revenue + order count bucketed by day / week / month over a range, for the
+ * sales chart. Paid orders only.
+ */
+export async function getSalesTimeSeries(
+  fromISO: string,
+  toISO: string,
+  granularity: Granularity,
+): Promise<ActionResult<SalesPoint[]>> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { success: false, error: gate.error };
+
+  const service = createServiceClient();
+  const { data: orders, error } = await service
+    .from("orders")
+    .select("status, total_paise, paid_at, created_at")
+    .gte("created_at", fromISO)
+    .lte("created_at", toISO)
+    .neq("status", "pending_payment");
+  if (error) return { success: false, error: error.message };
+
+  const buckets = new Map<string, SalesPoint>();
+  for (const o of orders ?? []) {
+    if (!PAID_STATUSES.includes(o.status)) continue;
+    const when = new Date(o.paid_at ?? o.created_at);
+    const { key, label } = bucketKey(when, granularity);
+    const b = buckets.get(key) ?? { key, label, revenuePaise: 0, orders: 0 };
+    b.revenuePaise += o.total_paise;
+    b.orders += 1;
+    buckets.set(key, b);
+  }
+
+  return {
+    success: true,
+    data: [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key)),
+  };
+}
