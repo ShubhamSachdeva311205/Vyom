@@ -1,6 +1,18 @@
 import type { MediaItem } from "@/lib/community/constants";
 
 /**
+ * Inject Cloudinary's automatic format + quality optimization into an image
+ * delivery URL (free-tier, on-the-fly compression — #130). Leaves non-matching
+ * URLs untouched.
+ */
+function optimized(url: string): string {
+  return url.replace(
+    /\/image\/upload\/(?!f_auto)/,
+    "/image/upload/f_auto,q_auto/",
+  );
+}
+
+/**
  * Renders a submission's attached images/videos. Cloudinary URLs; images use
  * a plain <img> (external host, not next/image-optimized) and videos a native
  * player. Shown on the public feed + the admin moderation queue.
@@ -29,7 +41,7 @@ export function MediaGallery({ media }: { media: MediaItem[] }) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={m.url}
+              src={optimized(m.url)}
               alt="Submission attachment"
               loading="lazy"
               className="size-full object-cover transition-transform hover:scale-105"
