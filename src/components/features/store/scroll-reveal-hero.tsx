@@ -71,8 +71,8 @@ export function ScrollRevealHero({ center, left, right }: ScrollRevealHeroProps)
     // values push side books off-screen, so we just show the centre
     // book in a normal-height container. md+ gets the 3-screen sticky
     // scroll experience. Issue #82.
-    <div ref={ref} className="relative min-h-[80vh] md:min-h-[300vh]">
-      <div className="sticky top-16 flex h-[calc(100vh-4rem)] items-center justify-center overflow-visible">
+    <div ref={ref} className="relative py-10 md:py-0 md:min-h-[300vh]">
+      <div className="flex items-center justify-center overflow-visible md:sticky md:top-16 md:h-[calc(100vh-4rem)]">
         <div
           className="relative mx-auto flex w-full items-center justify-center"
           style={{ perspective: "1600px" }}
