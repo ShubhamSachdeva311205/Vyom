@@ -206,10 +206,23 @@ export async function previewCheckoutTotals(
   let couponApplied: string | null = null;
   let couponReason: string | null = null;
   if (couponCode) {
+    // Book-targeted coupons discount only their book's subtotal (#clearance).
+    const { data: scoped } = await service
+      .from("coupons")
+      .select("book_id")
+      .eq("code", couponCode)
+      .maybeSingle();
+    const scopedBookId = (scoped as { book_id: string | null } | null)?.book_id ?? null;
+    const couponEligible = scopedBookId
+      ? cartWithItems.items.reduce(
+          (s, it) => s + (it.book.id === scopedBookId ? it.book.price_paise * it.quantity : 0),
+          0,
+        )
+      : eligibleSubtotalPaise;
     const { data: preview } = await service.rpc("preview_coupon", {
       p_code: couponCode,
       p_user_id: user.id,
-      p_eligible_subtotal_paise: eligibleSubtotalPaise,
+      p_eligible_subtotal_paise: couponEligible,
     });
     const row = Array.isArray(preview) ? preview[0] : preview;
     if (row?.valid) {
@@ -508,10 +521,23 @@ export async function createRazorpayOrder(
   let discountPaise = 0;
   let couponApplied: string | null = null;
   if (couponCode) {
+    // Book-targeted coupons discount only their book's subtotal (#clearance).
+    const { data: scopedC } = await service
+      .from("coupons")
+      .select("book_id")
+      .eq("code", couponCode)
+      .maybeSingle();
+    const scopedBookId = (scopedC as { book_id: string | null } | null)?.book_id ?? null;
+    const couponEligible = scopedBookId
+      ? cartWithItems.items.reduce(
+          (s, it) => s + (it.book.id === scopedBookId ? it.book.price_paise * it.quantity : 0),
+          0,
+        )
+      : eligibleSubtotalPaise;
     const { data: preview, error: previewErr } = await service.rpc("preview_coupon", {
       p_code: couponCode,
       p_user_id: user.id,
-      p_eligible_subtotal_paise: eligibleSubtotalPaise,
+      p_eligible_subtotal_paise: couponEligible,
     });
     if (previewErr) {
       await service.from("orders").delete().eq("id", orderRow.id);

@@ -9,13 +9,15 @@ import {
   listGlobalCoupons,
   listVendorCoupons,
 } from "@/actions/admin-coupons";
+import { listBooksForGrantPicker } from "@/actions/admin-access";
 
 export const metadata = { title: "Coupons · Admin" };
 
 export default async function AdminCouponsPage() {
-  const [globals, vendors] = await Promise.all([
+  const [globals, vendors, books] = await Promise.all([
     listGlobalCoupons(),
     listVendorCoupons(),
+    listBooksForGrantPicker(),
   ]);
 
   return (
@@ -62,7 +64,9 @@ export default async function AdminCouponsPage() {
                   enable Multi-use to let a vendor hand it out N times.
                 </p>
               </Stack>
-              <CouponGenerator />
+              <CouponGenerator
+                books={books.success ? (books.data ?? []).map((b) => ({ id: b.id, title: b.title })) : []}
+              />
             </Stack>
           </Card>
 

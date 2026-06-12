@@ -11,12 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Stack, Row } from "@/components/layouts/stack";
 
-export function CouponGenerator() {
+export function CouponGenerator({
+  books = [],
+}: {
+  books?: { id: string; title: string }[];
+}) {
   const [discount, setDiscount] = useState("");
   const [vendor, setVendor] = useState("");
   const [expires, setExpires] = useState("");
   const [multiUse, setMultiUse] = useState(false);
   const [maxUses, setMaxUses] = useState("10");
+  const [bookId, setBookId] = useState("");
   const [pending, startTransition] = useTransition();
   const [generated, setGenerated] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -39,6 +44,7 @@ export function CouponGenerator() {
         vendorName: vendor.trim(),
         expiresAt: expires || undefined,
         maxUses: usesNum,
+        bookId: bookId || undefined,
       });
       if (!result.success) {
         toast.error(result.error);
@@ -128,6 +134,26 @@ export function CouponGenerator() {
               ) : null}
             </Stack>
           </div>
+
+          {books.length > 0 ? (
+            <FormField
+              label="Limit to one book (optional)"
+              description="For clearing a specific book's stock — the discount applies only to that book in the cart."
+            >
+              <select
+                value={bookId}
+                onChange={(e) => setBookId(e.target.value)}
+                className="h-11 w-full rounded-md border border-border bg-input px-3.5 text-sm text-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+              >
+                <option value="">All books (whole cart)</option>
+                {books.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.title}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          ) : null}
 
           <Row gap={2}>
             <Button type="submit" disabled={pending}>

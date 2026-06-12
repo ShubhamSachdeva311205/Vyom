@@ -595,6 +595,7 @@ export type Database = {
       }
       coupons: {
         Row: {
+          book_id: string | null
           code: string
           created_at: string
           created_by: string | null
@@ -609,6 +610,7 @@ export type Database = {
           uses_count: number
         }
         Insert: {
+          book_id?: string | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -623,6 +625,7 @@ export type Database = {
           uses_count?: number
         }
         Update: {
+          book_id?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -637,6 +640,13 @@ export type Database = {
           uses_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "coupons_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "coupons_created_by_fkey"
             columns: ["created_by"]
@@ -991,6 +1001,14 @@ export type Database = {
         Returns: {
           ok: boolean
           reason: string
+        }[]
+      }
+      get_storage_usage: {
+        Args: never
+        Returns: {
+          bucket: string
+          object_count: number
+          total_bytes: number
         }[]
       }
       grant_access_manual: {

@@ -102,6 +102,9 @@ const generateInput = z.object({
   vendorName: z.string().trim().min(1).max(120),
   expiresAt: z.string().optional().or(z.literal("")),
   maxUses: z.number().int().min(1).max(10000),
+  // Optional: restrict the code to a single book (clearance). Discount then
+  // applies only to that book's line items at checkout.
+  bookId: z.string().uuid().optional().or(z.literal("")),
 });
 
 export async function generateVendorCoupon(
@@ -114,7 +117,7 @@ export async function generateVendorCoupon(
   const gate = await assertAdmin();
   if (!gate.ok) return { success: false, error: gate.error };
 
-  const { discountPercent, vendorName, expiresAt, maxUses } = parsed.data;
+  const { discountPercent, vendorName, expiresAt, maxUses, bookId } = parsed.data;
   const service = createServiceClient();
 
   // Retry up to 5 times in the (vanishingly unlikely) case of a
@@ -132,6 +135,7 @@ export async function generateVendorCoupon(
       created_by: gate.id,
       notes: vendorName,
       expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
+      book_id: bookId || null,
     });
     if (!error) {
       revalidatePath("/admin/coupons");
