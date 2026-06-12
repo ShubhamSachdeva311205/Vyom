@@ -44,6 +44,7 @@ export function FeedbackForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [rewardCode, setRewardCode] = useState<string | null>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,6 +63,7 @@ export function FeedbackForm({
         toast.error(res.error);
         return;
       }
+      setRewardCode(res.data?.rewardCode ?? null);
       setSubmitted(true);
       toast.success("Thanks — your feedback reached us.");
     });
@@ -70,11 +72,24 @@ export function FeedbackForm({
   if (submitted) {
     return (
       <Card variant="surface" padding="lg">
-        <Stack gap={1}>
-          <h3 className="text-title">Thank you 🙏</h3>
-          <p className="text-body text-muted-foreground">
-            We read every note. If you left an email, we may follow up.
-          </p>
+        <Stack gap={3}>
+          <Stack gap={1}>
+            <h3 className="text-title">Thank you 🙏</h3>
+            <p className="text-body text-muted-foreground">
+              We read every note. If you left an email, we may follow up.
+            </p>
+          </Stack>
+          {rewardCode && (
+            <div className="rounded-md border border-brand/40 bg-brand/5 p-4">
+              <p className="text-sm font-medium">Here&rsquo;s 15% off your next order 🎉</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Use this code at checkout (valid 60 days):
+              </p>
+              <p className="mt-2 font-mono text-lg font-semibold tracking-wide">
+                {rewardCode}
+              </p>
+            </div>
+          )}
         </Stack>
       </Card>
     );

@@ -9,6 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { grantFeedbackReward } from "@/lib/coupons/reward";
 import { FEEDBACK_KINDS } from "@/lib/feedback/constants";
 import { rateLimit, TOO_MANY_ATTEMPTS } from "@/lib/auth/rate-limit";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -27,7 +28,7 @@ const submitSchema = z.object({
 
 export async function submitFeedback(
   raw: z.input<typeof submitSchema>,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ rewardCode: string | null }>> {
   const parsed = submitSchema.safeParse(raw);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -53,7 +54,11 @@ export async function submitFeedback(
     console.error("[feedback] submit failed:", error.message);
     return { success: false, error: "Could not send your feedback. Please try again." };
   }
-  return { success: true };
+
+  // Reward: signed-in customers get a single-use 15%-off coupon on-screen
+  // (#69). Idempotent per user. Guests get nothing (we can't dedupe them).
+  const rewardCode = user ? await grantFeedbackReward(user.id) : null;
+  return { success: true, data: { rewardCode } };
 }
 
 /* ============================================================

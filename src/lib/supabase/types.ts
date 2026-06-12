@@ -759,6 +759,7 @@ export type Database = {
         Row: {
           access_granted_at: string | null
           admin_notes: string | null
+          confirmation_email_sent_at: string | null
           coupon_code: string | null
           courier_name: string | null
           created_at: string
@@ -796,6 +797,7 @@ export type Database = {
         Insert: {
           access_granted_at?: string | null
           admin_notes?: string | null
+          confirmation_email_sent_at?: string | null
           coupon_code?: string | null
           courier_name?: string | null
           created_at?: string
@@ -833,6 +835,7 @@ export type Database = {
         Update: {
           access_granted_at?: string | null
           admin_notes?: string | null
+          confirmation_email_sent_at?: string | null
           coupon_code?: string | null
           courier_name?: string | null
           created_at?: string
@@ -1074,6 +1077,7 @@ export type Database = {
         Returns: {
           access_granted_at: string | null
           admin_notes: string | null
+          confirmation_email_sent_at: string | null
           coupon_code: string | null
           courier_name: string | null
           created_at: string
@@ -1124,6 +1128,7 @@ export type Database = {
         Returns: {
           access_granted_at: string | null
           admin_notes: string | null
+          confirmation_email_sent_at: string | null
           coupon_code: string | null
           courier_name: string | null
           created_at: string

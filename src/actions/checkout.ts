@@ -26,6 +26,7 @@ import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { findCartForOwner, getCartWithItems, resolveCartOwner } from "@/lib/cart/queries";
+import { sendOrderConfirmation } from "@/lib/email/order-confirmation";
 import { env } from "@/lib/env";
 import { formatINR as formatINRForPreview } from "@/lib/format";
 import { getRazorpayClient } from "@/lib/razorpay/client";
@@ -721,6 +722,10 @@ export async function verifyPaymentAndCompleteOrder(
         .eq("id", order.id);
     }
   }
+
+  // Order-confirmation email (idempotent + non-throwing; the webhook path
+  // may also call it — whichever wins the atomic claim sends).
+  await sendOrderConfirmation(order.id);
 
   // Clear the cart now that payment captured.
   const ownerCart = await findCartForOwner({ kind: "user", userId: user.id });

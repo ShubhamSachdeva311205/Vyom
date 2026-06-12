@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { sendOrderConfirmation } from "@/lib/email/order-confirmation";
 import { env } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -141,6 +142,9 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
   // be redeemed again (#78). Guard against double-redeem (the inline path
   // may have already written a redemption for this order).
   await redeemCouponForOrder(order.id, order.coupon_code, order.user_id, order.subtotal_paise);
+
+  // Order-confirmation email (idempotent; only one path actually sends).
+  await sendOrderConfirmation(order.id);
 }
 
 async function redeemCouponForOrder(
