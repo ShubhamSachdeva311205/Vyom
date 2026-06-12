@@ -33,6 +33,9 @@ export interface SalesSummary {
   netPaise: number;
   shippingCollectedPaise: number;
   discountGivenPaise: number;
+  feesPaise: number;
+  cogsPaise: number;
+  netProfitPaise: number;
   orderCount: number;
   unitsSold: number;
   aovPaise: number;
@@ -60,7 +63,7 @@ export async function getSalesSummary(
   const { data: orders, error } = await service
     .from("orders")
     .select(
-      "id, status, total_paise, shipping_paise, discount_paise, refunded_paise, created_at",
+      "id, status, total_paise, shipping_paise, discount_paise, refunded_paise, non_refundable_fee_paise, created_at",
     )
     .gte("created_at", fromISO)
     .lte("created_at", toISO)
@@ -80,15 +83,26 @@ export async function getSalesSummary(
   );
   const shippingCollectedPaise = paid.reduce((s, o) => s + o.shipping_paise, 0);
   const discountGivenPaise = paid.reduce((s, o) => s + o.discount_paise, 0);
+  const feesPaise = paid.reduce(
+    (s, o) =>
+      s + ((o as unknown as { non_refundable_fee_paise: number | null }).non_refundable_fee_paise ?? 0),
+    0,
+  );
 
-  // Units sold across the paid orders.
+  // Units sold + COGS (quantity × current book cost) across the paid orders.
   let unitsSold = 0;
+  let cogsPaise = 0;
   if (paid.length > 0) {
     const { data: items } = await service
       .from("order_items")
-      .select("quantity, order_id")
+      .select("quantity, order_id, books(cost_paise)")
       .in("order_id", paid.map((o) => o.id));
-    unitsSold = (items ?? []).reduce((s, it) => s + it.quantity, 0);
+    for (const it of items ?? []) {
+      unitsSold += it.quantity;
+      const book = it.books as { cost_paise?: number } | { cost_paise?: number }[] | null;
+      const cost = Array.isArray(book) ? book[0]?.cost_paise : book?.cost_paise;
+      cogsPaise += it.quantity * (cost ?? 0);
+    }
   }
 
   return {
@@ -99,6 +113,9 @@ export async function getSalesSummary(
       netPaise: grossPaise - refundedPaise,
       shippingCollectedPaise,
       discountGivenPaise,
+      feesPaise,
+      cogsPaise,
+      netProfitPaise: grossPaise - refundedPaise - feesPaise - cogsPaise,
       orderCount: paid.length,
       unitsSold,
       aovPaise: paid.length > 0 ? Math.round(grossPaise / paid.length) : 0,

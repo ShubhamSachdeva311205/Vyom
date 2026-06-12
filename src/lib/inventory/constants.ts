@@ -34,6 +34,7 @@ export interface BookFull {
   curriculum: "ibdp" | "igcse" | "other";
   price_paise: number;
   compare_at_price_paise: number | null;
+  cost_paise: number;
   inventory_count: number;
   weight_grams: number;
   length_cm: number;

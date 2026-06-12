@@ -48,6 +48,7 @@ function emptyBook(): BookFull {
     curriculum: "ibdp",
     price_paise: 0,
     compare_at_price_paise: null,
+    cost_paise: 0,
     inventory_count: 0,
     weight_grams: 300,
     length_cm: 22,
@@ -163,6 +164,9 @@ function BookForm({
   const [descriptionHindi, setDescriptionHindi] = useState(initial.description_hindi ?? "");
   const [curriculum, setCurriculum] = useState(initial.curriculum);
   const [priceRupees, setPriceRupees] = useState(String(Math.round(initial.price_paise / 100)));
+  const [costRupees, setCostRupees] = useState(
+    initial.cost_paise ? String(Math.round(initial.cost_paise / 100)) : "",
+  );
   const [stock, setStock] = useState(String(initial.inventory_count));
   const [weightG, setWeightG] = useState(String(initial.weight_grams));
   const [lengthCm, setLengthCm] = useState(String(initial.length_cm));
@@ -199,6 +203,7 @@ function BookForm({
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const priceNum = parseInt(priceRupees || "0", 10);
+    const costNum = parseInt(costRupees || "0", 10) || 0;
     const stockNum = parseInt(stock || "0", 10);
     const weightNum = parseInt(weightG || "0", 10);
     const lengthNum = parseFloat(lengthCm || "0");
@@ -215,6 +220,7 @@ function BookForm({
       descriptionHindi: descriptionHindi || undefined,
       curriculum,
       pricePaise: priceNum * 100,
+      costPaise: costNum * 100,
       inventoryCount: stockNum,
       weightGrams: weightNum,
       lengthCm: lengthNum,
@@ -388,6 +394,16 @@ function BookForm({
                 value={priceRupees}
                 onChange={(e) => setPriceRupees(e.target.value.replace(/[^0-9]/g, ""))}
                 required
+              />
+            </FormField>
+            <FormField label="Cost (₹)" description="Your print/purchase cost — for net-profit reports.">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={costRupees}
+                onChange={(e) => setCostRupees(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="e.g. 120"
               />
             </FormField>
             <FormField label="Stock *">

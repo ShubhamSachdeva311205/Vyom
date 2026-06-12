@@ -305,6 +305,7 @@ export type Database = {
           author: string | null
           breadth_cm: number
           compare_at_price_paise: number | null
+          cost_paise: number
           cover_image_url: string | null
           created_at: string
           curriculum: Database["public"]["Enums"]["curriculum"]
@@ -339,6 +340,7 @@ export type Database = {
           author?: string | null
           breadth_cm?: number
           compare_at_price_paise?: number | null
+          cost_paise?: number
           cover_image_url?: string | null
           created_at?: string
           curriculum: Database["public"]["Enums"]["curriculum"]
@@ -373,6 +375,7 @@ export type Database = {
           author?: string | null
           breadth_cm?: number
           compare_at_price_paise?: number | null
+          cost_paise?: number
           cover_image_url?: string | null
           created_at?: string
           curriculum?: Database["public"]["Enums"]["curriculum"]
@@ -1083,6 +1086,7 @@ export type Database = {
           author: string | null
           breadth_cm: number
           compare_at_price_paise: number | null
+          cost_paise: number
           cover_image_url: string | null
           created_at: string
           curriculum: Database["public"]["Enums"]["curriculum"]

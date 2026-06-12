@@ -115,6 +115,13 @@ export function SalesReport() {
             <Kpi label="Refunded" value={formatINR(summary.refundedPaise)} />
             <Kpi label="Shipping collected" value={formatINR(summary.shippingCollectedPaise)} />
             <Kpi label="Discounts given" value={formatINR(summary.discountGivenPaise)} />
+            <Kpi label="Razorpay fees" value={formatINR(summary.feesPaise)} />
+            <Kpi
+              label="Cost of goods"
+              value={formatINR(summary.cogsPaise)}
+              hint={summary.cogsPaise === 0 ? "set book costs in inventory" : undefined}
+            />
+            <Kpi label="Net profit" value={formatINR(summary.netProfitPaise)} hint="net − fees − COGS" />
           </div>
 
           {/* Revenue chart */}
