@@ -69,7 +69,9 @@ export function SalesReport() {
   }, [period, granularity]);
 
   const { from, to } = rangeFor(period);
-  const csvHref = `/api/admin/orders.csv?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  const q = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  const csvHref = `/api/admin/orders.csv?${q}`;
+  const xlsxHref = `/api/admin/orders.xlsx?${q}`;
 
   return (
     <Stack gap={6}>
@@ -91,12 +93,20 @@ export function SalesReport() {
             </button>
           ))}
         </Row>
-        <Button asChild variant="outline" size="sm">
-          <a href={csvHref} target="_blank" rel="noopener noreferrer">
-            <Download className="size-4" aria-hidden="true" />
-            Download CSV
-          </a>
-        </Button>
+        <Row gap={2}>
+          <Button asChild variant="outline" size="sm">
+            <a href={csvHref} target="_blank" rel="noopener noreferrer">
+              <Download className="size-4" aria-hidden="true" />
+              CSV
+            </a>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <a href={xlsxHref} target="_blank" rel="noopener noreferrer">
+              <Download className="size-4" aria-hidden="true" />
+              Excel
+            </a>
+          </Button>
+        </Row>
       </Row>
 
       {pending && !summary ? (
