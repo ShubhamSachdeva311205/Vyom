@@ -15,6 +15,7 @@ import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
 import { AddToCartButton } from "@/components/features/store/add-to-cart-button";
 import { FeedbackForm } from "@/components/features/feedback/feedback-form";
+import { NotifyMeForm } from "@/components/features/store/notify-me-form";
 import { ProductReviews } from "@/components/features/store/product-reviews";
 import { ViewSampleButton } from "@/components/features/store/view-sample-button";
 import { getBookBySlug } from "@/lib/queries/books";
@@ -141,6 +142,13 @@ export default async function BookDetailPage({ params }: PageProps) {
                   <ViewSampleButton bookId={book.id} bookTitle={book.title} />
                 ) : null}
               </Row>
+
+              {/* Back-in-stock notify (#98) */}
+              {soldOut ? (
+                <div className="max-w-md">
+                  <NotifyMeForm bookId={book.id} />
+                </div>
+              ) : null}
 
               {/* Discount eligibility */}
               {book.discount_eligible ? (

@@ -909,6 +909,48 @@ export type Database = {
           },
         ]
       }
+      stock_notifications: {
+        Row: {
+          book_id: string
+          created_at: string
+          email: string
+          id: string
+          notified_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          email: string
+          id?: string
+          notified_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          notified_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_notifications_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
