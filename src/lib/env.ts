@@ -58,6 +58,11 @@ const envSchema = z.object({
   SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: z.string().optional(),
   SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: z.string().optional(),
 
+  // ---- Cloudinary (community image/video uploads) — public, unsigned preset.
+  // The browser uploads directly to Cloudinary so media never touches Supabase.
+  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: z.string().optional(),
+
   // ---- Razorpay (Phase 3) ----
   RAZORPAY_KEY_ID: razorpayKeyId,
   RAZORPAY_KEY_SECRET: requiredOnProdDeploy(

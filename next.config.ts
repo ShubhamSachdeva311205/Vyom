@@ -17,9 +17,10 @@ const csp = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: https://res.cloudinary.com",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://*.razorpay.com http://127.0.0.1:54321 ws://127.0.0.1:54321",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://*.razorpay.com https://api.cloudinary.com http://127.0.0.1:54321 ws://127.0.0.1:54321",
   "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com",
   "upgrade-insecure-requests",
 ].join("; ");

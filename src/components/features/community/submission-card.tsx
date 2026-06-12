@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Stack, Row } from "@/components/layouts/stack";
+import { MediaGallery } from "./media-gallery";
 import type { ApprovedSubmission } from "@/lib/queries/community";
 
 const KIND_LABEL: Record<string, string> = {
@@ -30,6 +31,7 @@ export function SubmissionCard({ post }: { post: ApprovedSubmission }) {
           <p className="text-sm text-muted-foreground">by {post.name}</p>
         </Stack>
         <p className="text-body whitespace-pre-wrap">{post.body}</p>
+        <MediaGallery media={post.media} />
       </Stack>
     </Card>
   );

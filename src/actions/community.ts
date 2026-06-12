@@ -11,12 +11,37 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { rateLimit, TOO_MANY_ATTEMPTS } from "@/lib/auth/rate-limit";
-import { SUBMISSION_KINDS, type SubmissionKind } from "@/lib/community/constants";
+import {
+  SUBMISSION_KINDS,
+  type MediaItem,
+  type SubmissionKind,
+} from "@/lib/community/constants";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 type ActionResult<T = undefined> =
   | { success: true; data?: T }
   | { success: false; error: string };
+
+// Only accept media URLs from our own Cloudinary cloud (the browser uploads
+// there directly; we must not store arbitrary attacker-supplied URLs).
+const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "";
+const mediaSchema = z
+  .array(
+    z.object({
+      url: z
+        .string()
+        .url()
+        .refine(
+          (u) => u.startsWith(`https://res.cloudinary.com/${CLOUD}/`),
+          "Unexpected media host",
+        ),
+      kind: z.enum(["image", "video"]),
+      publicId: z.string().max(300),
+    }),
+  )
+  .max(5)
+  .optional()
+  .default([]);
 
 const submitSchema = z.object({
   name: z.string().trim().min(1, "Your name is required").max(120),
@@ -24,6 +49,7 @@ const submitSchema = z.object({
   kind: z.enum(SUBMISSION_KINDS),
   title: z.string().trim().min(1, "A title is required").max(200),
   body: z.string().trim().min(20, "Please write a little more (20+ characters)").max(20000),
+  media: mediaSchema,
 });
 
 export async function submitCommunityPost(
@@ -50,6 +76,7 @@ export async function submitCommunityPost(
     kind: parsed.data.kind,
     title: parsed.data.title,
     body: parsed.data.body,
+    media: parsed.data.media,
     status: "pending",
   });
   if (error) {
@@ -81,6 +108,7 @@ export interface PendingSubmission {
   kind: SubmissionKind;
   title: string;
   body: string;
+  media: MediaItem[];
   status: "pending" | "approved" | "rejected";
   createdAt: string;
 }
@@ -93,7 +121,7 @@ export async function listSubmissions(
   const service = createServiceClient();
   const { data, error } = await service
     .from("content_submissions")
-    .select("id, submitter_name, submitter_email, kind, title, body, status, created_at")
+    .select("id, submitter_name, submitter_email, kind, title, body, media, status, created_at")
     .eq("status", status)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -110,6 +138,7 @@ export async function listSubmissions(
       kind: r.kind as SubmissionKind,
       title: r.title,
       body: r.body,
+      media: (r.media as MediaItem[] | null) ?? [],
       status: r.status as PendingSubmission["status"],
       createdAt: r.created_at,
     })),

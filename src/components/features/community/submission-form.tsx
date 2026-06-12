@@ -4,7 +4,12 @@ import { useState, useTransition } from "react";
 import { Loader2, PenLine } from "lucide-react";
 import { toast } from "sonner";
 import { submitCommunityPost } from "@/actions/community";
-import { SUBMISSION_KINDS, type SubmissionKind } from "@/lib/community/constants";
+import { MediaUploader } from "@/components/features/community/media-uploader";
+import {
+  SUBMISSION_KINDS,
+  type MediaItem,
+  type SubmissionKind,
+} from "@/lib/community/constants";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
@@ -27,9 +32,21 @@ const KIND_LABELS: Record<SubmissionKind, string> = {
   other: "Something else",
 };
 
-export function SubmissionForm() {
+export function SubmissionForm({
+  onSuccess,
+  bare = false,
+}: { onSuccess?: () => void; bare?: boolean } = {}) {
+  // `bare` drops the outer card + header (used inside the FAB dialog, which
+  // already provides chrome + a title).
+  const wrap = (children: React.ReactNode) =>
+    bare ? <>{children}</> : (
+      <Card variant="surface" padding="lg">
+        {children}
+      </Card>
+    );
   const [pending, startTransition] = useTransition();
   const [kind, setKind] = useState<SubmissionKind>("poem");
+  const [media, setMedia] = useState<MediaItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -43,6 +60,7 @@ export function SubmissionForm() {
       kind,
       title: String(fd.get("title") ?? ""),
       body: String(fd.get("body") ?? ""),
+      media,
     };
     startTransition(async () => {
       const res = await submitCommunityPost(payload);
@@ -53,33 +71,32 @@ export function SubmissionForm() {
       }
       setSubmitted(true);
       toast.success("Thanks! Your piece is in the moderation queue.");
+      onSuccess?.();
     });
   }
 
   if (submitted) {
-    return (
-      <Card variant="surface" padding="lg">
-        <Stack gap={2}>
-          <span className="text-eyebrow">Submitted</span>
-          <h3 className="text-title">Thank you for sharing ✨</h3>
-          <p className="text-body text-muted-foreground">
-            Your piece is in the moderation queue. Approved work appears in the
-            Creative Corner feed, usually within 48 hours.
-          </p>
-          <div>
-            <Button variant="outline" size="sm" onClick={() => setSubmitted(false)}>
-              Submit another
-            </Button>
-          </div>
-        </Stack>
-      </Card>
+    return wrap(
+      <Stack gap={2}>
+        <span className="text-eyebrow">Submitted</span>
+        <h3 className="text-title">Thank you for sharing ✨</h3>
+        <p className="text-body text-muted-foreground">
+          Your piece is in the moderation queue. Approved work appears in the
+          Creative Corner feed, usually within 48 hours.
+        </p>
+        <div>
+          <Button variant="outline" size="sm" onClick={() => setSubmitted(false)}>
+            Submit another
+          </Button>
+        </div>
+      </Stack>,
     );
   }
 
-  return (
-    <Card variant="surface" padding="lg">
-      <form onSubmit={handleSubmit} noValidate>
-        <Stack gap={4}>
+  return wrap(
+    <form onSubmit={handleSubmit} noValidate>
+      <Stack gap={4}>
+        {!bare && (
           <Stack gap={1}>
             <span className="text-eyebrow">Creative Corner</span>
             <h3 className="text-title">Share your writing</h3>
@@ -88,6 +105,7 @@ export function SubmissionForm() {
               every piece before it goes live.
             </p>
           </Stack>
+        )}
 
           <Row gap={3} className="flex-col sm:flex-row">
             <FormField label="Your name" required className="flex-1">
@@ -127,6 +145,11 @@ export function SubmissionForm() {
             <Textarea name="body" rows={8} maxLength={20000} required placeholder="Write or paste your poem, story, or drama here…" />
           </FormField>
 
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Photos / videos</span>
+            <MediaUploader value={media} onChange={setMedia} disabled={pending} />
+          </div>
+
           <Row gap={3} align="center" justify="between" className="flex-wrap">
             <p className="text-xs text-muted-foreground">
               By submitting you agree it can be shown publicly in the Creative Corner.
@@ -141,7 +164,6 @@ export function SubmissionForm() {
             </Button>
           </Row>
         </Stack>
-      </form>
-    </Card>
+      </form>,
   );
 }

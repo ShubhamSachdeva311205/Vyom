@@ -5,3 +5,12 @@
 
 export const SUBMISSION_KINDS = ["poem", "story", "drama", "essay", "other"] as const;
 export type SubmissionKind = (typeof SUBMISSION_KINDS)[number];
+
+// Community media attachments (Cloudinary). Stored on content_submissions.media.
+export const MAX_MEDIA = 5;
+export const MAX_MEDIA_BYTES = 5 * 1024 * 1024; // 5 MB per file
+export interface MediaItem {
+  url: string;
+  kind: "image" | "video";
+  publicId: string;
+}

@@ -1,3 +1,4 @@
+import type { MediaItem } from "@/lib/community/constants";
 import { createClient } from "@/lib/supabase/server";
 
 export interface ApprovedSubmission {
@@ -6,6 +7,7 @@ export interface ApprovedSubmission {
   kind: string;
   title: string;
   body: string;
+  media: MediaItem[];
   createdAt: string;
 }
 
@@ -19,7 +21,7 @@ export async function getApprovedSubmissions(): Promise<ApprovedSubmission[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("content_submissions")
-    .select("id, submitter_name, kind, title, body, created_at")
+    .select("id, submitter_name, kind, title, body, media, created_at")
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(50);
@@ -29,6 +31,7 @@ export async function getApprovedSubmissions(): Promise<ApprovedSubmission[]> {
     kind: r.kind,
     title: r.title,
     body: r.body,
+    media: (r.media as MediaItem[] | null) ?? [],
     createdAt: r.created_at,
   }));
 }

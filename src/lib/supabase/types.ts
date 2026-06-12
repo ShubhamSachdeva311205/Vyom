@@ -484,6 +484,7 @@ export type Database = {
           created_at: string
           id: string
           kind: Database["public"]["Enums"]["submission_kind"]
+          media: Json
           moderated_at: string | null
           moderated_by: string | null
           moderator_notes: string | null
@@ -499,6 +500,7 @@ export type Database = {
           created_at?: string
           id?: string
           kind: Database["public"]["Enums"]["submission_kind"]
+          media?: Json
           moderated_at?: string | null
           moderated_by?: string | null
           moderator_notes?: string | null
@@ -514,6 +516,7 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["submission_kind"]
+          media?: Json
           moderated_at?: string | null
           moderated_by?: string | null
           moderator_notes?: string | null

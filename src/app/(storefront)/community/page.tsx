@@ -1,6 +1,5 @@
+import { CommunitySubmitFab } from "@/components/features/community/community-submit-fab";
 import { SubmissionCard } from "@/components/features/community/submission-card";
-import { SubmissionForm } from "@/components/features/community/submission-form";
-import { FeedbackForm } from "@/components/features/feedback/feedback-form";
 import { Card } from "@/components/ui/card";
 import { Mascot } from "@/components/ui/mascot";
 import { Container } from "@/components/layouts/container";
@@ -10,7 +9,7 @@ import { getApprovedSubmissions } from "@/lib/queries/community";
 
 export const metadata = {
   title: "Community",
-  description: "Student writing and feedback for Advaita.",
+  description: "Student writing from the Advaita Creative Corner.",
 };
 
 export default async function CommunityPage() {
@@ -19,63 +18,45 @@ export default async function CommunityPage() {
   return (
     <Section spacing="default">
       <Container>
-        <Stack gap={10}>
+        <Stack gap={8}>
           <Stack gap={3}>
-            <span className="text-eyebrow">Community</span>
-            <h1 className="text-display">Share. Read. Reply.</h1>
+            <span className="text-eyebrow">Creative Corner</span>
+            <h1 className="text-display">Read. Get inspired.</h1>
             <p className="text-body-lg text-muted-foreground max-w-2xl">
-              The Creative Corner is for student poems, stories, and dramas.
-              Submit your own — no account required — and read what others have
-              shared. Every piece is reviewed by a human before it appears.
+              Student poems, stories, and dramas. Read what others have shared —
+              and tap the <span className="font-medium text-foreground">+</span>{" "}
+              button to add your own. Every piece is reviewed by a human before it
+              appears.
             </p>
           </Stack>
 
-          <SubmissionForm />
-
-          <Stack gap={4}>
-            <Row gap={3} align="center" justify="between">
-              <h2 className="text-title">From the Creative Corner</h2>
-            </Row>
-
-            {posts.length === 0 ? (
-              <Card variant="flat" padding="lg">
-                <Row gap={4} align="center" justify="between" className="flex-wrap">
-                  <Stack gap={1}>
-                    <h3 className="text-title">Nothing published yet</h3>
-                    <p className="text-body text-muted-foreground max-w-md">
-                      The feed is waiting for its first piece. Share a poem, a
-                      story, or a short drama above — once it&rsquo;s approved
-                      it&rsquo;ll appear right here.
-                    </p>
-                  </Stack>
-                  <Mascot name="wisp" size="md" hideCoupon />
-                </Row>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {posts.map((post) => (
-                  <SubmissionCard key={post.id} post={post} />
-                ))}
-              </div>
-            )}
-          </Stack>
-
-          {/* The Feedback line — general (no book), straight to admin */}
-          <Stack gap={3}>
-            <Stack gap={1}>
-              <span className="text-eyebrow">Feedback line</span>
-              <h2 className="text-title">Tell us anything</h2>
-              <p className="text-body text-muted-foreground max-w-2xl">
-                Not about a specific book? Share a thought, a request, or a bug.
-                It goes straight to us — anonymous welcome.
-              </p>
-            </Stack>
-            <div className="max-w-2xl">
-              <FeedbackForm title="Send us a note" />
+          {posts.length === 0 ? (
+            <Card variant="flat" padding="lg">
+              <Row gap={4} align="center" justify="between" className="flex-wrap">
+                <Stack gap={1}>
+                  <h3 className="text-title">Nothing published yet</h3>
+                  <p className="text-body text-muted-foreground max-w-md">
+                    The feed is waiting for its first piece. Tap the{" "}
+                    <span className="font-medium text-foreground">+</span> button
+                    to share a poem, a story, or a short drama — once it&rsquo;s
+                    approved it&rsquo;ll appear right here.
+                  </p>
+                </Stack>
+                <Mascot name="wisp" size="md" hideCoupon />
+              </Row>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {posts.map((post) => (
+                <SubmissionCard key={post.id} post={post} />
+              ))}
             </div>
-          </Stack>
+          )}
         </Stack>
       </Container>
+
+      {/* Floating "+" to open the submission form */}
+      <CommunitySubmitFab />
     </Section>
   );
 }

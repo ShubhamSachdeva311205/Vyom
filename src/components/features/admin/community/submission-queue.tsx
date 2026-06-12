@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { moderateSubmission, type PendingSubmission } from "@/actions/community";
+import { MediaGallery } from "@/components/features/community/media-gallery";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -67,6 +68,7 @@ export function SubmissionQueue({ initial }: { initial: PendingSubmission[] }) {
               {s.name} · {s.email}
             </p>
             <p className="text-body whitespace-pre-wrap max-h-60 overflow-y-auto">{s.body}</p>
+            <MediaGallery media={s.media} />
             <Row gap={2}>
               <Button
                 size="sm"
