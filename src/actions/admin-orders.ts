@@ -27,6 +27,7 @@ import {
   createOrder as createShiprocketOrder,
 } from "@/lib/shiprocket/client";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { countAbandonedOrders, sweepAbandonedOrders } from "@/lib/orders/abandoned";
 import type { Tables } from "@/lib/supabase/types";
 
 type ActionResult<T = undefined> =
@@ -545,5 +546,34 @@ export async function getOrderStatusCounts(): Promise<ActionResult<StatusCounts>
     counts[s] = perStatus[i].count ?? 0;
   });
   return { success: true, data: counts };
+}
+
+/* ============================================================
+ * Abandoned checkouts (#84) — count + bulk clear.
+ *
+ * `pending_payment` rows older than Razorpay's TTL are dead weight.
+ * The cron at /api/cron/cancel-abandoned sweeps them automatically;
+ * these give Mom a manual count + "Clear now" button as a backstop.
+ * ============================================================ */
+export async function getAbandonedCount(): Promise<ActionResult<{ count: number }>> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { success: false, error: gate.error };
+  const count = await countAbandonedOrders(createServiceClient());
+  return { success: true, data: { count } };
+}
+
+export async function clearAbandonedOrders(): Promise<ActionResult<{ cancelled: number }>> {
+  const gate = await assertAdmin();
+  if (!gate.ok) return { success: false, error: gate.error };
+  try {
+    const { cancelled } = await sweepAbandonedOrders(createServiceClient());
+    revalidatePath("/admin/orders");
+    return { success: true, data: { cancelled } };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Could not clear abandoned orders.",
+    };
+  }
 }
 

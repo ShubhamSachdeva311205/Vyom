@@ -8,7 +8,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { OrdersFilters } from "@/components/features/admin/orders-filters";
 import { OrderStatusBadge } from "@/components/features/admin/order-status-badge";
-import { getOrderStatusCounts, listOrders } from "@/actions/admin-orders";
+import { AbandonedBanner } from "@/components/features/admin/abandoned-banner";
+import { getAbandonedCount, getOrderStatusCounts, listOrders } from "@/actions/admin-orders";
 import { ORDER_STATUS_VALUES, type OrderStatusV2 } from "@/lib/orders/labels";
 import { formatINR } from "@/lib/format";
 
@@ -46,7 +47,7 @@ export default async function AdminOrdersPage({
   const to = sp.to ?? "";
   const page = Math.max(1, Number(sp.page ?? 1));
 
-  const [listResult, countsResult] = await Promise.all([
+  const [listResult, countsResult, abandonedResult] = await Promise.all([
     listOrders({
       status,
       search: q || undefined,
@@ -55,9 +56,11 @@ export default async function AdminOrdersPage({
       page,
     }),
     getOrderStatusCounts(),
+    getAbandonedCount(),
   ]);
 
   const counts = countsResult.success ? countsResult.data ?? null : null;
+  const abandonedCount = abandonedResult.success ? abandonedResult.data?.count ?? 0 : 0;
   const filtersActive = Boolean(status || q || from || to);
 
   return (
@@ -71,6 +74,8 @@ export default async function AdminOrdersPage({
               Every order Mom needs to pack, ship, or follow up on.
             </p>
           </Stack>
+
+          <AbandonedBanner initialCount={abandonedCount} />
 
           <OrdersFilters
             counts={counts}
