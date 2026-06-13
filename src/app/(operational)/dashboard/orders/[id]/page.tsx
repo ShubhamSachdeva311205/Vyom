@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
+import { OrderTrackingTimeline } from "@/components/features/store/order-tracking-timeline";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { formatINR } from "@/lib/format";
 
@@ -76,17 +77,14 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
     phone?: string | null;
   } | null;
 
-  const timeline = [
-    { label: "Paid", at: fmtDateTime(order.paid_at) },
-    { label: "Packed", at: fmtDateTime(order.packed_at) },
-    { label: "Shipped", at: fmtDateTime(order.shipped_at) },
-    {
-      label: "Delivered",
-      at: fmtDateTime((order as unknown as { delivered_at: string | null }).delivered_at),
-    },
-  ];
-  const trackingUrl = (order as unknown as { tracking_url: string | null }).tracking_url;
-  const refunded = (order as unknown as { refunded_paise: number | null }).refunded_paise ?? 0;
+  const o = order as unknown as {
+    delivered_at: string | null;
+    on_hold_at: string | null;
+    tracking_number: string | null;
+    courier_name: string | null;
+    refunded_paise: number | null;
+  };
+  const refunded = o.refunded_paise ?? 0;
 
   return (
     <Section spacing="default">
@@ -111,13 +109,6 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
                 </Row>
               </Stack>
               <Row gap={2}>
-                {trackingUrl ? (
-                  <Button asChild variant="outline" size="md">
-                    <a href={trackingUrl} target="_blank" rel="noopener noreferrer">
-                      Track shipment
-                    </a>
-                  </Button>
-                ) : null}
                 <Button asChild variant="outline" size="md">
                   <a
                     href={`/api/orders/${order.id}/invoice.pdf`}
@@ -231,21 +222,16 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
             {/* Timeline */}
             <div className="space-y-4">
               <Card variant="surface" padding="lg">
-                <Stack gap={3}>
-                  <span className="text-eyebrow">Status</span>
-                  <ol className="flex flex-col gap-2 text-sm">
-                    {timeline.map((step) => (
-                      <li key={step.label} className="flex items-baseline justify-between gap-3">
-                        <span className={step.at ? "text-foreground font-medium" : "text-muted-foreground"}>
-                          {step.label}
-                        </span>
-                        <span className="text-caption text-muted-foreground tabular-nums text-right">
-                          {step.at ?? "—"}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </Stack>
+                <OrderTrackingTimeline
+                  status={order.status}
+                  paidAt={order.paid_at}
+                  packedAt={order.packed_at}
+                  shippedAt={order.shipped_at}
+                  deliveredAt={o.delivered_at}
+                  onHoldAt={o.on_hold_at}
+                  trackingNumber={o.tracking_number}
+                  courierName={o.courier_name}
+                />
               </Card>
 
               <Card variant="surface" padding="lg">

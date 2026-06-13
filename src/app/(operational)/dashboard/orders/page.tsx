@@ -46,7 +46,7 @@ export default async function MyOrdersPage() {
   const service = createServiceClient();
   const { data: orders } = await service
     .from("orders")
-    .select("id, order_number, status, total_paise, created_at, tracking_url")
+    .select("id, order_number, status, total_paise, created_at, tracking_number")
     .eq("user_id", user.id)
     .neq("status", "pending_payment") // hide abandoned checkouts
     .order("created_at", { ascending: false });
@@ -90,7 +90,9 @@ export default async function MyOrdersPage() {
               {orders.map((o) => {
                 const s = STATUS[o.status] ?? { label: o.status, variant: "outline" as Variant };
                 const qty = counts.get(o.id) ?? 0;
-                const trackingUrl = (o as unknown as { tracking_url: string | null }).tracking_url;
+                const hasTracking = Boolean(
+                  (o as unknown as { tracking_number: string | null }).tracking_number,
+                );
                 return (
                   <li key={o.id}>
                     <Card variant="surface" padding="lg">
@@ -111,11 +113,9 @@ export default async function MyOrdersPage() {
                           </span>
                         </Stack>
                         <Row gap={2} className="flex-wrap">
-                          {trackingUrl ? (
+                          {hasTracking ? (
                             <Button asChild variant="outline" size="sm">
-                              <a href={trackingUrl} target="_blank" rel="noopener noreferrer">
-                                Track
-                              </a>
+                              <Link href={`/dashboard/orders/${o.id}`}>Track</Link>
                             </Button>
                           ) : null}
                           <Button asChild variant="outline" size="sm">

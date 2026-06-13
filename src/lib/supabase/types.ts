@@ -970,6 +970,7 @@ export type Database = {
       users: {
         Row: {
           created_at: string
+          default_shipping_address: Json | null
           email: string
           email_verified_at: string | null
           full_name: string | null
@@ -979,6 +980,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_shipping_address?: Json | null
           email: string
           email_verified_at?: string | null
           full_name?: string | null
@@ -988,6 +990,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_shipping_address?: Json | null
           email?: string
           email_verified_at?: string | null
           full_name?: string | null

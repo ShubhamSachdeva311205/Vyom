@@ -59,6 +59,8 @@ interface CheckoutFormProps {
   razorpayKeyId: string;
   userEmail: string;
   userName: string;
+  /** Address saved on the profile last time (#93), for pre-filling. */
+  savedAddress?: Record<string, string> | null;
 }
 
 interface PreviewSnapshot {
@@ -74,17 +76,19 @@ export function CheckoutForm({
   razorpayKeyId,
   userEmail,
   userName,
+  savedAddress,
 }: CheckoutFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [scriptReady, setScriptReady] = useState(false);
   const [paying, setPaying] = useState(false);
   const [couponCode, setCouponCode] = useState("");
-  const [pincode, setPincode] = useState("");
+  // Controlled address fields seed from the saved profile address (#93).
+  const [pincode, setPincode] = useState(savedAddress?.pincode ?? "");
   // City + State are controlled so a pincode lookup can auto-fill them
   // (#117). The customer can still edit them by hand.
-  const [city, setCity] = useState("");
-  const [stateName, setStateName] = useState("");
+  const [city, setCity] = useState(savedAddress?.city ?? "");
+  const [stateName, setStateName] = useState(savedAddress?.state ?? "");
   const [pincodeResolving, setPincodeResolving] = useState(false);
   // Name + phone are uncontrolled (plain inputs with `required`)
   // so browser autofill works without React's controlled-state bug
@@ -341,6 +345,7 @@ export function CheckoutForm({
                         autoComplete="name"
                         placeholder="Your name"
                         maxLength={120}
+                        defaultValue={savedAddress?.name ?? ""}
                         aria-invalid={Boolean(fieldErrors.fullName)}
                         onInput={() =>
                           fieldErrors.fullName &&
@@ -363,6 +368,7 @@ export function CheckoutForm({
                         autoComplete="tel-national"
                         placeholder="9876543210"
                         maxLength={10}
+                        defaultValue={savedAddress?.phone ?? ""}
                         aria-invalid={Boolean(fieldErrors.phone)}
                         onInput={() =>
                           fieldErrors.phone &&
@@ -387,6 +393,7 @@ export function CheckoutForm({
                     autoComplete="address-line1"
                     placeholder="Flat / House no., Building, Street"
                     maxLength={160}
+                    defaultValue={savedAddress?.line1 ?? ""}
                   />
                 </FormField>
 
@@ -396,6 +403,7 @@ export function CheckoutForm({
                     autoComplete="address-line2"
                     placeholder="Landmark, Area"
                     maxLength={160}
+                    defaultValue={savedAddress?.line2 ?? ""}
                   />
                 </FormField>
 
@@ -443,6 +451,16 @@ export function CheckoutForm({
                     />
                   </FormField>
                 </div>
+
+                <label className="flex items-center gap-2 text-caption text-muted-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    name="saveAddress"
+                    defaultChecked
+                    className="size-4 rounded border-border accent-brand"
+                  />
+                  Save this address for next time
+                </label>
               </Stack>
             </div>
 

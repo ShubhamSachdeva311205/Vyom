@@ -65,6 +65,15 @@ export default async function CheckoutPage() {
 
   const razorpayKeyId = getPublicRazorpayKeyId();
 
+  // Pre-fill from the address the customer saved last time (#93).
+  const { data: profile } = await supabase
+    .from("users")
+    .select("default_shipping_address")
+    .eq("id", user.id)
+    .maybeSingle();
+  const savedAddress =
+    (profile?.default_shipping_address as Record<string, string> | null) ?? null;
+
   return (
     <Section spacing="default">
       <Container size="form">
@@ -115,6 +124,7 @@ export default async function CheckoutPage() {
               razorpayKeyId={razorpayKeyId}
               userEmail={user.email ?? ""}
               userName={(user.user_metadata?.full_name as string) ?? ""}
+              savedAddress={savedAddress}
             />
           ) : (
             <Card variant="surface" padding="lg">

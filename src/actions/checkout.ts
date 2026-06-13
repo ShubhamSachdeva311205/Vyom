@@ -502,6 +502,15 @@ export async function createRazorpayOrder(
     return { success: false, error: "Could not open an order. Try again." };
   }
 
+  // 4b. Remember this address on the profile for next-time pre-fill (#93)
+  //     when the customer ticked "save". Best-effort — never blocks checkout.
+  if (formData.get("saveAddress")?.toString() === "on") {
+    await service
+      .from("users")
+      .update({ default_shipping_address: shippingAddressJson } as never)
+      .eq("id", user.id);
+  }
+
   // 5. Snapshot order items.
   const itemRows = cartWithItems.items.map((it) => ({
     order_id: orderRow.id,
