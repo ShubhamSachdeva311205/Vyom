@@ -14,7 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Stack } from "@/components/layouts/stack";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Stack, Row } from "@/components/layouts/stack";
 
 // Reuse the canvas PDF viewer (no download / no text select) for PDF samples.
 const PdfCanvasViewer = dynamic(
@@ -115,47 +122,85 @@ export function ViewSampleButton({
             </div>
           ) : (
             <Stack gap={4}>
-              {samples.map((s) =>
-                s.kind === "pdf" ? (
-                  <PdfCanvasViewer
-                    key={s.id}
-                    src={`/api/sample?id=${s.id}`}
-                    title="sample"
-                  />
-                ) : s.kind === "audio" ? (
-                  <div
-                    key={s.id}
-                    className="rounded-md border border-border bg-muted/30 p-4"
-                  >
-                    <p className="text-caption text-muted-foreground mb-2">
-                      Listening sample
-                    </p>
-                    <audio
-                      controls
-                      controlsList="nodownload"
-                      preload="metadata"
-                      className="w-full"
-                      onContextMenu={(e) => e.preventDefault()}
+              {/* PDF + image samples render inline in order. */}
+              {samples
+                .filter((s) => s.kind !== "audio")
+                .map((s) =>
+                  s.kind === "pdf" ? (
+                    <PdfCanvasViewer
+                      key={s.id}
                       src={`/api/sample?id=${s.id}`}
-                    >
-                      Your browser doesn&rsquo;t support audio playback.
-                    </audio>
-                  </div>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={s.id}
-                    src={`/api/sample?id=${s.id}`}
-                    alt="Sample page"
-                    className="w-full rounded-md border border-border"
-                    onContextMenu={(e) => e.preventDefault()}
-                  />
-                ),
-              )}
+                      title="sample"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={s.id}
+                      src={`/api/sample?id=${s.id}`}
+                      alt="Sample page"
+                      className="w-full rounded-md border border-border"
+                      onContextMenu={(e) => e.preventDefault()}
+                    />
+                  ),
+                )}
+
+              {/* Audio samples share one player; a selector appears only
+                  when a book has more than one clip. */}
+              {samples.some((s) => s.kind === "audio") ? (
+                <AudioSamples samples={samples.filter((s) => s.kind === "audio")} />
+              ) : null}
             </Stack>
           )}
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/**
+ * Listening samples. A book usually has one, in which case we just show the
+ * player. When it has several, a "Sample 1 / 2 / 3…" dropdown lets the
+ * visitor pick which clip to preview (samples come back in sort order).
+ * Switching clips swaps the source but never auto-plays — the visitor stays
+ * in control of when sound starts.
+ */
+function AudioSamples({ samples }: { samples: SampleItem[] }) {
+  const [activeId, setActiveId] = useState(samples[0]?.id ?? "");
+  const multiple = samples.length > 1;
+
+  return (
+    <div className="rounded-md border border-border bg-muted/30 p-4">
+      <Row gap={2} align="center" justify="between" className="mb-2 flex-wrap">
+        <p className="text-caption text-muted-foreground">
+          {multiple ? "Listening samples" : "Listening sample"}
+        </p>
+        {multiple ? (
+          <Select value={activeId} onValueChange={setActiveId}>
+            <SelectTrigger className="h-8 w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {samples.map((s, i) => (
+                <SelectItem key={s.id} value={s.id}>
+                  Sample {i + 1}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+      </Row>
+      <audio
+        // Remount on switch so the element loads the newly selected clip.
+        key={activeId}
+        controls
+        controlsList="nodownload"
+        preload="metadata"
+        className="w-full"
+        onContextMenu={(e) => e.preventDefault()}
+        src={`/api/sample?id=${activeId}`}
+      >
+        Your browser doesn&rsquo;t support audio playback.
+      </audio>
+    </div>
   );
 }
