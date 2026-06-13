@@ -28,6 +28,7 @@ import {
 } from "@/lib/shiprocket/client";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { countAbandonedOrders, sweepAbandonedOrders } from "@/lib/orders/abandoned";
+import { sendShippedEmail } from "@/lib/email/shipped";
 import type { Tables } from "@/lib/supabase/types";
 
 type ActionResult<T = undefined> =
@@ -239,7 +240,7 @@ const updateStatusInput = z.object({
 
 export async function updateOrderStatus(
   input: z.input<typeof updateStatusInput>,
-): Promise<ActionResult<{ id: string; status: OrderStatusV2 }>> {
+): Promise<ActionResult<{ id: string; status: OrderStatusV2; shiprocket?: ShiprocketAutoResult }>> {
   const parsed = updateStatusInput.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -267,10 +268,27 @@ export async function updateOrderStatus(
   // an AWB. Best-effort — if Shiprocket is down, the status flip
   // still succeeds and Mom can fall back to creating the shipment in
   // the Shiprocket panel by hand. Errors are logged, not surfaced.
+  // Mark-as-Packed → create the Shiprocket shipment + assign an AWB.
+  // Awaited (not fire-and-forget) so a serverless freeze can't drop it (#88),
+  // and the result is returned so the UI can tell Mom what happened (#92).
+  let shiprocket: ShiprocketAutoResult | undefined;
   if (parsed.data.newStatus === "packed") {
-    void autoCreateShiprocketOrder(parsed.data.orderId).catch((err) => {
-      console.error("[admin-orders] Shiprocket auto-create failed:", err);
-    });
+    try {
+      shiprocket = await autoCreateShiprocketOrder(parsed.data.orderId);
+    } catch (err) {
+      console.error("[admin-orders] Shiprocket auto-create threw:", err);
+      shiprocket = { ok: false, reason: "Couldn't reach Shiprocket. Add tracking manually below." };
+    }
+  }
+
+  // Mark-as-Shipped → email the customer their AWB + tracking link (#89).
+  // Best-effort + idempotent; never blocks the status flip.
+  if (parsed.data.newStatus === "shipped") {
+    try {
+      await sendShippedEmail(parsed.data.orderId);
+    } catch (err) {
+      console.error("[admin-orders] shipped email threw:", err);
+    }
   }
 
   revalidatePath("/admin/orders");
@@ -279,20 +297,32 @@ export async function updateOrderStatus(
   const row = (data as unknown as { id: string; status: OrderStatusV2 } | null) ?? null;
   return {
     success: true,
-    data: { id: row?.id ?? parsed.data.orderId, status: row?.status ?? parsed.data.newStatus },
+    data: {
+      id: row?.id ?? parsed.data.orderId,
+      status: row?.status ?? parsed.data.newStatus,
+      shiprocket,
+    },
   };
 }
 
 /* ============================================================
  * Shiprocket auto-create on Mark-as-Packed.
  *
- * Runs out-of-band (best-effort): looks up the order + items + customer,
- * builds the Shiprocket payload, creates the order, assigns an AWB if
- * one wasn't auto-picked, then patches our orders row with the AWB +
- * courier. If anything fails, logs and returns — Mom can hit the
- * tracking form manually as a fallback.
+ * Awaited by updateOrderStatus on Mark-as-Packed (#88: no longer
+ * fire-and-forget — a serverless freeze after the response used to leave
+ * an order "packed" with no AWB). Looks up the order + items + customer,
+ * builds the Shiprocket payload, creates the order, assigns an AWB if one
+ * wasn't auto-picked, then patches our row with the AWB + courier.
+ *
+ * Returns a structured result (#92) so the caller can tell the admin EXACTLY
+ * why auto-tracking didn't fill in (incomplete address, Shiprocket rejection,
+ * etc.) instead of failing silently. Mom can always add tracking by hand.
  * ============================================================ */
-async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
+type ShiprocketAutoResult =
+  | { ok: true; awb: string; alreadyExisted?: boolean }
+  | { ok: false; reason: string };
+
+async function autoCreateShiprocketOrder(orderId: string): Promise<ShiprocketAutoResult> {
   const service = createServiceClient();
 
   // Bail if this order already has a tracking number (idempotent: don't
@@ -304,13 +334,13 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
     .maybeSingle();
   if (!existing) {
     console.warn("[admin-orders] Shiprocket auto-create skipped — order not found:", orderId);
-    return;
+    return { ok: false, reason: "Order not found." };
   }
   const existingAwb = (existing as unknown as { tracking_number: string | null })
     .tracking_number;
   if (existingAwb) {
     console.info("[admin-orders] Shiprocket auto-create skipped — already has AWB:", existingAwb);
-    return;
+    return { ok: true, awb: existingAwb, alreadyExisted: true };
   }
 
   // Pull line items + book titles.
@@ -320,7 +350,7 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
     .eq("order_id", orderId);
   if (!items || items.length === 0) {
     console.warn("[admin-orders] Shiprocket auto-create skipped — order has no items:", orderId);
-    return;
+    return { ok: false, reason: "Order has no items." };
   }
 
   // Customer email/phone for billing contact.
@@ -342,18 +372,20 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
   };
   const addr = (existing.shipping_address ?? null) as ShipAddress | null;
   if (!addr || !addr.line1 || !addr.city || !addr.pincode || !addr.phone) {
+    const missing = [
+      !addr?.line1 && "address",
+      !addr?.city && "city",
+      !addr?.pincode && "pincode",
+      !addr?.phone && "phone",
+    ].filter(Boolean);
     console.warn(
       "[admin-orders] Shiprocket auto-create skipped — incomplete shipping address.",
-      {
-        orderId,
-        hasAddress: Boolean(addr),
-        hasLine1: Boolean(addr?.line1),
-        hasCity: Boolean(addr?.city),
-        hasPincode: Boolean(addr?.pincode),
-        hasPhone: Boolean(addr?.phone),
-      },
+      { orderId, missing },
     );
-    return;
+    return {
+      ok: false,
+      reason: `Shipping address is incomplete (missing: ${missing.join(", ")}). Add tracking manually below.`,
+    };
   }
 
   // Sum total parcel weight + use the largest book dim for the parcel.
@@ -423,10 +455,10 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
         "body=",
         JSON.stringify(err.body),
       );
-    } else {
-      console.error("[admin-orders] Shiprocket createOrder failed:", err);
+      return { ok: false, reason: `Shiprocket rejected the order: ${err.message}` };
     }
-    return;
+    console.error("[admin-orders] Shiprocket createOrder failed:", err);
+    return { ok: false, reason: "Couldn't reach Shiprocket. Add tracking manually below." };
   }
 
   // If Shiprocket didn't auto-assign an AWB, ask explicitly.
@@ -436,16 +468,19 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
       awbCode = assigned.awbCode;
       courierName = assigned.courierName;
     } catch (err) {
+      const msg = err instanceof ShiprocketError ? err.message : "unknown error";
       console.error(
         "[admin-orders] Shiprocket assignAwb failed — Shipment id:",
         shipmentId,
-        err instanceof ShiprocketError ? err.message : err,
+        msg,
       );
-      return;
+      return { ok: false, reason: `Shiprocket couldn't assign a courier: ${msg}` };
     }
   }
 
-  if (!awbCode) return;
+  if (!awbCode) {
+    return { ok: false, reason: "Shiprocket didn't return an AWB. Add tracking manually below." };
+  }
 
   await service
     .from("orders")
@@ -455,6 +490,8 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<void> {
       tracking_url: `https://shiprocket.co/tracking/${awbCode}`,
     } as never)
     .eq("id", orderId);
+
+  return { ok: true, awb: awbCode };
 }
 
 /* ============================================================

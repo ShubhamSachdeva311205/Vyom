@@ -795,6 +795,7 @@ export type Database = {
           refunded_at: string | null
           refunded_paise: number
           shipped_at: string | null
+          shipped_email_sent_at: string | null
           shipping_address: Json | null
           shipping_paise: number
           shipping_pincode: string | null
@@ -833,6 +834,7 @@ export type Database = {
           refunded_at?: string | null
           refunded_paise?: number
           shipped_at?: string | null
+          shipped_email_sent_at?: string | null
           shipping_address?: Json | null
           shipping_paise?: number
           shipping_pincode?: string | null
@@ -871,6 +873,7 @@ export type Database = {
           refunded_at?: string | null
           refunded_paise?: number
           shipped_at?: string | null
+          shipped_email_sent_at?: string | null
           shipping_address?: Json | null
           shipping_paise?: number
           shipping_pincode?: string | null
@@ -1164,6 +1167,7 @@ export type Database = {
           refunded_at: string | null
           refunded_paise: number
           shipped_at: string | null
+          shipped_email_sent_at: string | null
           shipping_address: Json | null
           shipping_paise: number
           shipping_pincode: string | null
@@ -1215,6 +1219,7 @@ export type Database = {
           refunded_at: string | null
           refunded_paise: number
           shipped_at: string | null
+          shipped_email_sent_at: string | null
           shipping_address: Json | null
           shipping_paise: number
           shipping_pincode: string | null

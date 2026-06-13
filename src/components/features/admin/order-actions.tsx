@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,16 +35,31 @@ export function StatusActions({
   orderId: string;
   currentStatus: OrderStatusV2;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
 
   function flip(next: OrderStatusV2) {
     setError(null);
+    setNotice(null);
     startTransition(async () => {
       const result = await updateOrderStatus({ orderId, newStatus: next });
       if (!result.success) {
         setError(result.error);
+        return;
       }
+      // Surface the Shiprocket auto-tracking outcome on Mark-as-Packed (#92).
+      const ship = result.data?.shiprocket;
+      if (ship) {
+        setNotice(
+          ship.ok
+            ? { kind: "ok", text: `Tracking assigned — AWB ${ship.awb}.` }
+            : { kind: "warn", text: ship.reason },
+        );
+      }
+      // Refresh so the status badge + tracking section reflect the change.
+      router.refresh();
     });
   }
 
@@ -101,6 +117,16 @@ export function StatusActions({
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {notice ? (
+        <p
+          className={cn(
+            "text-sm",
+            notice.kind === "ok" ? "text-success" : "text-amber-600 dark:text-amber-500",
+          )}
+        >
+          {notice.text}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -88,6 +88,9 @@ const envSchema = z.object({
   // Nickname of the pickup address in Mom's Shiprocket dashboard.
   // First-time accounts get one called "Primary" — that's our default.
   SHIPROCKET_PICKUP_LOCATION: z.string().optional().default("Primary"),
+  // Shared secret Shiprocket sends as `x-api-key` on status webhooks (#87).
+  // Set the same value in Shiprocket panel → Settings → API → Webhooks.
+  SHIPROCKET_WEBHOOK_TOKEN: z.string().optional(),
 
   // ---- Cloudflare R2 (Phase 4) ----
   R2_ACCOUNT_ID: z.string().optional(),
