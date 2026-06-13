@@ -106,6 +106,10 @@ function AudioPlaylist({ tracks }: { tracks: { id: string; title: string }[] }) 
   const [active, setActive] = useState(tracks[0]?.id ?? null);
   const [speed, setSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Only auto-start playback after the user explicitly picks a track.
+  // On first render the player loads the first track paused, so opening
+  // the library never blasts audio unprompted.
+  const userPickedRef = useRef(false);
 
   // playbackRate resets when the <audio> loads a new src, so re-apply
   // the chosen speed whenever the track changes or the user picks a speed.
@@ -124,10 +128,12 @@ function AudioPlaylist({ tracks }: { tracks: { id: string; title: string }[] }) 
             onContextMenu={(e) => e.preventDefault()}
             onLoadedMetadata={(e) => {
               e.currentTarget.playbackRate = speed;
+              // Resume playback only when the user switched tracks — never
+              // on the initial mount.
+              if (userPickedRef.current) void e.currentTarget.play();
             }}
             className="w-full"
             src={`/api/stream-audio?track=${active}`}
-            autoPlay
           >
             Your browser doesn&apos;t support audio playback.
           </audio>
@@ -158,7 +164,10 @@ function AudioPlaylist({ tracks }: { tracks: { id: string; title: string }[] }) 
             <li key={t.id}>
               <button
                 type="button"
-                onClick={() => setActive(t.id)}
+                onClick={() => {
+                  userPickedRef.current = true;
+                  setActive(t.id);
+                }}
                 className={
                   "w-full text-left px-3 py-2 flex items-center gap-2 text-sm transition-colors " +
                   (isActive ? "bg-accent/60 font-medium" : "hover:bg-accent/30")

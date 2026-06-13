@@ -29,7 +29,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       variant="ghost"
       size="icon"
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      // Until mounted, resolvedTheme is unknown so the label must match the
+      // server render ("Toggle theme") — otherwise it hydration-mismatches
+      // (server assumes light, client reads the saved dark theme).
+      aria-label={!mounted ? "Toggle theme" : isDark ? "Switch to light theme" : "Switch to dark theme"}
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className={cn("relative", className)}
     >

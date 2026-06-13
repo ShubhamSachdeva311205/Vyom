@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -32,6 +32,13 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
   { key: "all", label: "All time" },
 ];
 
+// Client-only flag (server snapshot = false). The export hrefs below are
+// derived from `new Date()`, which differs between the SSR render and the
+// client, so we only render them after mount to avoid a hydration mismatch.
+const mountSubscribe = () => () => {};
+const getMounted = () => true;
+const getServerMounted = () => false;
+
 function rangeFor(p: PeriodKey): { from: string; to: string } {
   const to = new Date();
   const from = new Date(to);
@@ -48,6 +55,7 @@ export function SalesReport() {
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [series, setSeries] = useState<SalesPoint[] | null>(null);
   const [pending, start] = useTransition();
+  const mounted = useSyncExternalStore(mountSubscribe, getMounted, getServerMounted);
 
   useEffect(() => {
     const { from, to } = rangeFor(period);
@@ -93,20 +101,22 @@ export function SalesReport() {
             </button>
           ))}
         </Row>
-        <Row gap={2}>
-          <Button asChild variant="outline" size="sm">
-            <a href={csvHref} target="_blank" rel="noopener noreferrer">
-              <Download className="size-4" aria-hidden="true" />
-              CSV
-            </a>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <a href={xlsxHref} target="_blank" rel="noopener noreferrer">
-              <Download className="size-4" aria-hidden="true" />
-              Excel
-            </a>
-          </Button>
-        </Row>
+        {mounted ? (
+          <Row gap={2}>
+            <Button asChild variant="outline" size="sm">
+              <a href={csvHref} target="_blank" rel="noopener noreferrer">
+                <Download className="size-4" aria-hidden="true" />
+                CSV
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <a href={xlsxHref} target="_blank" rel="noopener noreferrer">
+                <Download className="size-4" aria-hidden="true" />
+                Excel
+              </a>
+            </Button>
+          </Row>
+        ) : null}
       </Row>
 
       {pending && !summary ? (
