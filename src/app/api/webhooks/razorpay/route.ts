@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { sendOrderConfirmation } from "@/lib/email/order-confirmation";
+import { sendRefundEmail } from "@/lib/email/refund";
 import { env } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -264,6 +265,14 @@ async function handleRefundProcessed(payload: WebhookPayload): Promise<void> {
       refunded_paise: newRefunded,
     } as never)
     .eq("id", order.id);
+
+  // Notify the customer (+ admin copy) that their refund was issued. Reads the
+  // now-updated refunded_paise. Idempotent; no-ops if already sent.
+  try {
+    await sendRefundEmail(order.id);
+  } catch (e) {
+    console.error("[razorpay-webhook] refund email threw:", e);
+  }
 }
 
 /* -----------------------------------------------------------------

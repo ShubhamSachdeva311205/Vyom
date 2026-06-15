@@ -9,6 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { sendFeedbackAlert } from "@/lib/email/feedback-alert";
 import { FEEDBACK_KINDS } from "@/lib/feedback/constants";
 import { rateLimit, TOO_MANY_ATTEMPTS } from "@/lib/auth/rate-limit";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -40,7 +41,12 @@ export async function submitFeedback(
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Generate the id client-side so we can fire the admin alert without an
+  // INSERT...RETURNING (feedback has no SELECT policy for non-admins, so a
+  // `.select()` on the user-scoped client would fail under RLS).
+  const id = crypto.randomUUID();
   const { error } = await supabase.from("feedback").insert({
+    id,
     user_id: user?.id ?? null,
     submitter_name: parsed.data.name || null,
     submitter_email: parsed.data.email || null,
@@ -53,6 +59,10 @@ export async function submitFeedback(
     console.error("[feedback] submit failed:", error.message);
     return { success: false, error: "Could not send your feedback. Please try again." };
   }
+
+  // Best-effort admin alert — never blocks or fails the submission.
+  void sendFeedbackAlert(id).catch(() => {});
+
   return { success: true };
 }
 
