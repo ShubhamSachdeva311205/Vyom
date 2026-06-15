@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getSampleObject } from "@/lib/access/queries";
+import { rateLimit } from "@/lib/auth/rate-limit";
+import { resolveBufferRange } from "@/lib/content/audio-range";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 /**
@@ -46,39 +48,35 @@ export async function GET(req: NextRequest) {
         : blob.type || "image/png";
 
   // Audio needs HTTP Range support so the <audio> element can play/seek
-  // (iOS Safari refuses to play without a 206 on a range request). Samples
-  // are small, so we buffer the whole file and slice the requested range.
+  // (iOS Safari refuses to play without a 206 on a range request). To keep
+  // parity with the protected stream (#119) we never return the whole body
+  // in one response: a no-Range request gets a bounded initial 206 chunk,
+  // every chunk is size-capped, and requests are per-IP rate limited.
   if (sample.kind === "audio") {
+    const limited = await rateLimit("sample-audio", { limit: 240, windowSec: 60 });
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfter) } },
+      );
+    }
+
     const range = req.headers.get("range");
     const total = bytes.length;
-    if (range) {
-      const m = /bytes=(\d*)-(\d*)/.exec(range);
-      const start = m && m[1] ? parseInt(m[1], 10) : 0;
-      const end = m && m[2] ? parseInt(m[2], 10) : total - 1;
-      if (start >= total || start > end) {
-        return new NextResponse(null, {
-          status: 416,
-          headers: { "Content-Range": `bytes */${total}` },
-        });
-      }
-      const chunk = bytes.subarray(start, end + 1);
-      return new NextResponse(chunk, {
-        status: 206,
-        headers: {
-          "Content-Type": contentType,
-          "Content-Length": String(chunk.length),
-          "Content-Range": `bytes ${start}-${end}/${total}`,
-          "Accept-Ranges": "bytes",
-          "Content-Disposition": "inline",
-          "Cache-Control": "private, no-store",
-        },
+    const resolved = resolveBufferRange(range, total);
+    if (resolved === "unsatisfiable") {
+      return new NextResponse(null, {
+        status: 416,
+        headers: { "Content-Range": `bytes */${total}` },
       });
     }
-    return new NextResponse(bytes, {
-      status: 200,
+    const chunk = bytes.subarray(resolved.start, resolved.end + 1);
+    return new NextResponse(chunk, {
+      status: 206,
       headers: {
         "Content-Type": contentType,
-        "Content-Length": String(total),
+        "Content-Length": String(chunk.length),
+        "Content-Range": `bytes ${resolved.start}-${resolved.end}/${total}`,
         "Accept-Ranges": "bytes",
         "Content-Disposition": "inline",
         "Cache-Control": "private, no-store",

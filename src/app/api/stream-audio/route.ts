@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { verifyAudioTrack } from "@/lib/access/queries";
+import { rateLimit } from "@/lib/auth/rate-limit";
+import { boundedR2Range, resolveBufferRange } from "@/lib/content/audio-range";
 import { getR2Object } from "@/lib/r2/client";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
@@ -12,8 +14,11 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
  * local testing before R2 creds are set). Either way the raw object URL
  * never reaches the browser — we proxy the bytes.
  *
- * HTTP Range is forwarded to R2 natively; for the Supabase fallback we
- * slice the buffer ourselves.
+ * Anti-rip (#119): we NEVER return the whole file body in one response.
+ * A no-Range request gets a bounded initial 206 chunk (+ Accept-Ranges)
+ * so the player must seek the rest; every served chunk is size-capped;
+ * and requests are per-IP rate limited so a script can't hammer/rip
+ * rapidly. iOS/Safari keep working — they range-request and accept 206.
  */
 export async function GET(req: NextRequest) {
   const trackId = req.nextUrl.searchParams.get("track");
@@ -34,14 +39,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No access" }, { status: 403 });
   }
 
+  // Per-IP throttle on audio segment requests. Generous enough for normal
+  // playback + seeking (chunks are ≤1 MB), tight enough to stop a scripted
+  // ripper from pulling many files fast.
+  const limited = await rateLimit("stream-audio", { limit: 240, windowSec: 60 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } },
+    );
+  }
+
   const range = req.headers.get("range");
 
-  // R2 path — forward Range, stream straight through.
+  // R2 path — forward a BOUNDED Range so the response is always partial.
   if (track.bucket === "r2") {
     const obj = await getR2Object(
       process.env.R2_AUDIO_BUCKET ?? "",
       track.storageKey,
-      range,
+      boundedR2Range(range),
     );
     if (!obj) {
       return NextResponse.json({ error: "Audio unavailable" }, { status: 404 });
@@ -56,7 +72,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(obj.body, { status: obj.status, headers });
   }
 
-  // Supabase fallback — download + slice for Range.
+  // Supabase fallback — download + slice to a bounded range.
   const service = createServiceClient();
   const { data: blob, error } = await service.storage
     .from("book-audio")
@@ -68,34 +84,21 @@ export async function GET(req: NextRequest) {
   const total = full.length;
   const contentType = blob.type || "audio/mpeg";
 
-  if (range) {
-    const m = /bytes=(\d*)-(\d*)/.exec(range);
-    const start = m && m[1] ? parseInt(m[1], 10) : 0;
-    const end = m && m[2] ? parseInt(m[2], 10) : total - 1;
-    if (start >= total || end >= total || start > end) {
-      return new NextResponse(null, {
-        status: 416,
-        headers: { "Content-Range": `bytes */${total}` },
-      });
-    }
-    const chunk = full.subarray(start, end + 1);
-    return new NextResponse(toStream(chunk), {
-      status: 206,
-      headers: {
-        "Content-Type": contentType,
-        "Content-Length": String(chunk.length),
-        "Content-Range": `bytes ${start}-${end}/${total}`,
-        "Accept-Ranges": "bytes",
-        "Cache-Control": "private, no-store",
-      },
+  const resolved = resolveBufferRange(range, total);
+  if (resolved === "unsatisfiable") {
+    return new NextResponse(null, {
+      status: 416,
+      headers: { "Content-Range": `bytes */${total}` },
     });
   }
 
-  return new NextResponse(toStream(full), {
-    status: 200,
+  const chunk = full.subarray(resolved.start, resolved.end + 1);
+  return new NextResponse(toStream(chunk), {
+    status: 206,
     headers: {
       "Content-Type": contentType,
-      "Content-Length": String(total),
+      "Content-Length": String(chunk.length),
+      "Content-Range": `bytes ${resolved.start}-${resolved.end}/${total}`,
       "Accept-Ranges": "bytes",
       "Cache-Control": "private, no-store",
     },
