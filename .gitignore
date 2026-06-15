@@ -62,3 +62,4 @@ next-env.d.ts
 
 # graphify knowledge-graph artifacts (regenerated locally)
 /graphify-out/
+kling_*.png
