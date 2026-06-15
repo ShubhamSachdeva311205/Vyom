@@ -31,6 +31,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/reports", label: "Reports", icon: LineChart },
+  { href: "/admin/reports/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/access-grants", label: "Access", icon: KeyRound },
   { href: "/admin/community", label: "Community", icon: PenLine },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },

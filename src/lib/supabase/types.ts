@@ -777,6 +777,7 @@ export type Database = {
           courier_name: string | null
           created_at: string
           delivered_at: string | null
+          delivered_email_sent_at: string | null
           discount_paise: number
           id: string
           inventory_decremented_at: string | null
@@ -789,9 +790,11 @@ export type Database = {
           order_number: string
           packed_at: string | null
           paid_at: string | null
+          preferred_courier_id: number | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
           razorpay_signature: string | null
+          refund_email_sent_at: string | null
           refunded_at: string | null
           refunded_paise: number
           shipped_at: string | null
@@ -816,6 +819,7 @@ export type Database = {
           courier_name?: string | null
           created_at?: string
           delivered_at?: string | null
+          delivered_email_sent_at?: string | null
           discount_paise?: number
           id?: string
           inventory_decremented_at?: string | null
@@ -828,9 +832,11 @@ export type Database = {
           order_number: string
           packed_at?: string | null
           paid_at?: string | null
+          preferred_courier_id?: number | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           razorpay_signature?: string | null
+          refund_email_sent_at?: string | null
           refunded_at?: string | null
           refunded_paise?: number
           shipped_at?: string | null
@@ -855,6 +861,7 @@ export type Database = {
           courier_name?: string | null
           created_at?: string
           delivered_at?: string | null
+          delivered_email_sent_at?: string | null
           discount_paise?: number
           id?: string
           inventory_decremented_at?: string | null
@@ -867,9 +874,11 @@ export type Database = {
           order_number?: string
           packed_at?: string | null
           paid_at?: string | null
+          preferred_courier_id?: number | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           razorpay_signature?: string | null
+          refund_email_sent_at?: string | null
           refunded_at?: string | null
           refunded_paise?: number
           shipped_at?: string | null
@@ -1152,6 +1161,7 @@ export type Database = {
           courier_name: string | null
           created_at: string
           delivered_at: string | null
+          delivered_email_sent_at: string | null
           discount_paise: number
           id: string
           inventory_decremented_at: string | null
@@ -1164,9 +1174,11 @@ export type Database = {
           order_number: string
           packed_at: string | null
           paid_at: string | null
+          preferred_courier_id: number | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
           razorpay_signature: string | null
+          refund_email_sent_at: string | null
           refunded_at: string | null
           refunded_paise: number
           shipped_at: string | null
@@ -1204,6 +1216,7 @@ export type Database = {
           courier_name: string | null
           created_at: string
           delivered_at: string | null
+          delivered_email_sent_at: string | null
           discount_paise: number
           id: string
           inventory_decremented_at: string | null
@@ -1216,9 +1229,11 @@ export type Database = {
           order_number: string
           packed_at: string | null
           paid_at: string | null
+          preferred_courier_id: number | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
           razorpay_signature: string | null
+          refund_email_sent_at: string | null
           refunded_at: string | null
           refunded_paise: number
           shipped_at: string | null
