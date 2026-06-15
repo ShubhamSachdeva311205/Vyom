@@ -89,6 +89,9 @@ const verifyInput = z.object({
 const previewInput = z.object({
   couponCode: z.string().regex(COUPON_REGEX).optional().or(z.literal("")),
   pincode: z.string().regex(PINCODE_REGEX).optional().or(z.literal("")),
+  // Customer's chosen Shiprocket courier (#85); re-quotes against it. When
+  // absent we quote the cheapest, as before.
+  courierId: z.coerce.number().int().positive().optional(),
 });
 
 const cancelInput = z.object({
@@ -148,6 +151,15 @@ async function grantDigitalAccessAfterPayment(orderId: string): Promise<void> {
  * and redeems nothing. The actual order create rebuilds these
  * numbers server-side so a tampered client can't underpay.
  * ----------------------------------------------------------------- */
+export interface CourierOption {
+  id: number;
+  name: string;
+  ratePaise: number;
+  etd: string;
+  /** Lowest estimated-delivery option in the list. */
+  fastest: boolean;
+}
+
 export interface CheckoutPreview {
   subtotalPaise: number;
   discountPaise: number;
@@ -158,6 +170,16 @@ export interface CheckoutPreview {
   shippingCourier: string | null;
   shippingEtd: string | null;
   shippingUnserviceable: boolean;
+  /** All serviceable couriers (#85) for the customer to choose from. */
+  couriers: CourierOption[];
+  /** The courier id actually quoted (chosen, or cheapest fallback). */
+  selectedCourierId: number | null;
+}
+
+/** Lowest day in an ETD string like "5-7 days" / "2 days", for the Fastest badge. */
+function etdDays(etd: string | null | undefined): number {
+  const m = /(\d+)/.exec(etd ?? "");
+  return m ? Number(m[1]) : Number.POSITIVE_INFINITY;
 }
 
 export async function previewCheckoutTotals(
@@ -234,10 +256,13 @@ export async function previewCheckoutTotals(
   }
 
   // Shipping quote.
+  const chosenCourierId = parsed.data.courierId ?? null;
   let shippingPaise = 0;
   let shippingCourier: string | null = null;
   let shippingEtd: string | null = null;
   let shippingUnserviceable = false;
+  let couriers: CourierOption[] = [];
+  let selectedCourierId: number | null = null;
   if (pincode) {
     const weightGrams = cartWithItems.items.reduce((sum, it) => {
       const w = (it.book as unknown as { weight_grams?: number }).weight_grams ?? 300;
@@ -245,22 +270,42 @@ export async function previewCheckoutTotals(
     }, 0);
     try {
       const shippingSettings = await getShippingSettings();
-      const { cheapest } = await getServiceability({
+      const { available, cheapest } = await getServiceability({
         deliveryPincode: pincode,
         weightGrams,
         pickupPincode: shippingSettings.pickupPincode,
       });
-      if (cheapest) {
-        const rawPaise = Math.round(cheapest.rate * 100);
-        const { ratePaise, freeApplied } = applyFreeShippingRule(
-          rawPaise,
-          shippingSettings,
-        );
-        shippingPaise = ratePaise;
-        shippingCourier = freeApplied
-          ? `Free (saved ${formatINRForPreview(rawPaise)})`
-          : cheapest.courier_name;
-        shippingEtd = cheapest.etd;
+      const serviceable = available.filter((c) => c.rate > 0);
+      if (serviceable.length > 0) {
+        // Full list for the customer to choose from (#85), cheapest first,
+        // with a "Fastest" flag on the lowest-ETD option(s). Each rate runs
+        // through the free-shipping rule so the displayed price is final.
+        const minDays = Math.min(...serviceable.map((c) => etdDays(c.etd)));
+        couriers = serviceable
+          .slice()
+          .sort((a, b) => a.rate - b.rate)
+          .map((c) => ({
+            id: c.courier_company_id,
+            name: c.courier_name,
+            ratePaise: applyFreeShippingRule(Math.round(c.rate * 100), shippingSettings).ratePaise,
+            etd: c.etd,
+            fastest: etdDays(c.etd) === minDays,
+          }));
+        // Quote the chosen courier if still serviceable, else the cheapest.
+        const chosen =
+          (chosenCourierId
+            ? serviceable.find((c) => c.courier_company_id === chosenCourierId)
+            : null) ?? cheapest;
+        if (chosen) {
+          const rawPaise = Math.round(chosen.rate * 100);
+          const { ratePaise, freeApplied } = applyFreeShippingRule(rawPaise, shippingSettings);
+          shippingPaise = ratePaise;
+          shippingCourier = freeApplied
+            ? `Free (saved ${formatINRForPreview(rawPaise)})`
+            : chosen.courier_name;
+          shippingEtd = chosen.etd;
+          selectedCourierId = chosen.courier_company_id;
+        }
       } else {
         shippingUnserviceable = true;
       }
@@ -289,6 +334,8 @@ export async function previewCheckoutTotals(
       shippingCourier,
       shippingEtd,
       shippingUnserviceable,
+      couriers,
+      selectedCourierId,
     },
   };
 }
@@ -434,6 +481,9 @@ export async function createRazorpayOrder(
   // can't override the real cost. Fall back to 0 (free shipping) if
   // pincode is missing or Shiprocket is down — checkout still works,
   // Mom absorbs the cost in those rare cases.
+  // The courier the customer picked at checkout (#85), if any.
+  const chosenCourierId = Number(formData.get("courierCompanyId")) || null;
+  let preferredCourierId: number | null = null;
   let shippingPaise = 0;
   if (pincode) {
     const weightGrams = cartWithItems.items.reduce((sum, it) => {
@@ -442,14 +492,22 @@ export async function createRazorpayOrder(
     }, 0);
     try {
       const shippingSettings = await getShippingSettings();
-      const { cheapest } = await getServiceability({
+      const { available, cheapest } = await getServiceability({
         deliveryPincode: pincode,
         weightGrams,
         pickupPincode: shippingSettings.pickupPincode,
       });
-      if (cheapest) {
-        const rawPaise = Math.round(cheapest.rate * 100);
+      // Honour the customer's chosen courier when it's still serviceable;
+      // otherwise fall back to cheapest. Server recomputes the rate so a
+      // tampered client price can't underpay.
+      const chosen =
+        (chosenCourierId
+          ? available.find((c) => c.courier_company_id === chosenCourierId && c.rate > 0)
+          : null) ?? cheapest;
+      if (chosen) {
+        const rawPaise = Math.round(chosen.rate * 100);
         shippingPaise = applyFreeShippingRule(rawPaise, shippingSettings).ratePaise;
+        preferredCourierId = chosen.courier_company_id;
       }
     } catch (err) {
       // Log + degrade gracefully. Don't fail checkout because of a
@@ -494,7 +552,8 @@ export async function createRazorpayOrder(
       total_paise: subtotalPaise + shippingPaise + taxPaise,
       shipping_pincode: pincode,
       shipping_address: shippingAddressJson,
-    })
+      preferred_courier_id: preferredCourierId,
+    } as never)
     .select("id, order_number")
     .single();
 

@@ -277,7 +277,10 @@ export interface AssignAwbResult {
   courierCompanyId: number;
 }
 
-export async function assignAwb(shipmentId: number): Promise<AssignAwbResult> {
+export async function assignAwb(
+  shipmentId: number,
+  courierId?: number | null,
+): Promise<AssignAwbResult> {
   type RawResp = {
     awb_assign_status?: number;
     response?: {
@@ -289,8 +292,11 @@ export async function assignAwb(shipmentId: number): Promise<AssignAwbResult> {
     };
     message?: string;
   };
+  // Shiprocket's order-create endpoint ignores courier choice; the customer's
+  // pick (#85) is honoured here at AWB assignment via `courier_id`. Omitted
+  // when null → Shiprocket auto-picks (cheapest-ish), preserving old behaviour.
   const raw = await call<RawResp>("POST", "/courier/assign/awb", {
-    body: { shipment_id: shipmentId },
+    body: courierId ? { shipment_id: shipmentId, courier_id: courierId } : { shipment_id: shipmentId },
   });
   const data = raw.response?.data;
   if (!data?.awb_code) {

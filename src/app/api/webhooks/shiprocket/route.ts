@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { sendDeliveredEmail } from "@/lib/email/delivered";
 import { sendShippedEmail } from "@/lib/email/shipped";
 import { env } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -141,6 +142,15 @@ export async function POST(request: Request) {
       await sendShippedEmail(order.id);
     } catch (e) {
       console.error("[shiprocket-webhook] shipped email threw:", e);
+    }
+  }
+
+  // Notify the customer when it's delivered (idempotent; no-ops if already sent).
+  if (target === "delivered") {
+    try {
+      await sendDeliveredEmail(order.id);
+    } catch (e) {
+      console.error("[shiprocket-webhook] delivered email threw:", e);
     }
   }
 

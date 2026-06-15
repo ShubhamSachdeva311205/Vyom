@@ -1,5 +1,6 @@
 import { Check, Package, PackageCheck, Truck, Home, AlertCircle } from "lucide-react";
 import { Stack, Row } from "@/components/layouts/stack";
+import { CopyInline } from "./copy-inline";
 
 /**
  * On-site order tracking (#116). Renders the shipment journey entirely inside
@@ -142,7 +143,10 @@ export function OrderTrackingTimeline({
             <span className="text-caption text-muted-foreground">
               {courierName ?? "Courier"} · AWB
             </span>
-            <span className="text-sm font-medium font-mono">{trackingNumber}</span>
+            <Row gap={2} align="center" className="flex-wrap">
+              <span className="text-sm font-medium font-mono">{trackingNumber}</span>
+              <CopyInline value={trackingNumber} label="AWB" />
+            </Row>
           </div>
           <p className="text-caption text-muted-foreground mt-2">
             Updates here automatically as your parcel moves.

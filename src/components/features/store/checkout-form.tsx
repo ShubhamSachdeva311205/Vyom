@@ -10,6 +10,7 @@ import {
   createRazorpayOrder,
   previewCheckoutTotals,
   verifyPaymentAndCompleteOrder,
+  type CourierOption,
 } from "@/actions/checkout";
 import { lookupPincode } from "@/actions/pincode";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ interface PreviewSnapshot {
   couponCode: string;
   pincode: string;
   data:
-    | { kind: "ok"; subtotalPaise: number; discountPaise: number; shippingPaise: number; totalPaise: number; couponApplied: string | null; couponReason: string | null; shippingCourier: string | null; shippingEtd: string | null; shippingUnserviceable: boolean }
+    | { kind: "ok"; subtotalPaise: number; discountPaise: number; shippingPaise: number; totalPaise: number; couponApplied: string | null; couponReason: string | null; shippingCourier: string | null; shippingEtd: string | null; shippingUnserviceable: boolean; couriers: CourierOption[]; selectedCourierId: number | null }
     | { kind: "error"; message: string };
 }
 
@@ -105,6 +106,8 @@ export function CheckoutForm({
   // checkbox value isn't autofilled).
   const [acknowledgedNoRefund, setAcknowledgedNoRefund] = useState(false);
   const [preview, setPreview] = useState<PreviewSnapshot | null>(null);
+  // Courier the customer picked (#85). null → server quotes the cheapest.
+  const [courierId, setCourierId] = useState<number | null>(null);
 
   const validPincode = PINCODE_REGEX.test(pincode);
   const validCoupon = couponCode === "" || COUPON_REGEX.test(couponCode);
@@ -151,7 +154,11 @@ export function CheckoutForm({
     if (!validPincode && !couponCode) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const result = await previewCheckoutTotals({ couponCode, pincode });
+      const result = await previewCheckoutTotals({
+        couponCode,
+        pincode,
+        courierId: courierId ?? undefined,
+      });
       if (cancelled) return;
       if (!result.success) {
         setPreview({
@@ -177,6 +184,8 @@ export function CheckoutForm({
           shippingCourier: d.shippingCourier,
           shippingEtd: d.shippingEtd,
           shippingUnserviceable: d.shippingUnserviceable,
+          couriers: d.couriers,
+          selectedCourierId: d.selectedCourierId,
         },
       });
     }, 500);
@@ -184,7 +193,7 @@ export function CheckoutForm({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [couponCode, pincode, validCoupon, validPincode]);
+  }, [couponCode, pincode, validCoupon, validPincode, courierId]);
 
   // Derived display values + button gating.
   const ok = previewState.kind === "ok" ? previewState : null;
@@ -508,12 +517,58 @@ export function CheckoutForm({
                   </span>
                 </Row>
 
-                {ok?.shippingCourier && ok.shippingPaise > 0 ? (
+                {ok?.shippingCourier && ok.shippingPaise > 0 && (ok.couriers?.length ?? 0) <= 1 ? (
                   <p className="text-caption text-muted-foreground">
                     Via {ok.shippingCourier}
                     {ok.shippingEtd ? ` · ETA ${ok.shippingEtd}` : ""}
                   </p>
                 ) : null}
+
+                {/* Courier choice (#85) — only when there's more than one. */}
+                {ok && ok.couriers && ok.couriers.length > 1 ? (
+                  <fieldset className="flex flex-col gap-1.5">
+                    <legend className="text-caption text-muted-foreground mb-1">
+                      Choose delivery speed
+                    </legend>
+                    {ok.couriers.map((c) => {
+                      const selected = (courierId ?? ok.selectedCourierId) === c.id;
+                      return (
+                        <label
+                          key={c.id}
+                          className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 cursor-pointer transition-colors ${
+                            selected ? "border-brand bg-brand/5" : "border-border hover:bg-accent/40"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 min-w-0">
+                            <input
+                              type="radio"
+                              name="courierChoice"
+                              className="accent-brand"
+                              checked={selected}
+                              onChange={() => setCourierId(c.id)}
+                            />
+                            <span className="text-sm truncate">{c.name}</span>
+                            {c.fastest ? (
+                              <span className="shrink-0 rounded-full bg-brand/10 text-brand text-caption px-1.5 py-0.5">
+                                ⚡ Fastest
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="shrink-0 text-right text-sm tabular-nums">
+                            {c.ratePaise === 0 ? "Free" : formatINR(c.ratePaise)}
+                            <span className="block text-caption text-muted-foreground">{c.etd}</span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </fieldset>
+                ) : null}
+                {/* Chosen courier id → createRazorpayOrder (falls back to cheapest). */}
+                <input
+                  type="hidden"
+                  name="courierCompanyId"
+                  value={courierId ?? ok?.selectedCourierId ?? ""}
+                />
 
                 <Row
                   align="center"

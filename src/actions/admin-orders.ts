@@ -28,6 +28,7 @@ import {
 } from "@/lib/shiprocket/client";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { countAbandonedOrders, sweepAbandonedOrders } from "@/lib/orders/abandoned";
+import { sendDeliveredEmail } from "@/lib/email/delivered";
 import { sendShippedEmail } from "@/lib/email/shipped";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -291,6 +292,16 @@ export async function updateOrderStatus(
     }
   }
 
+  // Mark-as-Delivered → delivered confirmation email (#69). Idempotent;
+  // the Shiprocket webhook fires the same email on its delivered event.
+  if (parsed.data.newStatus === "delivered") {
+    try {
+      await sendDeliveredEmail(parsed.data.orderId);
+    } catch (err) {
+      console.error("[admin-orders] delivered email threw:", err);
+    }
+  }
+
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${parsed.data.orderId}`);
 
@@ -461,10 +472,13 @@ async function autoCreateShiprocketOrder(orderId: string): Promise<ShiprocketAut
     return { ok: false, reason: "Couldn't reach Shiprocket. Add tracking manually below." };
   }
 
-  // If Shiprocket didn't auto-assign an AWB, ask explicitly.
+  // If Shiprocket didn't auto-assign an AWB, ask explicitly — honouring the
+  // courier the customer chose at checkout (#85) when one was stored.
   if (!awbCode) {
     try {
-      const assigned = await assignAwb(shipmentId);
+      const preferredCourierId = (existing as unknown as { preferred_courier_id: number | null })
+        .preferred_courier_id;
+      const assigned = await assignAwb(shipmentId, preferredCourierId);
       awbCode = assigned.awbCode;
       courierName = assigned.courierName;
     } catch (err) {
