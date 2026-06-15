@@ -1,0 +1,404 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\froman\fcharset0 Times-Bold;\f2\froman\fcharset0 Times-Roman;
+}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue233;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c0\c93333;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc0\levelnfcn0\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{decimal\}}{\leveltext\leveltemplateid1\'01\'00;}{\levelnumbers\'01;}\fi-360\li720\lin720 }{\listname ;}\listid1}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
+\paperw11900\paperh16840\margl1440\margr1440\vieww37860\viewh19780\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 HTML: \
+\
+<main class="flex__col">\
+  <nav class="menu flex">\
+    <a href="#" class="menu__left">\
+      Lorem ipsum\
+    </a>\
+    <div class="menu__right flex__col">\
+      <div></div>\
+      <div></div>\
+      <div></div>\
+    </div>\
+  </nav>\
+  <section class="intro flex">\
+    Loading\
+    <div class="intro__red flex"><div>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</div></div>\
+  </section>\
+  <section class="clip flex">\
+    <div class="clip__inner flex__col">\
+      <h1 class="flex">Build your board</h1>\
+      <div class="h1__stroke flex">Build your board</div>\
+      <p>SOTD Challenge : Insprired by <a href="https://aanstekelijk.nl/">aanstekelijk.nl</a> website animation (SOTD, Apr 13, 2023)</p>\
+      <figure>\
+        <video loop autoplay muted poster="https://images.unsplash.com/photo-1494253188410-ff0cdea5499e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80">\
+          <source src="https://www.paulrogerdev.fr/codepen/pexels-artem-podrez-4832087-1280x720-30fps.mp4" type="video/mp4">\
+        </video>\
+      </figure>\
+      <video class="clip__bg" loop autoplay muted poster="https://images.unsplash.com/photo-1494253188410-ff0cdea5499e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80">\
+        <source src="https://www.paulrogerdev.fr/codepen/pexels-artem-podrez-4832087-1280x720-30fps.mp4" type="video/mp4">\
+      </video>\
+      <svg width="0" height="0">\
+        <defs>\
+          <clipPath id="svgClipPath" clipPathUnits="objectBoundingBox">\
+            <path d="M0.648438 0.00390625 L0.296875 0.00390625 L0.0976562 0.15625 L-0.00390625 1.003906 L0.644531 1.003906 L0.820312 0.882812 ZM0.648438 0.00390625"/>\
+          <clipPath>\
+        </defs>\
+      </svg>\
+    </div>\
+  </section>\
+</main>\
+<div class="cursor flex">Hello</div>\
+<div class="noise"></div>\
+\
+CSS:\
+@import url('https://fonts.googleapis.com/css2?family=Alkatra&family=Anton&family=Bebas+Neue&family=Jost:ital,wght@1,600&family=Lexend:wght@700&family=Nova+Oval&family=Oswald:wght@500&family=PT+Serif:wght@700&family=Titillium+Web&display=swap');\
+\
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap');\
+\
+* \{\
+  -webkit-font-smoothing: antialiased;\
+  -moz-osx-font-smoothing: grayscale;\
+  scroll-behavior: smooth;\
+\}\
+\
+:root \{\
+  --font1: "Poppins";\
+  --fontSizeMenu: 1vw;\
+  --fontSizeH1: 19vw;\
+  --fontSizeIntro: 3vw;\
+  --fontSizeP: 1.48vw;\
+  --maxWidth: 1100px;\
+\}\
+body \{\
+  margin: 0;\
+  font-family: var(--font1);\
+  background-color: #000;\
+  color: #fff;\
+  overflow-x: hidden;\
+\}\
+\
+.flex, .flex__col \{\
+  display: flex;\
+  justify-content: center;\
+  align-items: center;\
+\}\
+\
+.flex__col \{\
+  flex-direction: column;\
+\}\
+\
+ul \{\
+  margin: 0;\
+  padding: 0;\
+  list-style: none;\
+\}\
+\
+main.flex__col \{\
+  width: 100%;\
+  justify-content: flex-start;\
+\}\
+\
+.menu \{\
+  position: fixed;\
+  z-index: 999;\
+  top: 0;\
+  left: 50%;\
+  width: calc(100% - 80px);\
+  justify-content: space-between;\
+  margin: 40px 0;\
+  transform: translatex(-50%);\
+\}\
+\
+.menu a \{\
+  font-size: var(--fontSizeMenu);\
+  font-weight: 600;\
+  color: var(--dark);\
+  text-decoration: none;\
+\}\
+\
+.menu__right \{\
+  width: 50px;\
+  height: 50px;\
+  gap: 5px;\
+  background-color: #fff;\
+  border-radius: 100%;\
+\}\
+\
+.menu__right div \{\
+  width: 50%;\
+  height: 2px;\
+  background-color: #111;\
+\}\
+\
+.intro \{\
+  position: fixed;\
+  z-index: 1000;\
+  top: 0;\
+  left: 0;\
+  width: 100vw;\
+  height: 100vh;\
+  background-color: #000;\
+  font-size: var(--fontSizeIntro);\
+  transform-origin: top;\
+\}\
+\
+.intro__red \{\
+  position: absolute;\
+  bottom: 0;\
+  left: 0;\
+  width: 100%;\
+  height: 30%;\
+  background-color: #f21010;\
+  font-family: var(--font1);\
+  font-size: 30vw;\
+  font-weight: 900;\
+  line-height: 30vh;\
+  overflow: hidden;\
+  color: transparent;\
+  text-align: center;\
+  -webkit-text-stroke: 1px #222;\
+  transform: scaleY(0);\
+  transform-origin: bottom;\
+\}\
+\
+.intro__red div \{\
+  transform: scaleX(0.5) scaleY(1.5);\
+  letter-spacing: -1vw;\
+\}\
+\
+.clip \{\
+  position: relative;\
+  width: 100vw;\
+  height: 100vh;\
+\}\
+\
+.clip__inner \{\
+  width: 90vw;\
+  height: 90vh;\
+\}\
+\
+.clip h1, .clip .h1__stroke \{\
+  position: absolute;\
+  z-index: 1;\
+  top: 50%;\
+  left: 50%;\
+  width: 100%;\
+  font-family: "Bebas Neue";\
+  font-size: var(--fontSizeH1);\
+  font-weight: 400;\
+  text-align: center;\
+  text-transform: uppercase;\
+  letter-spacing: -.75vw;\
+  line-height: 80%;\
+  margin: 0;\
+  overflow: hidden;\
+  transform: translate(-50%, -50%) scaleY(2);\
+\}\
+\
+.clip h1 span, .clip .h1__stroke span \{\
+  display: inline-block\
+\}\
+\
+.clip .h1__stroke \{\
+  z-index: 3;\
+  color: transparent;\
+  -webkit-text-stroke: 1px #fff;\
+\}\
+\
+.clip p \{\
+  position: absolute;\
+  z-index: 3;\
+  bottom: 20px;\
+  left: 50%;\
+  width: 50vw;\
+  font-size: var(--fontSizeP);\
+  text-align: center;\
+  transform: translateX(-50%);\
+\}\
+\
+.clip p a \{\
+  color: #fff;\
+\}\
+\
+.clip figure \{\
+  position: absolute;\
+  z-index: 2;\
+  top: 50%;\
+  left: 50%;\
+  width: 40vw;\
+  height: auto;\
+  margin: 0;\
+  padding: 0;\
+  aspect-ratio: 1/1;\
+  transform: translate(-60%, -50%) scaleX(-1);\
+  clip-path: url(#svgClipPath);\
+\}\
+\
+.clip figure video \{\
+  position: absolute;\
+  top: 50%;\
+  left: 50%;\
+  width: 100vw;\
+  height: 100vh;\
+  object-fit: cover;\
+  transform: translate(-50%, -50%);\
+\}\
+\
+.clip__bg \{\
+  position: absolute;\
+  z-index: -1;\
+  top: 0;\
+  left: 0;\
+  width: 100%;\
+  height: 100%;\
+  object-fit: cover;\
+  border-radius: 3vw;\
+  overflow: hidden;\
+\}\
+\
+.cursor \{\
+  position: fixed;\
+  z-index: 1000;\
+  top: 0;\
+  left: 0;\
+  width: 6vw;\
+  height: auto;\
+  aspect-ratio: 10/4;\
+  color: #000;\
+  font-family: "Anton";\
+  font-size: 1.5vw;\
+  pointer-events: none;\
+  transform: translate(-50%, -50%) scale(0);\
+\}\
+\
+.cursor::after \{\
+  content: "";\
+  position: absolute;\
+  z-index: -1;\
+  top: 0;\
+  left: 0;\
+  width: 100%;\
+  height: 100%;\
+  background-color: #f21010;\
+  border-radius: 100%;\
+  transform: rotate(-15deg);\
+\}\
+\
+.noise \{\
+  position: fixed;\
+  z-index: 1001;\
+  top: 0;\
+  left: 0;\
+  width: 100vw;\
+  height: 100vh;\
+  pointer-events: none;\
+  background-image: url("https://www.paulrogerdev.fr/codepen/noise.png");\
+\}\
+\
+@media (min-width: 1550px) \{\
+  :root \{\
+    --fontSizeMenu: 16px;\
+    --fontSizeP: 16px;\
+  \}\
+\}\
+\
+@media (max-width: 1000px) \{\
+  .intro__red div \{\
+    transform: scaleY(4);\
+  \}\
+\}\
+\
+@media (max-width: 600px) \{\
+  :root \{\
+    --fontSizeMenu: 11px;\
+    --fontSizeP: 11px;\
+  \}\
+  .menu \{\
+    width: 90vw;\
+    margin: 4vw 0;\
+  \}\
+  .menu ul \{\
+    gap: 0 2vw;\
+  \}\
+\}\
+\
+JS:\
+// INTRO\
+var introTL = gsap.timeline();\
+introTL.to(".intro", .1, \{fontFamily: "Anton"\})\
+introTL.to(".intro", .1, \{fontFamily: "Jost"\})\
+introTL.to(".intro", .1, \{fontFamily: "Alkatra"\})\
+introTL.to(".intro", .1, \{fontFamily: "Nova Oval"\})\
+introTL.to(".intro", .1, \{fontFamily: "Oswald"\})\
+introTL.to(".intro", .1, \{fontFamily: "PT Serif"\})\
+introTL.to(".intro", .1, \{fontFamily: "Lexend"\})\
+introTL.to(".intro", .1, \{fontFamily: "Poppins"\})\
+introTL.to(".intro", .1, \{fontFamily: "Titillium Web"\})\
+introTL.to(".intro", 1, \{scaleY: 0, ease:"expo.inOut"\})\
+introTL.to(".intro__red", 1, \{scaleY: 2, ease:"expo.inOut"\}, "-=1.25")\
+\
+// TITLE\
+function separateWordsAndLetters(text) \{\
+  let words = text.split(/\\s+|<br>/);\
+  let result = "";\
+  for (let i = 0; i < words.length; i++) \{\
+    let word = words[i];\
+    result += "<div class='flex'>";\
+    for (let j = 0; j < word.length; j++) \{\
+      result += "<span>" + word[j] + "</span>";\
+    \}\
+    result += "</div>&nbsp;";\
+  \}\
+  return result;\
+\}\
+\
+var clipH1 = document.querySelector(".clip h1")\
+let separatedClipH1 = separateWordsAndLetters(clipH1.innerHTML);\
+clipH1.innerHTML = separatedClipH1;\
+var clipH1Letters = document.querySelectorAll(".clip h1 span")\
+gsap.set(clipH1Letters, \{y: "120%", scale: -.5\})\
+gsap.to(clipH1Letters, \{duration: 1.5, y: "10%", scale: 1, ease: "expo.inOut", delay: 0.6, stagger: 0.025\})\
+\
+var clipH1Stroke = document.querySelector(".clip .h1__stroke")\
+let separatedClipH1Stroke = separateWordsAndLetters(clipH1Stroke.innerHTML);\
+clipH1Stroke.innerHTML = separatedClipH1Stroke;\
+var clipH1StrokeLetters = document.querySelectorAll(".clip .h1__stroke span")\
+gsap.set(clipH1StrokeLetters, \{y: "120%", scale: -.5\})\
+gsap.to(clipH1StrokeLetters, \{duration: 1.5, y: "10%", scale: 1, ease: "expo.inOut", delay: 0.6, stagger: 0.025\})\
+\
+//CURSOR\
+var cursor = document.querySelector(".cursor")\
+\
+document.querySelector(".clip__inner").addEventListener("mousemove", (e) => \{\
+  var x = e.clientX\
+  var y = e.clientY\
+\
+  gsap.to(".cursor", .5, \{duration: 0, x: x, y: y\})\
+\})\
+\
+document.querySelector(".clip__inner").addEventListener("mouseenter", () => \{\
+  gsap.to(".cursor", .5, \{scale: 1, ease: "expo.inOut"\})\
+\})\
+\
+document.querySelector(".clip__inner").addEventListener("mouseleave", () => \{\
+  gsap.to(".cursor", .5, \{scale: 0, ease: "expo.inOut"\})\
+\})\
+\
+\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f1\b\fs28 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 External CSS\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f2\b0\fs24 \cf0 This Pen doesn't use any external CSS resources.\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f1\b\fs28 \cf0 External JavaScript\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+\ls1\ilvl0
+\f2\b0\fs24 \cf3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	1	}{\field{\*\fldinst{HYPERLINK "https://unpkg.co/gsap@3/dist/gsap.min.js"}}{\fldrslt \expnd0\expndtw0\kerning0
+\ul \outl0\strokewidth0 \strokec3 https://unpkg.co/gsap@3/dist/gsap.min.js}}\cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \
+}

@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { Eczar } from "next/font/google";
 import { HeroReveal } from "./hero-reveal";
+
+// Brand logo typeface — Eczar ExtraBold, rendered in Devanagari (व्योम).
+const eczar = Eczar({ subsets: ["latin", "devanagari"], weight: "800", display: "swap" });
 
 /**
  * STANDALONE UI DEMO (#91) — not wired into the app. A throwaway page to feel
@@ -13,5 +17,11 @@ export const metadata: Metadata = {
 };
 
 export default function HeroDemoPage() {
-  return <HeroReveal colorSrc="/demo/hero-color.png" outlineSrc="/demo/hero-outline.png" />;
+  return (
+    <HeroReveal
+      colorSrc="/demo/hero-color.png"
+      outlineSrc="/demo/hero-outline.png"
+      logoClass={eczar.className}
+    />
+  );
 }

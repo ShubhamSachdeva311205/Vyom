@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Menu, Moon, ShoppingCart, Sun, User, X } from "lucide-react";
 
 // Read `(pointer: fine)` without a set-state-in-effect (desktop vs touch).
 function usePointerFine(): boolean {
@@ -32,9 +33,11 @@ function usePointerFine(): boolean {
 export function HeroReveal({
   colorSrc,
   outlineSrc,
+  logoClass,
 }: {
   colorSrc: string;
   outlineSrc: string;
+  logoClass?: string;
 }) {
   const heroRef = useRef<HTMLDivElement>(null);
   const colorRef = useRef<HTMLDivElement>(null);
@@ -45,6 +48,10 @@ export function HeroReveal({
   const trail = useRef({ x: 50, y: 50 });
   const progress = useRef(0);
   const finePointer = usePointerFine();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dark, setDark] = useState(false); // demo-only theme icon toggle
+
+  const links = ["Store", "Community", "About Us"];
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -156,10 +163,61 @@ export function HeroReveal({
             />
           ) : null}
 
-          {/* Wordmark + hint */}
-          <div className="pointer-events-none absolute left-6 top-6 z-20">
-            <span className="text-2xl font-semibold tracking-tight">Vyom</span>
-          </div>
+          {/* Nav (#91): logo left · links · cart/theme/profile right · burger on mobile */}
+          <nav className="pointer-events-auto absolute inset-x-0 top-0 z-30 flex items-center justify-between px-5 py-4 sm:px-8">
+            <a href="#" aria-label="Vyom — home" className={`${logoClass ?? ""} text-3xl leading-none text-neutral-900`}>
+              व्योम
+            </a>
+
+            <div className="hidden items-center gap-7 md:flex">
+              {links.map((l) => (
+                <a key={l} href="#" className="text-sm text-neutral-700 transition-colors hover:text-neutral-950">
+                  {l}
+                </a>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button aria-label="Cart" className="rounded-full p-2 text-neutral-700 hover:bg-black/5">
+                <ShoppingCart className="size-5" />
+              </button>
+              <button
+                aria-label="Toggle theme"
+                onClick={() => setDark((d) => !d)}
+                className="rounded-full p-2 text-neutral-700 hover:bg-black/5"
+              >
+                {dark ? <Moon className="size-5" /> : <Sun className="size-5" />}
+              </button>
+              <button aria-label="Profile" className="rounded-full p-2 text-neutral-700 hover:bg-black/5">
+                <User className="size-5" />
+              </button>
+              <button
+                aria-label="Menu"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="rounded-full p-2 text-neutral-700 hover:bg-black/5 md:hidden"
+              >
+                {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+              </button>
+            </div>
+          </nav>
+
+          {/* Mobile dropdown */}
+          {menuOpen ? (
+            <div className="pointer-events-auto absolute inset-x-4 top-16 z-30 rounded-xl border border-neutral-200 bg-white/95 p-2 shadow-lg backdrop-blur md:hidden">
+              {links.map((l) => (
+                <a
+                  key={l}
+                  href="#"
+                  onClick={() => setMenuOpen(false)}
+                  className="block rounded-lg px-3 py-2.5 text-sm text-neutral-800 hover:bg-black/5"
+                >
+                  {l}
+                </a>
+              ))}
+            </div>
+          ) : null}
+
+          {/* Scroll hint */}
           <div className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 text-center">
             <p className="text-sm text-neutral-500">
               {finePointer ? "Move your cursor · scroll to bring it to life" : "Scroll to bring it to life"}

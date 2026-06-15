@@ -1,0 +1,577 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2867
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\froman\fcharset0 Times-Bold;\f2\froman\fcharset0 Times-Roman;
+}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue233;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c0\c93333;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc0\levelnfcn0\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{decimal\}}{\leveltext\leveltemplateid1\'01\'00;}{\levelnumbers\'01;}\fi-360\li720\lin720 }{\listname ;}\listid1}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
+\paperw11900\paperh16840\margl1440\margr1440\vieww37860\viewh19780\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Scroll animation for different layers of the photo: \
+\
+HTML: \
+<body>\
+   <header class="header">\
+      <div class="left-wrap">\
+        <span class="header-text js-header-text">\
+          Unusual Stories.\
+        </span>\
+      </div>\
+      <div class="right-wrap">\
+        <ul class="header-menu js-header-menu">\
+          <li class="header-link">Tales</li>\
+          <li class="header-link">About</li>\
+          <li class="header-link">Contacts</li>\
+        </ul>\
+      </div>\
+   </header>\
+  <main>\
+    <section class="hero">\
+      <div class="hero-bg">\
+        <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/parallax-sky.png"/>\
+      </div>\
+      <div class="hero-parallax">\
+        <div class="parallax-item parallax-tree">\
+          <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/parallax-tree.png"/>\
+        </div>\
+        <div class="parallax-item parallax-castle">\
+          <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/parallax-castle.png"/>\
+        </div>\
+        <div class="parallax-item parallax-mountains">\
+          <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/parallax-moutains.png"/>\
+        </div>\
+      </div>\
+      <div class="container">\
+        <div class="subtitle js-anim-subtitle">\
+          <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/subtitle-left-arrow.svg" class="subtitle-left-arrow">\
+          <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/subtitle-right-arrow.svg" class="subtitle-right-arrow">\
+          <div class="subtitle-bg">\
+            <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/subtitle-bg.png">\
+          </div>\
+          <span class="btn-1">The Good Knight</span>\
+        </div>\
+        <div class="title-block">\
+          <h1 class="title-h1 js-anim-title">The Story of the Dilmays Kingdom</h1>\
+        </div>\
+        <div class="text-block">\
+          <p class="desc-1 js-anim-desc">\
+            King Olav is old and has only his kingdom. His daughter was kidnapped \
+by the dragon Liuf. He has declared five trials: strength, honesty, generosity, courage, and sympathy.\
+          </p>\
+        </div>\
+        \
+        <div class="btn-block">\
+          <div class="btn">\
+            <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/btn-left-arrow.svg" class="btn-right-arrow">\
+            <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/btn-right-arrow.svg" class="btn-left-arrow">\
+            <div class="btn-bg">\
+              <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/btn-bg.png">\
+            </div>\
+            <span class="btn-2">Start the story</span>\
+        </div>\
+        </div>\
+      </div> \
+    </section>\
+  </main>\
+  <footer>\
+    <div class="left-wrap">\
+      <span class="footer-link">Privacy policy</span>\
+      <span class="divider"></span>\
+      <span class="footer-link">Terms and conditions</span>\
+    </div>\
+    <div class="center-wrap">\
+      <span class="footer-link">\'a9 2022, Zajno</span>\
+    </div>\
+    <div class="right-wrap">\
+      <a href="https://www.facebook.com/zajnocrew/" class="social-icon facebook-icon" target="_blank">\
+        <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/facebook.svg">\
+      </a>\
+      <a href="https://www.instagram.com/zajno/" class="social-icon insta-icon" target="_blank">\
+        <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/insta.svg">\
+      </a>\
+      <a href="https://twitter.com/ZajnoCrew" class="social-icon twitter-icon" target="_blank">\
+        <img src="https://cdn.zajno.com/dev/codepen/story-dilmays/twitter.svg">\
+      </a>\
+    </div>\
+  </footer>\
+</body>\
+\
+\
+\
+\
+\
+SCSS:\
+@font-face \{\
+  font-family: 'Shippori Mincho';\
+\}\
+\
+@font-face \{\
+  font-family: 'Figtree';\
+\}\
+\
+html \{\
+  font-size: 6.9444444444vw;\
+\}\
+\
+:root \{\
+  --main-font: "Shippori Mincho", serif;\
+  --sub-font: "Figtree", serif;\
+  --color-black: #303030;\
+  --color-white: #FDFAF7;\
+\
+  --font-size-h1: 0.98rem;\
+  --font-size-desc-1: 0.18rem;\
+  --font-size-header-text: 0.24rem;\
+  --font-size-header-link: 0.22rem;\
+  --font-size-btn-1: 0.14rem;\
+  --font-size-btn-2: 0.22rem;\
+  --font-size-footer-link: 0.12rem;\
+  \
+  --line-height-h1: 1.17rem;\
+  --line-height-desc-1: 0.28rem;\
+  --line-height-header-text: 0.24rem;\
+  --line-height-header-link: 0.22rem;\
+  --line-height-btn-1: 0.14rem;\
+  --line-height-btn-2: 0.22rem;\
+  --line-height-footer-link: 0.12rem;\
+\}\
+\
+.title-h1 \{\
+  font-size: var(--font-size-h1);\
+  line-height: var(--line-height-h1);\
+  font-weight: 600;\
+  color: var(--color-black);\
+  font-family: var(--main-font);\
+\}\
+.desc-1 \{\
+  font-size: var(--font-size-desc-1);\
+  line-height: var(--line-height-desc-1);\
+  font-weight: 500;\
+  color: var(--color-black);\
+  font-family: var(--sub-font);\
+\}\
+.header-text \{\
+  font-size: var(--font-size-header-text);\
+  line-height: var(--line-height-header-text);\
+  font-weight: 500;\
+  color: var(--color-black);\
+  font-family: var(--main-font);\
+\}\
+.header-link \{\
+  font-size: var(--font-size-header-link);\
+  line-height: var(--line-height-header-link);\
+  font-weight: 400;\
+  color: var(--color-black);\
+  font-family: var(--sub-font);\
+\}\
+.btn-1 \{\
+  font-size: var(--font-size-btn-1);\
+  line-height: var(--line-height-btn-1);\
+  font-weight: 500;\
+  color: var(--color-black);\
+  font-family: var(--sub-font);\
+\}\
+.btn-2 \{\
+  font-size: var(--font-size-btn-2);\
+  line-height: var(--line-height-btn-2);\
+  font-weight: 600;\
+  color: var(--color-black);\
+  font-family: var(--sub-font);\
+\}\
+.footer-link \{\
+  font-size: var(--font-size-footer-link);\
+  line-height: var(--line-height-footer-link);\
+  font-weight: 500;\
+  color: var(--color-black);\
+  font-family: var(--sub-font);\
+\}\
+\
+* \{\
+  margin: 0;\
+  padding: 0;\
+  -webkit-box-sizing: border-box;\
+  box-sizing: border-box;\
+\}\
+\
+img,\
+svg,\
+video \{\
+  display: block;\
+  max-width: 100%;\
+  width: 100%;\
+\}\
+\
+img \{\
+  display: block;\
+  user-drag: none;\
+  user-select: none;\
+  -moz-user-select: none;\
+  -webkit-user-drag: none;\
+  -webkit-user-select: none;\
+  -ms-user-select: none;\
+\}\
+\
+/* extra long transition to hide blue autofill background */\
+input:-webkit-autofill,\
+input:-webkit-autofill:focus,\
+textarea:-webkit-autofill,\
+textarea:-webkit-autofill:focus \{\
+  -webkit-transition: background-color 100000000000000000000000000000s 0s, color 100000000000000000000000000000s 0s;\
+  transition: background-color 100000000000000000000000000000s 0s, color 100000000000000000000000000000s 0s;\
+\}\
+\
+/* Remove Safari autofill*/\
+input::-webkit-contacts-auto-fill-button \{\
+  visibility: hidden;\
+  display: none !important;\
+  pointer-events: none;\
+  position: absolute;\
+  right: 0;\
+\}\
+\
+input[type=text],\
+input[type=number],\
+input[type=email],\
+input[type=tel],\
+textarea \{\
+  /* remove autofill blue background */\
+  box-shadow: inset 0 0 0 150px rgba(255, 255, 255, 0) !important;\
+  -webkit-box-shadow: inset 0 0 0 150px rgba(255, 255, 255, 0) !important;\
+  -webkit-text-fill-color: currentColor !important;\
+  font-size: 1rem;\
+  line-height: 1.5rem;\
+  background-color: transparent;\
+\}\
+\
+input[type=number] \{\
+  -moz-appearance: textfield;\
+\}\
+\
+body \{\
+  background: var(--color-white);\
+  position: relative;\
+\}\
+\
+.container \{\
+  width: 100%;\
+  height: 100%;\
+  margin: 0 auto;\
+  padding: 0 1.22rem;\
+\}\
+\
+\
+.header \{\
+  display: flex;\
+  justify-content: space-between;\
+  padding: 0.64rem 0.88rem 0;\
+  .left-wrap \{\
+    display: flex;\
+  \}\
+  .header-menu \{\
+    display: flex;\
+    list-style: none;\
+    .header-link \{\
+      &:not(:last-child) \{\
+        margin-right: 0.3rem;\
+      \}\
+    \}\
+  \}\
+\}\
+\
+.subtitle \{\
+  position: relative;\
+  width: 1.62rem;\
+  height: 0.41rem;\
+  display: flex;\
+  justify-content: center;\
+  align-items: center;\
+  margin: 0 auto 0.12rem;\
+  &-left-arrow \{\
+    position: absolute;\
+    width: 0.33rem;\
+    height: 0.14rem;\
+    right: calc(100% + 0.16rem);\
+    top: 50%;\
+    transform: translateY(-50%);\
+  \}\
+  &-right-arrow \{\
+    position: absolute;\
+    width: 0.33rem;\
+    height: 0.14rem;\
+    left: calc(100% + 0.16rem);\
+    top: 50%;\
+    transform: translateY(-50%);\
+  \}\
+  &-bg \{\
+    width: 100%;\
+    height: 100%;\
+    position: absolute;\
+    top: 0;\
+    left: 0;\
+    z-index: -1;\
+    img \{\
+      width: 100%;\
+      height: 100%;\
+      display: block;\
+    \}\
+  \}\
+  .btn-1 \{\
+    text-transform: uppercase;\
+  \}\
+\}\
+\
+.btn \{\
+  position: relative;\
+  width: 2.84rem;\
+  height: 0.73rem;\
+  display: flex;\
+  justify-content: center;\
+  align-items: center;\
+  margin: 0 auto 0.72rem;\
+  &-left-arrow \{\
+    position: absolute;\
+    width: 0.72rem;\
+    height: 0.63rem;\
+    right: 100%;\
+    top: 50%;\
+    transform: translateY(-50%);\
+    display: flex;\
+  \}\
+  &-right-arrow \{\
+    position: absolute;\
+    width: 0.72rem;\
+    height: 0.63rem;\
+    left: 100%;\
+    top: 50%;\
+    transform: translateY(-50%);\
+    display: flex;\
+  \}\
+  &-bg \{\
+    width: 100%;\
+    height: 100%;\
+    position: absolute;\
+    top: 0;\
+    left: 0;\
+    z-index: -1;\
+    img \{\
+      width: 100%;\
+      height: 100%;\
+      display: block;\
+    \}\
+  \}\
+  .btn-2 \{\
+    text-transform: uppercase;\
+  \}\
+\}\
+.hero \{\
+  padding-top: 0.61rem;\
+  position: relative;\
+  overflow: hidden;\
+  .title-block \{\
+    width: 8.7rem;\
+    text-align: center;\
+    margin: 0 auto 0.78rem;\
+  \}\
+  .text-block \{\
+    width: 3.35rem;\
+    padding-bottom: 5.59rem;\
+  \}\
+  &-bg \{\
+    width: 14.40rem;\
+    height: 11rem;\
+    position: absolute;\
+    top: 0;\
+    left: 0;\
+    z-index: -1;\
+    img \{\
+      width: 100%;\
+      height: 100%;\
+      display: block;\
+    \}\
+  \}\
+  &-parallax \{\
+    width: 14.40rem;\
+    height: 12.12rem;\
+    position: absolute;\
+    top: -0.5rem;\
+    left: 0;\
+    z-index: -1;\
+  \}\
+  .parallax \{\
+    &-item \{\
+      position: absolute;\
+      img \{\
+        width: 100%;\
+        height: 100%;\
+        display: block;\
+      \}\
+    \}\
+    &-tree \{\
+      bottom: 0;\
+      left: 0;\
+      width: 14.41rem;\
+      height: 6.28rem;\
+      z-index: 3;\
+    \}\
+    &-castle \{\
+      bottom: 0;\
+      left: 0;\
+      width: 11.86rem;\
+      height: 8.91rem;\
+      z-index: 2;\
+    \}\
+    &-mountains \{\
+      bottom: 0;\
+      left: 0;\
+      width: 14.40rem;\
+      height: 3.65rem;\
+      z-index: 1;\
+    \}\
+  \}\
+\}\
+\
+footer \{\
+  display: flex;\
+  justify-content: space-between;\
+  padding: 0 0.88rem 0.6rem;\
+  position: relative;\
+  .left-wrap \{\
+    display: flex;\
+    align-items: center;\
+    .divider \{\
+      margin: 0 0.14rem;\
+      height: 0.12rem;\
+      width: 1px;\
+      background: #737373;\
+    \}\
+    span \{\
+      display: flex;\
+    \}\
+  \}\
+  .center-wrap \{\
+    display: flex;\
+    position: absolute;\
+    left: 50%;\
+    transform: translateX(-50%);\
+  \}\
+  .right-wrap \{\
+    display: flex;\
+    .social-icon \{\
+      margin-right: 0.32rem;\
+      img \{\
+        width: 100%;\
+        height: 100%;\
+        display: block;\
+      \}\
+      &.facebook-icon \{\
+        width: 0.09rem;\
+        height: 0.18rem;\
+      \}\
+      &.insta-icon \{\
+        width: 0.16rem;\
+        height: 0.16rem;\
+      \}\
+      &.twitter-icon \{\
+        width: 0.19rem;\
+        height: 0.16rem;\
+      \}\
+    \}\
+  \}\
+\}\
+\
+\
+JAVASCRIPT:\
+gsap.registerPlugin(CustomEase, ScrollTrigger, SplitText);\
+\
+const heroSection = document.querySelector('.hero');\
+const parallaxTree = document.querySelector('.parallax-tree');\
+const parallaxCastle = document.querySelector('.parallax-castle');\
+const parallaxMountains = document.querySelector('.parallax-mountains');\
+\
+const headerText = document.querySelector('.js-header-text');\
+const headerMenu = document.querySelector('.js-header-menu');\
+const subtitle = document.querySelector('.js-anim-subtitle');\
+const title = document.querySelector('.js-anim-title');\
+const desc = document.querySelector('.js-anim-desc');\
+\
+const parallaxEase = CustomEase.create('parallax-ease-in', '0.51, 0.00, 0.45, 1.00');\
+const customEase = CustomEase.create('custom-ease-in', '0.17, 0.17, 0.51, 1.00');\
+const fourtyFrames = 1.3333333;\
+const oneFrame = 0.0166666;\
+const fourFrames = 0.133333;\
+\
+const titleLines = new SplitText(title, \{ type: "lines" \}).lines;\
+const descChars = new SplitText(desc, \{ type: "lines, chars" \}).lines;\
+\
+gsap.set(parallaxTree, \{ y: '1.4rem' \});\
+gsap.set(parallaxCastle, \{ y: '2.8rem' \});\
+gsap.set(parallaxMountains, \{ y: '4.2rem' \});\
+\
+const tl = gsap.timeline(\{\
+  scrollTrigger: \{\
+    trigger: heroSection,\
+    start: 'top top',\
+    end: 'bottom bottom-=15%',\
+    scrub: 1,\
+  \},\
+\});\
+\
+const parallaxBase = \{ overwrite: true, ease: parallaxEase \};\
+\
+tl\
+  .to(parallaxTree, \{ y: 0, ...parallaxBase \}, 0)\
+  .to(parallaxCastle, \{ y: 0, ...parallaxBase \}, 0)\
+  .to(parallaxMountains, \{ y: 0, ...parallaxBase \}, 0);\
+\
+const showElements = () => \{\
+  const timeline = gsap.timeline();\
+  \
+  const base = \{ duration: fourtyFrames, ease: customEase \};\
+  \
+  timeline\
+        .fromTo(headerText, \{ autoAlpha: 0, y: '0.5rem' \}, \{ autoAlpha: 1, y: 0, ...base\}, 0)\
+        .fromTo(headerMenu, \{ autoAlpha: 0, y: '0.5rem' \}, \{ autoAlpha: 1, y: 0, ...base\}, fourFrames)\
+        .fromTo(subtitle, \{ autoAlpha: 0, y: '0.5rem' \}, \{ autoAlpha: 1, y: 0, ...base\}, fourFrames * 2)\
+        .fromTo(titleLines, \{ autoAlpha: 0, y: '0.5rem' \}, \{ autoAlpha: 1, y: 0, ...base, stagger: fourFrames \}, fourFrames * 3)\
+        .fromTo(descChars, \{ autoAlpha: 0, y: '0.5rem' \}, \{ autoAlpha: 1, y: 0, ...base, stagger: fourFrames / 2 \}, fourFrames * 3);\
+  \
+  return timeline;\
+\}\
+\
+\
+document.addEventListener('DOMContentLoaded', () => \{\
+  showElements();\
+\});\
+\
+\
+\
+External resources :\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f1\b\fs28 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 External CSS\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f2\b0\fs24 \cf0 This Pen doesn't use any external CSS resources.\
+\pard\pardeftab720\sa280\partightenfactor0
+
+\f1\b\fs28 \cf0 External JavaScript\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+\ls1\ilvl0
+\f2\b0\fs24 \cf3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	1	}{\field{\*\fldinst{HYPERLINK "https://unpkg.co/gsap@3/dist/gsap.min.js"}}{\fldrslt \expnd0\expndtw0\kerning0
+\ul \outl0\strokewidth0 \strokec3 https://unpkg.co/gsap@3/dist/gsap.min.js}}\cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \
+\ls1\ilvl0\cf3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	2	}{\field{\*\fldinst{HYPERLINK "https://unpkg.com/gsap@3/dist/ScrollTrigger.min.js"}}{\fldrslt \expnd0\expndtw0\kerning0
+\ul \outl0\strokewidth0 \strokec3 https://unpkg.com/gsap@3/dist/ScrollTrigger.min.js}}\cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \
+\ls1\ilvl0\cf3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	3	}{\field{\*\fldinst{HYPERLINK "https://assets.codepen.io/16327/CustomEase3.min.js"}}{\fldrslt \expnd0\expndtw0\kerning0
+\ul \outl0\strokewidth0 \strokec3 https://assets.codepen.io/16327/CustomEase3.min.js}}\cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \
+\ls1\ilvl0\cf3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	4	}{\field{\*\fldinst{HYPERLINK "https://assets.codepen.io/16327/SplitText3.min.js"}}{\fldrslt \expnd0\expndtw0\kerning0
+\ul \outl0\strokewidth0 \strokec3 https://assets.codepen.io/16327/SplitText3.min.js}}\cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0  \
+}
