@@ -2,10 +2,9 @@
 
 import { headers } from "next/headers";
 import { z } from "zod";
-import { isAdminEmail } from "@/lib/auth/admin";
 import { rateLimit, TOO_MANY_ATTEMPTS } from "@/lib/auth/rate-limit";
 import { env } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 type ActionResult<T = undefined> =
   | { success: true; data?: T }
@@ -34,13 +33,29 @@ export async function sendAdminMagicLink(formData: FormData): Promise<ActionResu
   const rl = await rateLimit("admin-magic-link", { limit: 5, windowSec: 300 });
   if (!rl.ok) return { success: false, error: TOO_MANY_ATTEMPTS };
 
-  if (!(await isAdminEmail(email))) {
-    // Deliberately vague — don't leak which addresses are admin.
-    return {
-      success: false,
-      error:
-        "If that email is on the admin allowlist, a sign-in link will arrive shortly. Otherwise, no email is sent.",
-    };
+  // #75 — strict provisioning gate. Only issue an admin sign-in link to an
+  // email that is BOTH in the admin_emails table AND already a verified
+  // auth.users account. This closes the env-var takeover: a stale / typo'd /
+  // attacker-controlled address in ADMIN_EMAILS can no longer receive an admin
+  // link, because the env list is not consulted here. The vague response is
+  // identical whether or not the email qualifies, so it leaks nothing.
+  const vague: ActionResult = {
+    success: false,
+    error:
+      "If that email is on the admin allowlist, a sign-in link will arrive shortly. Otherwise, no email is sent.",
+  };
+
+  const service = createServiceClient();
+  const { data: provisioned, error: gateError } = await service.rpc(
+    "admin_email_is_provisioned" as never,
+    { p_email: email } as never,
+  );
+  if (gateError) {
+    console.error("[admin-auth] provisioning check failed:", gateError.message);
+    return vague;
+  }
+  if (provisioned !== true) {
+    return vague;
   }
 
   const supabase = await createClient();
@@ -50,10 +65,11 @@ export async function sendAdminMagicLink(formData: FormData): Promise<ActionResu
     email,
     options: {
       emailRedirectTo: `${siteUrl}/auth/callback?next=/admin`,
-      // Don't create a new auth.users row for an admin we haven't seen
-      // yet — admin should pre-exist (we'll seed Mom's account before
-      // production). For dev / first-time setup, allow creation.
-      shouldCreateUser: env.NODE_ENV !== "production",
+      // Never auto-create an admin account via magic link (#75). The account
+      // must already exist + be verified — admins are provisioned explicitly
+      // (seed the auth user + an admin_emails row), never bootstrapped from
+      // an env var or a first-time link.
+      shouldCreateUser: false,
     },
   });
 
