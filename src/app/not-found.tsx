@@ -38,6 +38,18 @@ export default function NotFound() {
               }
             />
           </Card>
+
+          {/* 🥚 Treasure-hunt easter egg (#26) — a working code for the curious. */}
+          <details className="group mx-auto w-fit text-center">
+            <summary className="cursor-pointer list-none text-2xl opacity-40 transition-opacity hover:opacity-100 [&::-webkit-details-marker]:hidden">
+              🥚
+            </summary>
+            <p className="mt-2 text-caption text-muted-foreground">
+              You found it! Use code{" "}
+              <span className="font-mono font-medium text-foreground">FOUNDIT10</span>{" "}
+              for 10% off your next order. 🤫
+            </p>
+          </details>
         </Stack>
       </Container>
     </Section>

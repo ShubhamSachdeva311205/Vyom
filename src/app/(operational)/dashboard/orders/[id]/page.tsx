@@ -8,6 +8,8 @@ import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
 import { OrderTrackingTimeline } from "@/components/features/store/order-tracking-timeline";
+import { CopyInline } from "@/components/features/store/copy-inline";
+import { ReorderButton } from "@/components/features/store/reorder-button";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { formatINR } from "@/lib/format";
 
@@ -100,7 +102,10 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
             </Link>
             <Row gap={3} align="center" justify="between" className="flex-wrap">
               <Stack gap={1}>
-                <h1 className="text-title font-mono">{order.order_number}</h1>
+                <Row gap={2} align="center" className="flex-wrap">
+                  <h1 className="text-title font-mono">{order.order_number}</h1>
+                  <CopyInline value={order.order_number} label="order number" />
+                </Row>
                 <Row gap={2} align="center" className="flex-wrap">
                   <Badge variant={s.variant}>{s.label}</Badge>
                   <span className="text-caption text-muted-foreground">
@@ -108,7 +113,8 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
                   </span>
                 </Row>
               </Stack>
-              <Row gap={2}>
+              <Row gap={2} className="flex-wrap">
+                <ReorderButton orderId={order.id} />
                 <Button asChild variant="outline" size="md">
                   <a
                     href={`/api/orders/${order.id}/invoice.pdf`}

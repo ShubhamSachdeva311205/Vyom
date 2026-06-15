@@ -83,10 +83,7 @@ export function LibraryBookCard({ book }: { book: LibraryBook }) {
             <DialogHeader>
               <DialogTitle>{book.bookTitle} — Answer Key</DialogTitle>
             </DialogHeader>
-            <p className="text-caption text-muted-foreground mb-2">
-              This copy is watermarked with your email and order number.
-              Sharing it is a violation of your purchase agreement.
-            </p>
+            {/* Legal notice lives in PdfCanvasViewer now (#119) — don't duplicate it. */}
             {pdfOpen ? (
               <PdfCanvasViewer
                 src={`/api/protected-pdf?grant=${book.grantId}`}

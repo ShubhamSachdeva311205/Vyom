@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { removeCartItem, updateCartItemQuantity } from "@/actions/cart";
+import { addToCart, removeCartItem, updateCartItemQuantity } from "@/actions/cart";
 import { Button } from "@/components/ui/button";
 import { Row, Stack } from "@/components/layouts/stack";
 import { formatINR } from "@/lib/format";
 
 interface CartLineRowProps {
   cartItemId: string;
+  bookId: string;
   bookTitle: string;
   bookSubtitle: string | null;
   bookSlug: string;
@@ -26,6 +27,7 @@ interface CartLineRowProps {
  */
 export function CartLineRow({
   cartItemId,
+  bookId,
   bookTitle,
   bookSubtitle,
   bookSlug,
@@ -45,8 +47,22 @@ export function CartLineRow({
   const remove = () => {
     startTransition(async () => {
       const result = await removeCartItem(cartItemId);
-      if (!result.success) toast.error(result.error);
-      else toast.success("Removed from cart.");
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      // Forgive misclicks: offer to re-add the exact line for a few seconds.
+      // The row may unmount on revalidate, so Undo calls the action directly.
+      toast.success("Removed from cart.", {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            void addToCart(bookId, quantity).then((r) => {
+              if (!r.success) toast.error(r.error);
+            });
+          },
+        },
+      });
     });
   };
 

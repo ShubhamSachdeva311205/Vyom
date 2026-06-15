@@ -184,6 +184,50 @@ export async function removeCartItem(
 }
 
 /* -----------------------------------------------------------------
+ * reorderToCart — "Buy again" (#118). Re-adds a past order's items to
+ * the signed-in customer's cart. Owner-checked; skips lines that fail
+ * the stock gate (returns how many made it in).
+ * ----------------------------------------------------------------- */
+export async function reorderToCart(
+  orderId: string,
+): Promise<ActionResult<{ added: number; skipped: number }>> {
+  if (!uuid.safeParse(orderId).success) return { success: false, error: "Invalid order id." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Please sign in to reorder." };
+
+  const service = createServiceClient();
+  const { data: order } = await service
+    .from("orders")
+    .select("id, user_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order || order.user_id !== user.id) return { success: false, error: "Order not found." };
+
+  const { data: items } = await service
+    .from("order_items")
+    .select("book_id, quantity")
+    .eq("order_id", orderId);
+  if (!items || items.length === 0) return { success: false, error: "This order has no items." };
+
+  let added = 0;
+  let skipped = 0;
+  for (const it of items) {
+    const r = await addToCart(it.book_id, it.quantity);
+    if (r.success) added += 1;
+    else skipped += 1;
+  }
+  if (added === 0) {
+    return { success: false, error: "Couldn't add these items — they may be out of stock." };
+  }
+  revalidatePath("/cart");
+  return { success: true, data: { added, skipped } };
+}
+
+/* -----------------------------------------------------------------
  * mergeAnonymousCartIntoUserCart — called from the auth callback
  * after a successful sign-in. Re-attaches anon cart items to the
  * user's cart (summing quantities on collisions) and deletes the

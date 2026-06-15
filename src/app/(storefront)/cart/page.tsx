@@ -61,6 +61,7 @@ export default async function CartPage() {
                     <li key={item.id}>
                       <CartLineRow
                         cartItemId={item.id}
+                        bookId={item.book.id}
                         bookTitle={item.book.title}
                         bookSubtitle={item.book.subtitle}
                         bookSlug={item.book.slug}
