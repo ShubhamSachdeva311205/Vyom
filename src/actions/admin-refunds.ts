@@ -23,6 +23,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { sendRefundEmail } from "@/lib/email/refund";
 import { getRazorpayClient } from "@/lib/razorpay/client";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
@@ -181,8 +182,11 @@ export async function refundOrder(
     },
   });
 
-  // Phase 7 hook (Issue #69): trigger the "refund processed" email here once
-  // Resend is wired — sendRefundEmail({ orderId, amountPaise, reason }).
+  // Best-effort "refund processed" email (#69). Fire-and-forget so a mail
+  // hiccup never blocks or fails the refund itself; errors are swallowed.
+  void sendRefundEmail(order.id).catch((e) => {
+    console.error("[admin-refunds] refund email threw:", e);
+  });
 
   revalidatePath(`/admin/orders/${order.id}`);
   revalidatePath("/admin/orders");

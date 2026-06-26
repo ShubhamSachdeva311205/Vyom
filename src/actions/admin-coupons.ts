@@ -3,7 +3,7 @@
 /**
  * Admin Coupon Management — Phase 5.2 / Issue #64.
  *
- * Built-in globals (student10, teacher10, test60) are seeded via
+ * Built-in globals (student10, teacher10) are seeded via
  * migrations and shown read-only. Vendor codes are minted here:
  *
  *   1. Mom enters: discount %, vendor name, optional expiry, optional

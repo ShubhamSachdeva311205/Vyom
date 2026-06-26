@@ -232,10 +232,13 @@ async function handleRefundProcessed(payload: WebhookPayload): Promise<void> {
   const refund = payload.payload?.refund?.entity;
   if (!refund?.payment_id) return;
 
+  const refundAmount = refund.amount ?? 0;
+  if (refundAmount <= 0) return;
+
   const service = createServiceClient();
-  // Look up the order so we can do cumulative math + status logic.
-  // refunded_paise was added by migration 20260602204644 — cast
-  // through unknown until generated types regenerate.
+  // Look up the order so we can converge its status. refunded_paise itself is
+  // stamped atomically by reserve_refund below — we never read-modify-write it
+  // here (that was the #111 race the admin refund path already fixed).
   const { data: order } = await service
     .from("orders")
     .select("id, total_paise")
@@ -243,28 +246,67 @@ async function handleRefundProcessed(payload: WebhookPayload): Promise<void> {
     .maybeSingle();
   if (!order) return;
 
-  const { data: refundedRow } = await service
-    .from("orders")
-    .select("*")
-    .eq("id", order.id)
-    .maybeSingle();
-  const alreadyRefunded =
-    ((refundedRow as unknown as { refunded_paise?: number | null } | null)
-      ?.refunded_paise) ?? 0;
-  const refundAmount = refund.amount ?? 0;
-  const newRefunded = Math.min(order.total_paise, alreadyRefunded + refundAmount);
-  const newStatus =
-    newRefunded >= order.total_paise ? "refunded" : "partially_refunded";
+  // Atomically reserve the refund headroom: reserve_refund locks the order row
+  // (SELECT … FOR UPDATE), rejects anything that would push the cumulative
+  // refund past total_paise, and stamps refunded_paise in the same statement.
+  // This mirrors admin-refunds.ts so concurrent webhooks / the inline-verify
+  // path can't tear a read-modify-write, and a full-refund replay is rejected
+  // as exceeds_total instead of double-counting.
+  type ReserveRow = { ok: boolean; reason: string; refunded_paise: number | null };
+  const { data: reserveData, error: reserveErr } = await service.rpc(
+    "reserve_refund" as never,
+    { p_order_id: order.id, p_amount_paise: refundAmount } as never,
+  );
+  if (reserveErr) {
+    // Transient DB error — leave the order untouched. Razorpay retries the
+    // webhook with backoff, so we re-converge on the next delivery.
+    console.error("[razorpay-webhook] reserve_refund failed:", reserveErr);
+    return;
+  }
+  const reserve = (Array.isArray(reserveData) ? reserveData[0] : reserveData) as
+    | ReserveRow
+    | null;
 
-  // Idempotent: if our refund action already updated to this amount,
-  // the row will already match — no-op write is harmless.
-  await service
+  // Authoritative cumulative refunded total after the reservation attempt.
+  let refundedTotal: number;
+  if (reserve?.ok) {
+    refundedTotal = reserve.refunded_paise ?? refundAmount;
+  } else if (reserve?.reason === "exceeds_total") {
+    // The headroom is already consumed — either the admin refundOrder path
+    // stamped this refund before calling Razorpay, or this webhook was
+    // replayed. Don't double-count; trust the already-recorded total.
+    refundedTotal = reserve.refunded_paise ?? order.total_paise;
+  } else {
+    console.error("[razorpay-webhook] reserve_refund rejected:", {
+      orderId: order.id,
+      reason: reserve?.reason ?? "unknown",
+    });
+    return;
+  }
+
+  const newStatus =
+    refundedTotal >= order.total_paise ? "refunded" : "partially_refunded";
+
+  // Converge the order status from the now-authoritative refunded total.
+  // Writing the same status repeatedly is harmless (idempotent).
+  const { error: statusErr } = await service
     .from("orders")
-    .update({
-      status: newStatus,
-      refunded_paise: newRefunded,
-    } as never)
+    .update({ status: newStatus } as never)
     .eq("id", order.id);
+  if (statusErr) {
+    // We stamped refunded_paise but couldn't record the status. If we took a
+    // fresh reservation, release it so a webhook retry re-runs the whole
+    // reserve→status step cleanly instead of leaving headroom consumed under a
+    // stale status. (Nothing to release when the reservation was rejected.)
+    if (reserve?.ok) {
+      await service.rpc("release_refund" as never, {
+        p_order_id: order.id,
+        p_amount_paise: refundAmount,
+      } as never);
+    }
+    console.error("[razorpay-webhook] refund status update failed:", statusErr);
+    return;
+  }
 
   // Notify the customer (+ admin copy) that their refund was issued. Reads the
   // now-updated refunded_paise. Idempotent; no-ops if already sent.
