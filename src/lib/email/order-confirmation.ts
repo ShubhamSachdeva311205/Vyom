@@ -31,7 +31,7 @@ function buildHtml(data: {
 
   return `<!doctype html><html><body style="margin:0;background:#f6f6f4;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
   <div style="max-width:560px;margin:0 auto;padding:32px 20px">
-    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:24px">Advaita</div>
+    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:24px">Vyom</div>
     <div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:28px">
       <h1 style="font-size:22px;margin:0 0 6px">Thank you for your order 🙏</h1>
       <p style="margin:0 0 20px;color:#555">Order <strong>#${data.orderNumber}</strong> is confirmed. Here's what's on the way:</p>
@@ -46,15 +46,15 @@ function buildHtml(data: {
     </div>
 
     <div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:22px;margin-top:16px">
-      <p style="margin:0 0 6px;font-weight:600">Get 15% off your next order</p>
-      <p style="margin:0;color:#555;font-size:14px">Once your book arrives, tell us what you think — leave a review and we'll give you <strong>15% off</strong> your next purchase. It genuinely helps other students choose.</p>
+      <p style="margin:0 0 6px;font-weight:600">Loved your book?</p>
+      <p style="margin:0;color:#555;font-size:14px">Once it arrives, a quick review really helps other students find it — and helps us make these books better.</p>
     </div>
 
     <div style="text-align:center;margin-top:18px">
       <a href="${data.communityUrl}" style="color:#111;font-size:14px">Read &amp; share student writing in the Creative Corner →</a>
     </div>
 
-    <p style="text-align:center;color:#999;font-size:12px;margin-top:24px">Advaita · Premium IBDP &amp; IGCSE Hindi study resources</p>
+    <p style="text-align:center;color:#999;font-size:12px;margin-top:24px">Vyom · Premium IBDP &amp; IGCSE Hindi study resources</p>
   </div></body></html>`;
 }
 
@@ -122,7 +122,7 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
     const { error } = await resend.emails.send({
       from: EMAIL_FROM,
       to,
-      subject: `Your Advaita order #${order.order_number ?? ""} is confirmed`,
+      subject: `Your Vyom order #${order.order_number ?? ""} is confirmed`,
       html,
     });
     if (error) {

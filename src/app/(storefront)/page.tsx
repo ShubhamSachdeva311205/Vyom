@@ -64,7 +64,7 @@ export default async function HomePage() {
               <span className="text-eyebrow">Premium study resources · Bangalore</span>
               <h2 className="text-display">Study, slowly.</h2>
               <p className="text-body-lg text-muted-foreground max-w-2xl">
-                Advaita makes carefully edited books, papers, and audio
+                Vyom makes carefully edited books, papers, and audio
                 companions for students preparing for the IB Diploma and
                 IGCSE. Built for curiosity, not panic.
               </p>

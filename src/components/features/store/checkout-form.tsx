@@ -264,7 +264,7 @@ export function CheckoutForm({
         key: razorpayKeyId,
         amount: order.amountPaise,
         currency: order.currency,
-        name: "Advaita",
+        name: "Vyom",
         description: `Order ${order.orderNumber}`,
         order_id: order.razorpayOrderId,
         prefill: { name: userName, email: userEmail },
@@ -609,7 +609,7 @@ export function CheckoutForm({
                 onCheckedChange={(c) => setAcknowledgedNoRefund(Boolean(c))}
               />
               <span className="text-caption leading-relaxed">
-                I understand <strong>all sales are final</strong> — Advaita
+                I understand <strong>all sales are final</strong> — Vyom
                 does not offer returns or refunds. If a book arrives damaged
                 in transit, send a photo within 7 days for a free replacement.
                 Full policy: <a href="/legal/returns" target="_blank" className="underline">/legal/returns</a>.

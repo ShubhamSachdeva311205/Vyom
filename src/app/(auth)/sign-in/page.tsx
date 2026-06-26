@@ -8,7 +8,7 @@ import { Stack } from "@/components/layouts/stack";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to your Advaita account.",
+  description: "Sign in to your Vyom account.",
 };
 
 export default async function SignInPage() {
@@ -31,7 +31,7 @@ export default async function SignInPage() {
       <SignInForm />
 
       <p className="text-center text-caption">
-        New to Advaita?{" "}
+        New to Vyom?{" "}
         <Link
           href="/sign-up"
           className="font-medium text-foreground hover:underline underline-offset-4"

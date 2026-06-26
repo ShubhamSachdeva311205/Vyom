@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Mascot } from "@/components/ui/mascot";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Wordmark } from "@/components/ui/wordmark";
 import { UserMenu } from "@/components/ui/user-menu";
 import { MobileNavMenu } from "@/components/layouts/mobile-nav-menu";
 import { cn } from "@/lib/utils";
@@ -25,7 +26,7 @@ function LogoLockup() {
       className="inline-flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-accent/50 transition-colors"
     >
       <Mascot name="wisp" size="xs" hideCoupon />
-      <span className="font-display text-base font-semibold tracking-[-0.02em]">Advaita</span>
+      <Wordmark className="text-lg" />
     </Link>
   );
 }

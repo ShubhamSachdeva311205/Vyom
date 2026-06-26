@@ -5,7 +5,7 @@
 @import "../styles/backgrounds.css";
 
 /* -----------------------------------------------------------------
- * Advaita design tokens
+ * Vyom design tokens
  * Layer 1 — primitive scales (@theme).
  * Layer 2 — semantic aliases on :root / .dark / [data-mode="operational"].
  * Layer 3 — palette presets via [data-palette]. Emerald is the locked

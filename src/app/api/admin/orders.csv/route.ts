@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     status: 200,
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="advaita-orders-${from.slice(0, 10)}-to-${to.slice(0, 10)}.csv"`,
+      "Content-Disposition": `attachment; filename="vyom-orders-${from.slice(0, 10)}-to-${to.slice(0, 10)}.csv"`,
       "Cache-Control": "private, no-store",
     },
   });

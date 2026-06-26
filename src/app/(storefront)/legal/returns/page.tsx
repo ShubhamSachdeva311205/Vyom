@@ -13,7 +13,7 @@ export default function ReturnsPage() {
 
       <Stack gap={4} className="text-body">
         <p>
-          We don&rsquo;t accept returns or refunds on Advaita
+          We don&rsquo;t accept returns or refunds on Vyom
           purchases. This applies to physical books, digital PDFs, and
           audio companions equally.
         </p>

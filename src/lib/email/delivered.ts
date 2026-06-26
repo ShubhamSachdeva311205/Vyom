@@ -22,7 +22,7 @@ function buildHtml(data: {
 
   return `<!doctype html><html><body style="margin:0;background:#f6f6f4;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
   <div style="max-width:560px;margin:0 auto;padding:32px 20px">
-    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:24px">Advaita</div>
+    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:24px">Vyom</div>
     <div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:28px">
       <h1 style="font-size:22px;margin:0 0 6px">Your order was delivered 🎉</h1>
       <p style="margin:0 0 20px;color:#555">Order <strong>#${data.orderNumber}</strong> has arrived. We hope it's everything you needed.</p>
@@ -37,7 +37,7 @@ function buildHtml(data: {
       <a href="${data.communityUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:11px 18px;border-radius:9px;font-size:14px;font-weight:600">Leave feedback</a>
     </div>
 
-    <p style="text-align:center;color:#999;font-size:12px;margin-top:24px">Advaita · Premium IBDP &amp; IGCSE Hindi study resources</p>
+    <p style="text-align:center;color:#999;font-size:12px;margin-top:24px">Vyom · Premium IBDP &amp; IGCSE Hindi study resources</p>
   </div></body></html>`;
 }
 
@@ -111,7 +111,7 @@ export async function sendDeliveredEmail(orderId: string): Promise<void> {
     const { error } = await resend.emails.send({
       from: EMAIL_FROM,
       to,
-      subject: `Your Advaita order #${order.order_number ?? ""} was delivered`,
+      subject: `Your Vyom order #${order.order_number ?? ""} was delivered`,
       html,
     });
     if (error) {

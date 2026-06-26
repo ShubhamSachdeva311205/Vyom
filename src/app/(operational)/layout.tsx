@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Container } from "@/components/layouts/container";
+import { Wordmark } from "@/components/ui/wordmark";
 
 /**
  * Operational (Mode B) layout — admin / dashboard / checkout.
@@ -21,9 +22,7 @@ export default function OperationalLayout({ children }: { children: ReactNode })
               href="/"
               className="inline-flex items-center gap-2 -ml-1 px-1 py-1 rounded-md hover:bg-accent/50 transition-colors"
             >
-              <span className="font-display text-base font-semibold tracking-[-0.02em]">
-                Advaita
-              </span>
+              <Wordmark className="text-lg" />
               <span className="text-mono-tag text-muted-foreground">Operational</span>
             </Link>
             <Link

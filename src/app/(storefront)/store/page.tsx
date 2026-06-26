@@ -6,7 +6,7 @@ import { getBooks } from "@/lib/queries/books";
 
 export const metadata = {
   title: "Store",
-  description: "Browse Advaita's catalog of IBDP and IGCSE Hindi titles.",
+  description: "Browse Vyom's catalog of IBDP and IGCSE Hindi titles.",
 };
 
 export default async function StorePage() {

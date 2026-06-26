@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { NoiseLayer } from "@/components/layouts/noise-layer";
+import { Wordmark } from "@/components/ui/wordmark";
 
 /**
  * Auth layout — clean centered surface for /sign-in, /sign-up, /verify.
@@ -16,9 +17,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <header className="px-6 py-5 sm:px-8">
         <Link
           href="/"
-          className="inline-block font-display text-base font-semibold tracking-[-0.02em] hover:opacity-80 transition-opacity"
+          className="inline-block transition-opacity hover:opacity-80"
         >
-          Advaita
+          <Wordmark className="text-xl" />
         </Link>
       </header>
 

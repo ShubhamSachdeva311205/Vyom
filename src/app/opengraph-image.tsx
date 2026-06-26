@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export const alt = "Advaita — premium study resources for IBDP and IGCSE";
+export const alt = "Vyom — premium study resources for IBDP and IGCSE";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -41,7 +41,7 @@ export default function OpenGraphImage() {
             opacity: 0.7,
           }}
         >
-          <span>Advaita · Bangalore</span>
+          <span>Vyom · Bangalore</span>
           <span>IBDP · IGCSE</span>
         </div>
 
@@ -83,7 +83,7 @@ export default function OpenGraphImage() {
             letterSpacing: "0.04em",
           }}
         >
-          <span>advaita.in</span>
+          <span>vyombooks.online</span>
           <span style={{ fontFamily: "monospace" }}>v0.1</span>
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Mascot — Advaita's study companions.
+ * Mascot — Vyom's study companions.
  *
  * Cast (6 characters, each with a distinct hue):
  *   student  · soft round blob   · emerald  · school collar + tie · opt-in limbs

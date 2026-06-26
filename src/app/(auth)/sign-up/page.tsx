@@ -8,7 +8,7 @@ import { Stack } from "@/components/layouts/stack";
 
 export const metadata: Metadata = {
   title: "Sign up",
-  description: "Create an Advaita account to access digital books and place orders.",
+  description: "Create a Vyom account to access digital books and place orders.",
 };
 
 export default async function SignUpPage() {

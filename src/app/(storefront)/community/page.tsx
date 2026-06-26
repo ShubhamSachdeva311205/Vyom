@@ -9,7 +9,7 @@ import { getApprovedSubmissions } from "@/lib/queries/community";
 
 export const metadata = {
   title: "Community",
-  description: "Student writing from the Advaita Creative Corner.",
+  description: "Student writing from the Vyom Creative Corner.",
 };
 
 export default async function CommunityPage() {

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { env } from "@/lib/env";
 
-const SITE_URL = env.NEXT_PUBLIC_SITE_URL ?? "https://advaita.in";
+const SITE_URL = env.NEXT_PUBLIC_SITE_URL ?? "https://vyombooks.online";
 
 /**
  * Robots policy. Crawlers get the storefront; operational and internal

@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
     status: 200,
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="advaita-orders-${from.slice(0, 10)}-to-${to.slice(0, 10)}.xlsx"`,
+      "Content-Disposition": `attachment; filename="vyom-orders-${from.slice(0, 10)}-to-${to.slice(0, 10)}.xlsx"`,
       "Cache-Control": "private, no-store",
     },
   });

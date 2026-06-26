@@ -14,8 +14,8 @@ export function getResend(): Resend | null {
 /**
  * From-address. Defaults to Resend's onboarding sender for dev (delivers only
  * to your own Resend account email). Set RESEND_FROM_EMAIL to a verified-domain
- * address for production, e.g. "Advaita <orders@yourdomain>".
+ * address for production, e.g. "Vyom <orders@yourdomain>".
  */
-export const EMAIL_FROM = env.RESEND_FROM_EMAIL || "Advaita <onboarding@resend.dev>";
+export const EMAIL_FROM = env.RESEND_FROM_EMAIL || "Vyom <onboarding@resend.dev>";
 
 export const SITE_URL = env.NEXT_PUBLIC_SITE_URL;

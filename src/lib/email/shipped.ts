@@ -24,7 +24,7 @@ function buildHtml(data: {
 
   return `<!doctype html><html><body style="margin:0;background:#f6f6f4;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
   <div style="max-width:560px;margin:0 auto;padding:32px 20px">
-    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:24px">Advaita</div>
+    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:24px">Vyom</div>
     <div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:28px">
       <h1 style="font-size:22px;margin:0 0 6px">Your order is on its way 📦</h1>
       <p style="margin:0 0 20px;color:#555">Order <strong>#${data.orderNumber}</strong> has shipped. Here's how to track it:</p>
@@ -37,7 +37,7 @@ function buildHtml(data: {
       <table style="width:100%;border-collapse:collapse;font-size:14px">${itemRows}</table>
       <a href="${data.orderUrl}" style="display:inline-block;margin-top:18px;color:#111;font-size:14px">View order &amp; invoice →</a>
     </div>
-    <p style="text-align:center;color:#999;font-size:12px;margin-top:24px">Advaita · Premium IBDP &amp; IGCSE Hindi study resources</p>
+    <p style="text-align:center;color:#999;font-size:12px;margin-top:24px">Vyom · Premium IBDP &amp; IGCSE Hindi study resources</p>
   </div></body></html>`;
 }
 
@@ -108,7 +108,7 @@ export async function sendShippedEmail(orderId: string): Promise<void> {
     const { error } = await resend.emails.send({
       from: EMAIL_FROM,
       to,
-      subject: `Your Advaita order #${order.order_number ?? ""} has shipped`,
+      subject: `Your Vyom order #${order.order_number ?? ""} has shipped`,
       html,
     });
     if (error) {

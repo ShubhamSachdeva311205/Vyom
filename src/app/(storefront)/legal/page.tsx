@@ -12,7 +12,7 @@ const POLICIES = [
   {
     href: "/legal/terms",
     title: "Terms of service",
-    description: "Rules of using Advaita's store and community.",
+    description: "Rules of using Vyom's store and community.",
   },
   {
     href: "/legal/returns",

@@ -5,13 +5,13 @@ import { EMAIL_FROM, getResend, SITE_URL } from "./client";
 function buildHtml(title: string, url: string): string {
   return `<!doctype html><html><body style="margin:0;background:#f6f6f4;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111">
   <div style="max-width:520px;margin:0 auto;padding:32px 20px">
-    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:20px">Advaita</div>
+    <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:20px">Vyom</div>
     <div style="background:#fff;border:1px solid #eee;border-radius:14px;padding:28px">
       <h1 style="font-size:22px;margin:0 0 6px">It's back in stock 🎉</h1>
       <p style="margin:0 0 18px;color:#555"><strong>${title}</strong> is available again. It tends to sell out — grab it while it's here.</p>
       <a href="${url}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:11px 18px;border-radius:9px;font-size:14px;font-weight:600">View the book</a>
     </div>
-    <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">You're getting this because you asked to be notified. Advaita · IBDP &amp; IGCSE Hindi.</p>
+    <p style="text-align:center;color:#999;font-size:12px;margin-top:20px">You're getting this because you asked to be notified. Vyom · IBDP &amp; IGCSE Hindi.</p>
   </div></body></html>`;
 }
 

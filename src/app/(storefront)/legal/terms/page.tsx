@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <Stack gap={4} className="prose prose-sm max-w-none text-body">
         <p>
-          These terms govern your use of the Advaita store and community.
+          These terms govern your use of the Vyom store and community.
           Full legal text is being prepared with counsel. The shipping
           policy is the binding short version below:
         </p>

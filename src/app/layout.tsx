@@ -18,21 +18,21 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "Advaita",
-    template: "%s · Advaita",
+    default: "Vyom",
+    template: "%s · Vyom",
   },
   description:
     "Premium study resources for IBDP and IGCSE — books, papers, and audio companions.",
   openGraph: {
     type: "website",
-    title: "Advaita",
+    title: "Vyom",
     description:
       "Premium study resources for IBDP and IGCSE — books, papers, and audio companions.",
-    siteName: "Advaita",
+    siteName: "Vyom",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Advaita",
+    title: "Vyom",
     description:
       "Premium study resources for IBDP and IGCSE — books, papers, and audio companions.",
   },

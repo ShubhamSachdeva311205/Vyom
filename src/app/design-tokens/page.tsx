@@ -102,7 +102,7 @@ export default function DesignTokensPage() {
                 <span className="text-eyebrow">Internal · v0.1.1</span>
                 <h1 className="text-kinetic">Foundation.</h1>
                 <p className="text-body-lg text-muted-foreground max-w-2xl">
-                  Advaita&rsquo;s calibration surface. Emerald is locked.
+                  Vyom&rsquo;s calibration surface. Emerald is locked.
                   Hover the companions to wake them up — each one carries a
                   copyable discount code.
                 </p>
