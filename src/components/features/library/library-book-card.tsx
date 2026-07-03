@@ -114,6 +114,8 @@ function AudioPlaylist({ tracks }: { tracks: { id: string; title: string }[] }) 
     if (audioRef.current) audioRef.current.playbackRate = speed;
   }, [speed, active]);
 
+  const activeTitle = tracks.find(t => t.id === active)?.title;
+
   return (
     <Stack gap={3}>
       {active ? (
@@ -131,6 +133,7 @@ function AudioPlaylist({ tracks }: { tracks: { id: string; title: string }[] }) 
             }}
             className="w-full"
             src={`/api/stream-audio?track=${active}`}
+            aria-label={activeTitle}
           >
             Your browser doesn&apos;t support audio playback.
           </audio>
@@ -141,6 +144,7 @@ function AudioPlaylist({ tracks }: { tracks: { id: string; title: string }[] }) 
                 key={s}
                 type="button"
                 onClick={() => setSpeed(s)}
+                aria-pressed={speed === s}
                 className={
                   "rounded-md px-2 py-1 text-caption tabular-nums transition-colors " +
                   (speed === s

@@ -41,11 +41,12 @@ async function assertAdmin(): Promise<
   return { ok: true, email: user.email, id: user.id };
 }
 
-async function upsertSetting(key: string, value: unknown): Promise<void> {
+async function upsertSetting(key: string, value: unknown): Promise<string | null> {
   const service = createServiceClient();
-  await service
+  const { error } = await service
     .from("settings")
     .upsert({ key, value: value as never });
+  return error?.message ?? null;
 }
 
 /* ============================================================
@@ -73,13 +74,14 @@ export async function updateSellerDetails(
   if (!gate.ok) return { success: false, error: gate.error };
 
   const data = parsed.data;
-  await upsertSetting("seller_details", {
+  const err = await upsertSetting("seller_details", {
     name: data.name,
     address_lines: data.addressLines.filter(Boolean),
     phone: data.phone,
     email: data.email,
     gstin: data.gstin || null,
   });
+  if (err) return { success: false, error: err };
   revalidatePath("/admin/settings");
   return { success: true };
 }
@@ -113,12 +115,13 @@ export async function updateShippingSettings(
   if (!gate.ok) return { success: false, error: gate.error };
 
   const data = parsed.data;
-  await upsertSetting("shipping_settings", {
+  const err = await upsertSetting("shipping_settings", {
     free_shipping_enabled: data.freeShippingEnabled,
     free_shipping_threshold_paise: data.freeShippingThresholdPaise,
     pickup_pincode: data.pickupPincode || null,
     pickup_location: data.pickupLocation,
   });
+  if (err) return { success: false, error: err };
   revalidatePath("/admin/settings");
   return { success: true };
 }
@@ -140,9 +143,10 @@ export async function updateCheckoutSafety(
   const gate = await assertAdmin();
   if (!gate.ok) return { success: false, error: gate.error };
 
-  await upsertSetting("checkout_safety", {
+  const err = await upsertSetting("checkout_safety", {
     min_payable_fraction: parsed.data.minPayableFraction,
   });
+  if (err) return { success: false, error: err };
   revalidatePath("/admin/settings");
   return { success: true };
 }
@@ -168,12 +172,13 @@ export async function updateBankDetails(
   if (!gate.ok) return { success: false, error: gate.error };
 
   const data = parsed.data;
-  await upsertSetting("bank_details", {
+  const err = await upsertSetting("bank_details", {
     name: data.name,
     account_number: data.accountNumber,
     ifsc: data.ifsc,
     branch: data.branch,
   });
+  if (err) return { success: false, error: err };
   revalidatePath("/admin/settings");
   return { success: true };
 }

@@ -23,7 +23,7 @@ const FOOTER_COLUMNS = [
     heading: "Community",
     links: [
       { href: "/community", label: "Creative Corner" },
-      { href: "/community/feedback", label: "Feedback" },
+      { href: "/community", label: "Feedback" },
     ],
   },
   {

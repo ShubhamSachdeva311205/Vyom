@@ -88,7 +88,11 @@ export async function getOrCreateCart(owner: CartOwner): Promise<CartRow | null>
     .select("*")
     .single();
 
-  if (error) return null;
+  if (error) {
+    // A concurrent request hit the unique index first; the row now exists.
+    // Retry the read once so the caller gets the cart instead of null.
+    return findCartForOwner(owner);
+  }
   return data;
 }
 

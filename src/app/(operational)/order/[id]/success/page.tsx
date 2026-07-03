@@ -161,8 +161,7 @@ export default async function OrderSuccessPage({ params }: SuccessPageProps) {
 
           <Stack gap={3}>
             <p className="text-body text-muted-foreground">
-              A receipt will hit your inbox once Phase 7 (transactional
-              emails) is live. In the meantime, this page is your receipt.
+              A confirmation email has been sent to your inbox. This page is your receipt.
             </p>
             <Row gap={3} className="flex-wrap print:hidden">
               <Button asChild size="md">

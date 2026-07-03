@@ -6,7 +6,7 @@ import type { Tables } from "@/lib/supabase/types";
 import { BookCard } from "./book-card";
 import { cn } from "@/lib/utils";
 
-type Book = Tables<"books">;
+type Book = Omit<Tables<"books">, "audio_r2_key" | "pdf_r2_key" | "cost_paise">;
 
 /**
  * LayeredBookHero — static 3D-layered arrangement.

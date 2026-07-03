@@ -22,6 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/ibdp", changeFrequency: "weekly", priority: 0.8 },
     { path: "/igcse", changeFrequency: "weekly", priority: 0.8 },
     { path: "/community", changeFrequency: "daily", priority: 0.7 },
+    { path: "/contact", changeFrequency: "monthly", priority: 0.4 },
     { path: "/legal", changeFrequency: "monthly", priority: 0.3 },
     { path: "/legal/terms", changeFrequency: "monthly", priority: 0.3 },
     { path: "/legal/returns", changeFrequency: "monthly", priority: 0.3 },

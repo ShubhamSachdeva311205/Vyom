@@ -583,7 +583,7 @@ export type Database = {
           {
             foreignKeyName: "coupon_redemptions_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -774,6 +774,7 @@ export type Database = {
           admin_notes: string | null
           confirmation_email_sent_at: string | null
           coupon_code: string | null
+          coupon_eligible_paise: number | null
           courier_name: string | null
           created_at: string
           delivered_at: string | null
@@ -816,6 +817,7 @@ export type Database = {
           admin_notes?: string | null
           confirmation_email_sent_at?: string | null
           coupon_code?: string | null
+          coupon_eligible_paise?: number | null
           courier_name?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -858,6 +860,7 @@ export type Database = {
           admin_notes?: string | null
           confirmation_email_sent_at?: string | null
           coupon_code?: string | null
+          coupon_eligible_paise?: number | null
           courier_name?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -1014,6 +1017,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_email_is_provisioned: {
+        Args: { p_email: string }
+        Returns: boolean
+      }
       decrement_inventory: {
         Args: { p_order_id: string }
         Returns: {
@@ -1158,6 +1165,7 @@ export type Database = {
           admin_notes: string | null
           confirmation_email_sent_at: string | null
           coupon_code: string | null
+          coupon_eligible_paise: number | null
           courier_name: string | null
           created_at: string
           delivered_at: string | null
@@ -1213,6 +1221,7 @@ export type Database = {
           admin_notes: string | null
           confirmation_email_sent_at: string | null
           coupon_code: string | null
+          coupon_eligible_paise: number | null
           courier_name: string | null
           created_at: string
           delivered_at: string | null

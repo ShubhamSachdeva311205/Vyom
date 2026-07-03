@@ -64,13 +64,14 @@ export async function sendShippedEmail(orderId: string): Promise<void> {
   if (!pre || pre.shipped_email_sent_at || !pre.tracking_number) return;
 
   // Atomically claim the send.
-  const { data: order } = await service
+  const { data: order, error: claimErr } = await service
     .from("orders")
     .update({ shipped_email_sent_at: new Date().toISOString() })
     .eq("id", orderId)
     .is("shipped_email_sent_at", null)
     .select("id, user_id, order_number, tracking_number, courier_name, tracking_url")
     .maybeSingle();
+  if (claimErr) { console.error("[email] shipped claim failed:", claimErr); return; }
   if (!order) return;
 
   const unclaim = () =>

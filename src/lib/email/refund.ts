@@ -93,13 +93,14 @@ export async function sendRefundEmail(orderId: string): Promise<void> {
   } | null;
   if (!pre || preRow?.refund_email_sent_at) return;
 
-  const { data: order } = await service
+  const { data: order, error: claimErr } = await service
     .from("orders")
     .update({ refund_email_sent_at: new Date().toISOString() } as never)
     .eq("id", orderId)
     .is("refund_email_sent_at" as never, null)
-    .select("id, user_id, order_number")
+    .select("id, user_id, order_number, refunded_paise")
     .maybeSingle();
+  if (claimErr) { console.error("[email] refund claim failed:", claimErr); return; }
   if (!order) return;
 
   const unclaim = () =>
@@ -117,7 +118,8 @@ export async function sendRefundEmail(orderId: string): Promise<void> {
       return;
     }
 
-    const refundedPaise = preRow?.refunded_paise ?? 0;
+    const refundedPaise =
+      (order as unknown as { refunded_paise?: number | null }).refunded_paise ?? 0;
     const refundText = formatINR(refundedPaise);
     const orderNumber = order.order_number ?? order.id.slice(0, 8);
     const orderUrl = `${SITE_URL}/order/${orderId}/success`;

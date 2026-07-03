@@ -1,8 +1,17 @@
 import type { LucideIcon } from "lucide-react";
 import { Inbox } from "lucide-react";
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
-import { Mascot, type MascotName } from "@/components/ui/mascot";
+import type { MascotName } from "@/components/ui/mascot";
 import { cn } from "@/lib/utils";
+
+// Dynamic import keeps framer-motion in a lazily-loaded chunk off the main
+// admin/checkout bundles (§9). No `ssr: false` — this is a Server Component and
+// Next 16 forbids that here; the split still keeps framer-motion off the initial
+// bundle, and the Mascot's own "use client" boundary handles hydration.
+const Mascot = dynamic(() =>
+  import("@/components/ui/mascot").then((m) => ({ default: m.Mascot })),
+);
 
 /**
  * EmptyState — keeps a list/table/page from feeling broken when there's

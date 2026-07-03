@@ -12,7 +12,9 @@ import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
-type Book = Tables<"books"> & { hasSample?: boolean };
+type Book = Omit<Tables<"books">, "audio_r2_key" | "pdf_r2_key" | "cost_paise"> & {
+  hasSample?: boolean;
+};
 
 type FilterKey = "all" | "ibdp" | "igcse";
 

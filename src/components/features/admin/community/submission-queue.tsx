@@ -20,14 +20,14 @@ const KIND_LABEL: Record<string, string> = {
 
 export function SubmissionQueue({ initial }: { initial: PendingSubmission[] }) {
   const [rows, setRows] = useState(initial);
-  const [pending, startTransition] = useTransition();
-  const [actingId, setActingId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const [actingIds, setActingIds] = useState<Set<string>>(new Set());
 
   function act(id: string, decision: "approved" | "rejected") {
-    setActingId(id);
+    setActingIds((prev) => new Set(prev).add(id));
     startTransition(async () => {
       const res = await moderateSubmission({ id, decision });
-      setActingId(null);
+      setActingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
       if (!res.success) {
         toast.error(res.error);
         return;
@@ -72,7 +72,7 @@ export function SubmissionQueue({ initial }: { initial: PendingSubmission[] }) {
             <Row gap={2}>
               <Button
                 size="sm"
-                disabled={pending && actingId === s.id}
+                disabled={actingIds.has(s.id)}
                 onClick={() => act(s.id, "approved")}
               >
                 <Check className="size-4" aria-hidden="true" /> Approve
@@ -80,7 +80,7 @@ export function SubmissionQueue({ initial }: { initial: PendingSubmission[] }) {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={pending && actingId === s.id}
+                disabled={actingIds.has(s.id)}
                 onClick={() => act(s.id, "rejected")}
               >
                 <X className="size-4" aria-hidden="true" /> Reject

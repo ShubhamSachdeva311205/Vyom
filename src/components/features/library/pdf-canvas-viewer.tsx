@@ -154,6 +154,9 @@ export function PdfCanvasViewer({ src, title }: { src: string; title: string }) 
     if (!doc || !canvas || loading) return;
 
     let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let currentRenderTask: any = null;
+
     void (async () => {
       const pageObj = await doc.getPage(page);
       if (cancelled) return;
@@ -171,7 +174,14 @@ export function PdfCanvasViewer({ src, title }: { src: string; title: string }) 
       canvas.style.height = `${viewport.height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      await pageObj.render({ canvasContext: ctx, viewport }).promise;
+      currentRenderTask = pageObj.render({ canvasContext: ctx, viewport });
+      try {
+        await currentRenderTask.promise;
+      } catch {
+        // RenderTask was cancelled — discard silently and stop painting.
+        return;
+      }
+      currentRenderTask = null;
       if (cancelled) return;
 
       if (isProtected && watermark) {
@@ -181,6 +191,7 @@ export function PdfCanvasViewer({ src, title }: { src: string; title: string }) 
 
     return () => {
       cancelled = true;
+      currentRenderTask?.cancel();
     };
   }, [page, loading, watermark, isProtected]);
 

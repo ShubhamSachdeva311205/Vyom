@@ -138,11 +138,18 @@ export async function refundOrder(
     newRefunded >= order.total_paise ? "refunded" : "partially_refunded";
 
   // Status flip + audit log via the existing SECURITY DEFINER RPC.
-  await service.rpc("update_order_status" as never, {
+  const { error: statusErr } = await service.rpc("update_order_status" as never, {
     p_order_id: order.id,
     p_new_status: newStatus,
     p_notes: `Refunded ₹${Math.round(parsed.data.amountPaise / 100)} via Razorpay (${refund.id}). Reason: ${parsed.data.reason}`,
   } as never);
+  if (statusErr) {
+    console.error("[admin-refunds] update_order_status failed after refund disbursed:", statusErr);
+    return {
+      success: false,
+      error: `Refund was disbursed (${refund.id}) but order status could not be updated: ${statusErr.message}`,
+    };
+  }
 
   // Restock inventory if the order had been decremented and isn't
   // already restocked.

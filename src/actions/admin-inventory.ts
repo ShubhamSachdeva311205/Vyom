@@ -257,7 +257,10 @@ export async function getBookForEdit(bookId: string): Promise<ActionResult<BookF
   const gate = await assertAdmin();
   if (!gate.ok) return { success: false, error: gate.error };
 
-  const supabase = await createClient();
+  // Service client: admin-gated, and the edit drawer needs cost_paise +
+  // audio_r2_key + pdf_r2_key, which the books column grants withhold from the
+  // authenticated role. Service role bypasses grants + RLS.
+  const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("books")
     .select("*")

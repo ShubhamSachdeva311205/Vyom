@@ -68,13 +68,36 @@ export async function GET(
     }
     invoiceNumber = alloc as unknown as string;
     invoiceGeneratedAt = new Date();
-    await service
+    // Guarded update: only stamp the row when invoice_number IS NULL so
+    // concurrent requests can't overwrite each other (no duplicate numbers).
+    const { data: updated } = await service
       .from("orders")
       .update({
         invoice_number: invoiceNumber,
         invoice_generated_at: invoiceGeneratedAt.toISOString(),
       } as never)
-      .eq("id", order.id);
+      .eq("id", order.id)
+      .is("invoice_number" as never, null)
+      .select("invoice_number, invoice_generated_at" as never);
+
+    // If 0 rows updated, a concurrent request won the race — re-read its number.
+    if (!updated || (updated as unknown[]).length === 0) {
+      const { data: reread } = await service
+        .from("orders")
+        .select("invoice_number, invoice_generated_at" as never)
+        .eq("id", order.id)
+        .maybeSingle();
+      const rereadTyped = reread as unknown as {
+        invoice_number: string | null;
+        invoice_generated_at: string | null;
+      } | null;
+      if (rereadTyped?.invoice_number) {
+        invoiceNumber = rereadTyped.invoice_number;
+        invoiceGeneratedAt = rereadTyped.invoice_generated_at
+          ? new Date(rereadTyped.invoice_generated_at)
+          : invoiceGeneratedAt;
+      }
+    }
   }
 
   // 4. Hydrate items + customer.

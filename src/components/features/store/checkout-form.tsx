@@ -67,6 +67,7 @@ interface CheckoutFormProps {
 interface PreviewSnapshot {
   couponCode: string;
   pincode: string;
+  courierId: number | null;
   data:
     | { kind: "ok"; subtotalPaise: number; discountPaise: number; shippingPaise: number; totalPaise: number; couponApplied: string | null; couponReason: string | null; shippingCourier: string | null; shippingEtd: string | null; shippingUnserviceable: boolean; couriers: CourierOption[]; selectedCourierId: number | null }
     | { kind: "error"; message: string };
@@ -139,7 +140,9 @@ export function CheckoutForm({
   // Match the last preview against the current inputs. If they don't
   // match, we're either loading or idle.
   const matches =
-    preview?.couponCode === couponCode && preview?.pincode === pincode;
+    preview?.couponCode === couponCode &&
+    preview?.pincode === pincode &&
+    preview?.courierId === courierId;
   const previewState =
     matches && preview
       ? preview.data
@@ -164,6 +167,7 @@ export function CheckoutForm({
         setPreview({
           couponCode,
           pincode,
+          courierId,
           data: { kind: "error", message: result.error },
         });
         return;
@@ -173,6 +177,7 @@ export function CheckoutForm({
       setPreview({
         couponCode,
         pincode,
+        courierId,
         data: {
           kind: "ok",
           subtotalPaise: d.subtotalPaise,
@@ -285,7 +290,9 @@ export function CheckoutForm({
             const orderId = verifyResult.data?.orderId;
             if (orderId) {
               router.push(`/order/${orderId}/success`);
-              router.refresh();
+            } else {
+              setPaying(false);
+              toast.error("Payment succeeded but order ID was missing. Please contact support.");
             }
           });
         },

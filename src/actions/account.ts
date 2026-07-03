@@ -43,7 +43,8 @@ export async function updateDisplayName(formData: FormData): Promise<ActionResul
     data: { full_name: parsed.data },
   });
   if (authErr) return { success: false, error: authErr.message };
-  await supabase.from("users").update({ full_name: parsed.data }).eq("id", user.id);
+  const { error: profileErr } = await supabase.from("users").update({ full_name: parsed.data }).eq("id", user.id);
+  if (profileErr) return { success: false, error: profileErr.message };
 
   revalidatePath("/dashboard/settings");
   return { success: true };

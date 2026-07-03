@@ -67,13 +67,14 @@ export async function sendDeliveredEmail(orderId: string): Promise<void> {
       ?.delivered_email_sent_at ?? null;
   if (!pre || alreadySent) return;
 
-  const { data: order } = await service
+  const { data: order, error: claimErr } = await service
     .from("orders")
     .update({ delivered_email_sent_at: new Date().toISOString() } as never)
     .eq("id", orderId)
     .is("delivered_email_sent_at" as never, null)
     .select("id, user_id, order_number")
     .maybeSingle();
+  if (claimErr) { console.error("[email] delivered claim failed:", claimErr); return; }
   if (!order) return;
 
   const unclaim = () =>

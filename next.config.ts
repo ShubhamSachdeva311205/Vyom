@@ -8,6 +8,13 @@ import type { NextConfig } from "next";
 // bootstrap scripts and Razorpay injects inline). Tighten to nonces later
 // (Issue #76). frame-ancestors 'none' + X-Frame-Options: DENY kill the
 // /admin clickjacking finding (#114).
+
+// Local Supabase dev server — only allow in non-production builds.
+const devConnectHosts =
+  process.env.NODE_ENV !== "production"
+    ? " http://127.0.0.1:54321 ws://127.0.0.1:54321"
+    : "";
+
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -20,7 +27,7 @@ const csp = [
   "media-src 'self' blob: https://res.cloudinary.com",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://*.razorpay.com https://api.cloudinary.com http://127.0.0.1:54321 ws://127.0.0.1:54321",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://*.razorpay.com https://api.cloudinary.com${devConnectHosts}`,
   "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com",
   "upgrade-insecure-requests",
 ].join("; ");

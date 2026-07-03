@@ -11,7 +11,7 @@ import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
 
-export const metadata = { title: "Your library" };
+export const metadata = { title: "Dashboard" };
 
 export default function DashboardPage() {
   return (

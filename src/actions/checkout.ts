@@ -392,7 +392,7 @@ export async function cancelPendingOrder(
 export interface CreatedOrderPayload {
   /** Our internal orders.id — used for success-page redirect. */
   orderId: string;
-  /** Order number (ADV-YYYYMMDD-XXXXX) — shown on receipt. */
+  /** Order number (VYM-YYYYMMDD-XXXXX) — shown on receipt. */
   orderNumber: string;
   /** Razorpay-side order id (order_XXXX) — the Checkout JS modal needs this. */
   razorpayOrderId: string;
@@ -588,6 +588,11 @@ export async function createRazorpayOrder(
   //    if the customer closes the modal or payment fails. (Issue #78.)
   let discountPaise = 0;
   let couponApplied: string | null = null;
+  // Eligible base the discount was computed against (book-scoped for clearance
+  // codes). Persisted so the post-payment redeem records the SAME discount the
+  // customer was previewed/charged instead of re-deriving it from the full
+  // subtotal.
+  let couponEligiblePaise: number | null = null;
   if (couponCode) {
     // Book-targeted coupons discount only their book's subtotal (#clearance).
     const { data: scopedC } = await service
@@ -617,7 +622,19 @@ export async function createRazorpayOrder(
       return { success: false, error: row?.reason ?? "Coupon is not valid." };
     }
     discountPaise = row.discount_paise ?? 0;
+    // A coupon that discounts nothing on THIS cart (e.g. a book-scoped code
+    // whose target book isn't in the cart) must NOT be treated as applied:
+    // otherwise the code is stamped and the post-payment redeem burns a
+    // single-use vendor code for a ₹0 benefit.
+    if (discountPaise <= 0) {
+      await service.from("orders").delete().eq("id", orderRow.id);
+      return {
+        success: false,
+        error: "This coupon doesn't apply to anything in your cart.",
+      };
+    }
     couponApplied = couponCode;
+    couponEligiblePaise = couponEligible;
   }
 
   // 7. Patch order with discount + final total + coupon code (so the
@@ -629,9 +646,15 @@ export async function createRazorpayOrder(
   //     on top of the server-side price computation. Logs full detail
   //     for forensics if it ever fires.
   const checkoutSafety = await getCheckoutSafety();
-  const minPayablePaise = Math.floor(
-    subtotalPaise * checkoutSafety.minPayableFraction,
-  );
+  // Compute the floor on the POST-discount base (+ shipping + tax, which the
+  // customer always pays in full). A legitimate high-value coupon — e.g. a
+  // >70%-off clearance code, already validated by preview_coupon above — would
+  // otherwise trip a floor computed against the raw subtotal and be rejected.
+  const discountedSubtotalPaise = Math.max(0, subtotalPaise - discountPaise);
+  const minPayablePaise =
+    Math.floor(discountedSubtotalPaise * checkoutSafety.minPayableFraction) +
+    shippingPaise +
+    taxPaise;
   if (subtotalPaise > 0 && totalPaise < minPayablePaise) {
     console.error("[checkout] PRICE FLOOR TRIGGERED — refusing to create Razorpay order", {
       orderId: orderRow.id,
@@ -660,7 +683,9 @@ export async function createRazorpayOrder(
       discount_paise: discountPaise,
       total_paise: totalPaise,
       coupon_code: couponApplied,
-    })
+      // Not yet in generated types (migration pending) — cast to satisfy tsc.
+      coupon_eligible_paise: couponEligiblePaise,
+    } as never)
     .eq("id", orderRow.id);
 
   // 8. Create Razorpay order. Receipt field gets our order_number.
@@ -735,9 +760,11 @@ export async function verifyPaymentAndCompleteOrder(
   // Find our order by razorpay_order_id (service-role: we only trust the
   // verified signature above to authorize the flip).
   const service = createServiceClient();
+  // select("*") (service client bypasses RLS/column grants) so we also read
+  // coupon_eligible_paise, which isn't in the generated types yet.
   const { data: order, error: orderErr } = await service
     .from("orders")
-    .select("id, status, user_id, coupon_code, subtotal_paise")
+    .select("*")
     .eq("razorpay_order_id", razorpay_order_id)
     .maybeSingle();
 
@@ -793,6 +820,12 @@ export async function verifyPaymentAndCompleteOrder(
     // Idempotency: the webhook path also redeems (#78). Skip if a
     // redemption already exists for this order so the two paths can't
     // double-count the code.
+    // Redeem against the same eligible base we previewed/charged (book-scoped
+    // for clearance codes) so the ledger discount matches; fall back to the
+    // full subtotal for pre-existing orders without the column stamped.
+    const eligiblePaise =
+      (order as unknown as { coupon_eligible_paise: number | null })
+        .coupon_eligible_paise ?? order.subtotal_paise;
     const { data: existingRedemption } = await service
       .from("coupon_redemptions")
       .select("id")
@@ -804,10 +837,13 @@ export async function verifyPaymentAndCompleteOrder(
           p_code: order.coupon_code,
           p_user_id: order.user_id,
           p_order_id: order.id,
-          p_eligible_subtotal_paise: order.subtotal_paise,
+          p_eligible_subtotal_paise: eligiblePaise,
         });
     const row = Array.isArray(redeem) ? redeem[0] : redeem;
-    if (redeemErr || !row?.success) {
+    // A 23505 means the UNIQUE(order_id) backstop caught a concurrent redeem
+    // (the webhook path already recorded it) — a no-op, not a real failure.
+    const isDuplicate = (redeemErr as { code?: string } | null)?.code === "23505";
+    if (!isDuplicate && (redeemErr || !row?.success)) {
       await service
         .from("orders")
         .update({
@@ -844,7 +880,7 @@ function generateOrderNumber(): string {
   // 5 random base36 chars — collision-resistant enough at our volume,
   // and short enough to read aloud on a support call.
   const suffix = crypto.randomBytes(4).toString("base64url").slice(0, 5).toUpperCase();
-  return `ADV-${y}${m}${d}-${suffix}`;
+  return `VYM-${y}${m}${d}-${suffix}`;
 }
 
 function safeEqualHex(a: string, b: string): boolean {

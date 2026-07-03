@@ -90,7 +90,7 @@ export default function ContactPage() {
             })}
           </Stack>
 
-          <Link href="/community/feedback" className="block group">
+          <Link href="/community" className="block group">
             <Card
               variant="surface"
               padding="lg"

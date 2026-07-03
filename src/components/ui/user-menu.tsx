@@ -55,7 +55,7 @@ export function UserMenu({ user, isAdmin }: { user: User; isAdmin: boolean }) {
             <MenuLink href="/dashboard" icon={<Library className="size-4" />}>
               Your library
             </MenuLink>
-            <MenuLink href="/dashboard" icon={<UserIcon className="size-4" />}>
+            <MenuLink href="/dashboard/settings" icon={<UserIcon className="size-4" />}>
               Account settings
             </MenuLink>
             {isAdmin ? (

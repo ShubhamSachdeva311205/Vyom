@@ -48,24 +48,18 @@ export async function isAdminEmail(
 
   try {
     const supabase = createServiceClient();
+    // Exact, case-insensitive match. `normalised` is already lowercased and
+    // stored emails are always lowercase (see addAdminEmail / the seed), so
+    // `.eq` is correct. Never use `.ilike` here: `_` and `%` are legal email
+    // characters that ILIKE treats as wildcards, letting e.g. `supervis_r@x`
+    // match a stored `supervisor@x`.
     const { data } = await supabase
       .from("admin_emails")
       .select("email")
-      .ilike("email", normalised)
+      .eq("email", normalised)
       .maybeSingle();
     return Boolean(data);
   } catch {
     return false;
   }
-}
-
-/**
- * Cheap sync check — env-only. Use ONLY when the caller can't await.
- * (Currently unused — kept as a documented escape hatch.)
- */
-export function isAdminEmailEnvOnly(
-  email: string | null | undefined,
-): boolean {
-  if (!email) return false;
-  return getEnvAllowlist().has(email.trim().toLowerCase());
 }

@@ -40,8 +40,6 @@ export default async function AuthErrorPage({
         <Stack gap={8}>
           <Stack gap={3}>
             <span className="text-eyebrow">Auth · Hiccup</span>
-            <h1 className="text-display">{copy.title}</h1>
-            <p className="text-body-lg text-muted-foreground">{copy.description}</p>
           </Stack>
 
           <Card variant="surface" padding="none" className="overflow-hidden">

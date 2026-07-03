@@ -59,7 +59,7 @@ export function OrderTrackingTimeline({
   };
   const currentRank = RANK[status] ?? 0;
 
-  // On-hold / cancelled get an explicit callout above the stepper.
+  // On-hold / cancelled / refunded get an explicit callout above the stepper.
   const exception =
     status === "on_hold"
       ? {
@@ -69,7 +69,9 @@ export function OrderTrackingTimeline({
         }
       : status === "cancelled"
         ? { tone: "warn" as const, text: "This order was cancelled.", at: null }
-        : null;
+        : status === "refunded"
+          ? { tone: "warn" as const, text: "This order has been refunded.", at: null }
+          : null;
 
   return (
     <Stack gap={4}>
@@ -91,7 +93,7 @@ export function OrderTrackingTimeline({
 
       <ol className="flex flex-col">
         {STEPS.map((step, i) => {
-          const reached = i <= currentRank && status !== "cancelled";
+          const reached = i <= currentRank && status !== "cancelled" && status !== "refunded";
           const isCurrent = i === currentRank && status !== "delivered" && status !== "cancelled";
           const at = fmt(stamps[step.key]);
           const Icon = reached ? (i < currentRank ? Check : step.icon) : step.icon;

@@ -11,6 +11,7 @@
 import { isAdminEmail } from "@/lib/auth/admin";
 import { env } from "@/lib/env";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import type { Enums } from "@/lib/supabase/types";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -94,38 +95,57 @@ export async function getUsageStats(): Promise<ActionResult<UsageStats>> {
     }
   }
 
-  // --- Razorpay / email / shipping — from our own orders (one pass) ---
-  const { data: orders } = await service
-    .from("orders")
-    .select(
-      "status, total_paise, non_refundable_fee_paise, refunded_paise, confirmation_email_sent_at, tracking_number",
-    )
-    .limit(10000);
-
+  // --- Razorpay / email / shipping — from our own orders (DB-side counts + targeted fetches) ---
+  // Month boundary for the date-scoped email count.
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
   const monthIso = monthStart.toISOString();
 
-  let paidOrders = 0,
-    revenuePaise = 0,
-    feesPaise = 0,
-    refundedPaise = 0,
-    sentTotal = 0,
-    sentThisMonth = 0,
-    shipped = 0;
-  for (const o of orders ?? []) {
-    if (PAID.has(o.status)) {
-      paidOrders += 1;
-      revenuePaise += o.total_paise ?? 0;
-      feesPaise += o.non_refundable_fee_paise ?? 0;
-      refundedPaise += o.refunded_paise ?? 0;
-    }
-    if (o.confirmation_email_sent_at) {
-      sentTotal += 1;
-      if (o.confirmation_email_sent_at >= monthIso) sentThisMonth += 1;
-    }
-    if (o.tracking_number) shipped += 1;
+  const paidStatuses = [...PAID] as Enums<"order_status">[];
+
+  // DB-side counts (head=true → no rows returned, just the count header).
+  const [
+    { count: paidOrdersCount },
+    { count: sentTotalCount },
+    { count: sentThisMonthCount },
+    { count: shippedCount },
+    // Financial columns for paid orders only (no artificial limit; admin-only path).
+    { data: paidFinancials },
+  ] = await Promise.all([
+    service
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .in("status", paidStatuses),
+    service
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .not("confirmation_email_sent_at", "is", null),
+    service
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .not("confirmation_email_sent_at", "is", null)
+      .gte("confirmation_email_sent_at", monthIso),
+    service
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .not("tracking_number", "is", null),
+    service
+      .from("orders")
+      .select("total_paise, non_refundable_fee_paise, refunded_paise")
+      .in("status", paidStatuses),
+  ]);
+
+  const paidOrders = paidOrdersCount ?? 0;
+  const sentTotal = sentTotalCount ?? 0;
+  const sentThisMonth = sentThisMonthCount ?? 0;
+  const shipped = shippedCount ?? 0;
+
+  let revenuePaise = 0, feesPaise = 0, refundedPaise = 0;
+  for (const o of paidFinancials ?? []) {
+    revenuePaise += o.total_paise ?? 0;
+    feesPaise += o.non_refundable_fee_paise ?? 0;
+    refundedPaise += o.refunded_paise ?? 0;
   }
 
   // --- Supabase storage (server-only RPC) ---

@@ -72,13 +72,14 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
   const service = createServiceClient();
 
   // Atomically claim the send. If no row comes back, another path already did it.
-  const { data: order } = await service
+  const { data: order, error: claimErr } = await service
     .from("orders")
     .update({ confirmation_email_sent_at: new Date().toISOString() })
     .eq("id", orderId)
     .is("confirmation_email_sent_at", null)
     .select("id, user_id, order_number, subtotal_paise, discount_paise, shipping_paise, total_paise")
     .maybeSingle();
+  if (claimErr) { console.error("[email] order confirmation claim failed:", claimErr); return; }
   if (!order) return;
 
   const unclaim = () =>

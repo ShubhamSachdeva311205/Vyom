@@ -71,8 +71,13 @@ export function SalesReport() {
 
   useEffect(() => {
     const { from, to } = rangeFor(period);
-    getSalesTimeSeries(from, to, granularity).then((r) => {
+    // Wrapped in the transition (not called synchronously in the effect body)
+    // so the loading reset + fetch don't trip react-hooks/set-state-in-effect.
+    start(async () => {
+      setSeries(null);
+      const r = await getSalesTimeSeries(from, to, granularity);
       if (r.success) setSeries(r.data);
+      else toast.error(r.error);
     });
   }, [period, granularity]);
 

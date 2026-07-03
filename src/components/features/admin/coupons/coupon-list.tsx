@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Copy, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteCoupon, type CouponRow } from "@/actions/admin-coupons";
@@ -37,6 +38,7 @@ export function CouponList({
   rows: CouponRow[];
   variant: "built-in" | "vendor";
 }) {
+  const router = useRouter();
   const [copied, setCopied] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -72,6 +74,7 @@ export function CouponList({
         return;
       }
       toast.success("Code deleted.");
+      router.refresh();
     });
   }
 

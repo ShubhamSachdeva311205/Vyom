@@ -1,7 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
-export type Book = Tables<"books"> & { hasSample?: boolean };
+// Storefront reads must NEVER pull the sensitive columns (audio_r2_key,
+// pdf_r2_key = private R2 object keys; cost_paise = COGS). Column-level GRANTs
+// block them at the DB, and PostgREST errors on select("*") under those grants,
+// so we select the safe columns explicitly. Keep this list in sync with the
+// grant in migration 20260703130000.
+const SAFE_BOOK_COLUMNS =
+  "id, slug, title, subtitle, description, author, isbn, curriculum, subject, price_paise, gst_class, inventory_count, cover_image_url, is_active, created_at, updated_at, has_audio, has_answer_key, discount_eligible, compare_at_price_paise, publisher, weight_grams, length_cm, breadth_cm, height_cm, hsn_sac, deleted_at, title_hindi, subtitle_hindi, description_hindi";
+
+export type Book = Omit<
+  Tables<"books">,
+  "audio_r2_key" | "pdf_r2_key" | "cost_paise"
+> & { hasSample?: boolean };
 
 /** Returns the set of book ids that have at least one sample. */
 async function getSampleBookIds(
@@ -24,7 +35,7 @@ export async function getBooks(opts: {
 
   let query = supabase
     .from("books")
-    .select("*")
+    .select(SAFE_BOOK_COLUMNS)
     .eq("is_active", true)
     // Soft-deleted books (admin removed via Phase 5.3 CRUD) stay in
     // the table for order-history reference but never re-appear on
@@ -51,7 +62,7 @@ export async function getBookBySlug(slug: string): Promise<Book | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("books")
-    .select("*")
+    .select(SAFE_BOOK_COLUMNS)
     .eq("slug", slug)
     .eq("is_active", true)
     .is("deleted_at" as never, null)

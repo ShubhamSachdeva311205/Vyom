@@ -30,8 +30,13 @@ const PILLARS = [
   },
 ];
 
-export default async function HomePage() {
-  const books = await getBooks();
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const [books, params] = await Promise.all([getBooks(), searchParams]);
+  const isNotAdmin = params.auth_error === "not_admin";
 
   // Centre is IGCSE Paper 1 — flagship per user. Other 6 fan out
   // around it (3 left, 3 right).
@@ -42,6 +47,12 @@ export default async function HomePage() {
 
   return (
     <>
+      {isNotAdmin ? (
+        <div role="alert" className="bg-destructive/10 text-destructive text-sm text-center px-4 py-3">
+          You don&rsquo;t have admin access. Sign in with an authorised account.
+        </div>
+      ) : null}
+
       {/* Scroll-reveal hero — 200vh of scroll real estate with the books
           sticky in view. Stages: centre solo → side books fan out →
           mascots arrive (student hanging, teacher sitting). */}

@@ -25,9 +25,30 @@ function sweep(now: number): void {
 
 async function clientIp(): Promise<string> {
   const h = await headers();
+
+  // Cloudflare is our front door (CLAUDE.md §8). It sets the true client IP
+  // here and overwrites any client-supplied value, so it can't be spoofed.
+  const cf = h.get("cf-connecting-ip");
+  if (cf?.trim()) return cf.trim();
+
+  // Set by the upstream proxy to the real client IP.
+  const real = h.get("x-real-ip");
+  if (real?.trim()) return real.trim();
+
+  // Last resort: X-Forwarded-For. The LEFTMOST entry is client-controlled and
+  // trivially spoofable (an attacker prepends a fake IP to get a fresh bucket),
+  // so trust the RIGHTMOST hop — the one appended by the proxy we actually sit
+  // behind — instead of the leftmost.
   const fwd = h.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]!.trim();
-  return h.get("x-real-ip") ?? "unknown";
+  if (fwd) {
+    const parts = fwd
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1]!;
+  }
+
+  return "unknown";
 }
 
 /**

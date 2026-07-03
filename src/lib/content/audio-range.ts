@@ -44,6 +44,20 @@ export function resolveBufferRange(
   }
 
   const m = /bytes=(\d*)-(\d*)/.exec(rangeHeader);
+
+  // Suffix range: bytes=-N (no start byte, only suffix length).
+  // Without this guard, m[1]=="" is falsy so start defaults to 0 and the
+  // range is mis-parsed as bytes=0-N (first N bytes instead of last N bytes).
+  if (m && m[1] === "" && m[2]) {
+    const suffixLength = parseInt(m[2], 10);
+    if (Number.isNaN(suffixLength) || suffixLength <= 0) return "unsatisfiable";
+    const start = Math.max(0, total - suffixLength);
+    let end = total - 1;
+    // Clamp chunk size so a single response can't drain the whole file.
+    if (end - start + 1 > AUDIO_MAX_CHUNK) end = start + AUDIO_MAX_CHUNK - 1;
+    return { start, end };
+  }
+
   const start = m && m[1] ? parseInt(m[1], 10) : 0;
   let end = m && m[2] ? parseInt(m[2], 10) : total - 1;
 
@@ -67,6 +81,19 @@ export function boundedR2Range(rangeHeader: string | null): string {
   if (!rangeHeader) return `bytes=0-${AUDIO_INITIAL_CHUNK - 1}`;
 
   const m = /bytes=(\d*)-(\d*)/.exec(rangeHeader);
+
+  // Suffix range: bytes=-N — cap to AUDIO_MAX_CHUNK and forward to R2
+  // (R2 handles suffix ranges natively). Without this guard the empty
+  // start group is treated as 0, producing bytes=0-N instead.
+  if (m && m[1] === "" && m[2]) {
+    const suffixLength = parseInt(m[2], 10);
+    if (!Number.isNaN(suffixLength) && suffixLength > 0) {
+      return `bytes=-${Math.min(suffixLength, AUDIO_MAX_CHUNK)}`;
+    }
+    // Malformed — fall back to initial chunk
+    return `bytes=0-${AUDIO_INITIAL_CHUNK - 1}`;
+  }
+
   const start = m && m[1] ? parseInt(m[1], 10) : 0;
   const safeStart = Number.isNaN(start) || start < 0 ? 0 : start;
   const hasEnd = !!(m && m[2]);

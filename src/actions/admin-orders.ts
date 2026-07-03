@@ -183,7 +183,9 @@ export interface OrderDetail {
 }
 
 export async function getOrderDetail(orderId: string): Promise<ActionResult<OrderDetail>> {
-  // Accept either a UUID (id) or a human order_number (ADV-YYYYMMDD-XXXXX).
+  // Accept either a UUID (id) or a human order_number. The prefix is VYM-
+  // going forward (VYM-YYYYMMDD-XXXXX); legacy orders carry the old ADV-
+  // prefix. The generic pattern below matches both.
   const isUuid = z.string().uuid().safeParse(orderId).success;
   const ORDER_NUMBER_REGEX = /^[A-Z0-9-]{4,40}$/;
   if (!isUuid && !ORDER_NUMBER_REGEX.test(orderId)) {
@@ -193,7 +195,10 @@ export async function getOrderDetail(orderId: string): Promise<ActionResult<Orde
   const gate = await assertAdmin();
   if (!gate.ok) return { success: false, error: gate.error };
 
-  const supabase = await createClient();
+  // Service client: admin-gated above, and the detail view needs the columns
+  // withheld from the `authenticated` role by the orders column grants
+  // (admin_notes, notes, razorpay_signature). Service role bypasses grants+RLS.
+  const supabase = createServiceClient();
 
   const baseQuery = supabase.from("orders").select("*");
   const { data: order, error: orderErr } = await (isUuid
@@ -582,12 +587,12 @@ export async function getOrderStatusCounts(): Promise<ActionResult<StatusCounts>
     // abandoned-checkout rows don't inflate the badge.
     supabase
       .from("orders")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .neq("status", "pending_payment" as unknown as Tables<"orders">["status"]),
     ...statuses.map((s) =>
       supabase
         .from("orders")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("status", s as unknown as Tables<"orders">["status"]),
     ),
   ]);

@@ -13,7 +13,7 @@ import { randomUUID } from "node:crypto";
  * just a random UUID that scopes anonymous cart rows.
  */
 
-const COOKIE_NAME = "adv_cart_session";
+const COOKIE_NAME = "vyom_cart_session";
 // One year — long enough that returning shoppers find their cart
 // still there, short enough that abandoned carts don't pile up forever.
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;

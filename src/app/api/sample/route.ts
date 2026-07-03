@@ -31,6 +31,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Sample not found" }, { status: 404 });
   }
 
+  // Rate-limit ALL sample kinds before touching storage so egress is never
+  // paid for a request that will be rejected (previously audio-only and
+  // checked after the download).
+  const limited = await rateLimit("sample", { limit: 240, windowSec: 60 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } },
+    );
+  }
+
   const service = createServiceClient();
   const { data: blob, error } = await service.storage
     .from("book-samples")
@@ -53,14 +64,6 @@ export async function GET(req: NextRequest) {
   // in one response: a no-Range request gets a bounded initial 206 chunk,
   // every chunk is size-capped, and requests are per-IP rate limited.
   if (sample.kind === "audio") {
-    const limited = await rateLimit("sample-audio", { limit: 240, windowSec: 60 });
-    if (!limited.ok) {
-      return NextResponse.json(
-        { error: "Too many requests" },
-        { status: 429, headers: { "Retry-After": String(limited.retryAfter) } },
-      );
-    }
-
     const range = req.headers.get("range");
     const total = bytes.length;
     const resolved = resolveBufferRange(range, total);

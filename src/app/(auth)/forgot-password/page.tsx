@@ -9,7 +9,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function ForgotPasswordPage() {
+export default async function ForgotPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
+  const isExpired = params.expired === "1";
+
   return (
     <Stack gap={8}>
       <Stack gap={3} align="center">
@@ -22,6 +29,15 @@ export default function ForgotPasswordPage() {
           </p>
         </Stack>
       </Stack>
+
+      {isExpired ? (
+        <p
+          className="text-sm text-destructive text-center bg-destructive/10 rounded-md px-4 py-3"
+          role="alert"
+        >
+          That reset link has expired or is invalid. Request a fresh one below.
+        </p>
+      ) : null}
 
       <ForgotPasswordForm />
 

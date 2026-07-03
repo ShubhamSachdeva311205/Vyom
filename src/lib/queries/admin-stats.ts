@@ -23,13 +23,13 @@ export async function getAdminStats(): Promise<AdminStats> {
 
   const [books, lowStock, ordersNew, ordersPacked, ordersShipped, pending, feedback] =
     await Promise.all([
-      supabase.from("books").select("*", { count: "exact", head: true }),
-      supabase.from("books").select("*", { count: "exact", head: true }).lt("inventory_count", 5),
-      supabase.from("orders").select("*", { count: "exact", head: true }).eq("status", "pending_payment"),
-      supabase.from("orders").select("*", { count: "exact", head: true }).eq("status", "packed"),
-      supabase.from("orders").select("*", { count: "exact", head: true }).eq("status", "shipped"),
-      supabase.from("content_submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("feedback").select("*", { count: "exact", head: true }).eq("resolved", false),
+      supabase.from("books").select("id", { count: "exact", head: true }),
+      supabase.from("books").select("id", { count: "exact", head: true }).lt("inventory_count", 5),
+      supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending_payment"),
+      supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "packed"),
+      supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "shipped"),
+      supabase.from("content_submissions").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("feedback").select("id", { count: "exact", head: true }).eq("resolved", false),
     ]);
 
   return {

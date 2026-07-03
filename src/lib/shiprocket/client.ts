@@ -105,6 +105,9 @@ async function call<T>(
   const text = await res.text();
   const body = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {
+    // Clear stale cached token so the next call re-authenticates rather
+    // than retrying an invalid 9-day token indefinitely.
+    if (res.status === 401) cached = null;
     const message =
       (body as { message?: string } | null)?.message ??
       `Shiprocket ${method} ${path} failed (${res.status})`;

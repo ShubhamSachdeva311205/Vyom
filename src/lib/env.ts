@@ -37,11 +37,9 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
   // Public site URL — used for sitemap + OG metadata. Required in production.
-  NEXT_PUBLIC_SITE_URL: z
-    .string()
-    .url()
-    .optional()
-    .default("http://localhost:3000"),
+  NEXT_PUBLIC_SITE_URL: isProdDeploy
+    ? z.string().url("NEXT_PUBLIC_SITE_URL is required in production")
+    : z.string().url().optional().default("http://localhost:3000"),
 
   // ---- Supabase (Phase 2) ----
   NEXT_PUBLIC_SUPABASE_URL: isProdDeploy

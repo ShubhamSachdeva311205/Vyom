@@ -88,10 +88,12 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
 
   const service = createServiceClient();
 
-  // Look up our order by Razorpay's order id.
+  // Look up our order by Razorpay's order id. select("*") (service client
+  // bypasses RLS/column grants) so we also read coupon_eligible_paise, which
+  // isn't in the generated types yet.
   const { data: order } = await service
     .from("orders")
-    .select("id, status, coupon_code, user_id, subtotal_paise")
+    .select("*")
     .eq("razorpay_order_id", payment.order_id)
     .maybeSingle();
   if (!order) return;
@@ -113,6 +115,24 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
         non_refundable_fee_paise: fee > 0 ? fee : null,
       } as never)
       .eq("id", order.id);
+  } else if (order.status === "cancelled") {
+    // Payment captured on an order we'd already cancelled — the abandoned-
+    // checkout sweep (or the customer dismissing the Razorpay modal) raced the
+    // real capture. Do NOT silently fulfil a cancelled order. Stamp the payment
+    // id + fee so the money can be reconciled/refunded, flag it for manual
+    // admin review, and STOP before any inventory / access / coupon / email
+    // side-effects run.
+    await service
+      .from("orders")
+      .update({
+        razorpay_payment_id: payment.id,
+        non_refundable_fee_paise: fee > 0 ? fee : null,
+        admin_notes:
+          `PAYMENT CAPTURED ON CANCELLED ORDER (payment ${payment.id}). ` +
+          "Money cleared after cancellation — refund or re-activate this order manually.",
+      } as never)
+      .eq("id", order.id);
+    return;
   } else if (fee > 0) {
     // Status already flipped by inline verify, but we still want the
     // fee number for refund math.
@@ -141,8 +161,15 @@ async function handlePaymentCaptured(payload: WebhookPayload): Promise<void> {
   // verify path runs, this webhook is the ONLY thing that completes the
   // order — without this, a single-use vendor code stays "unused" and can
   // be redeemed again (#78). Guard against double-redeem (the inline path
-  // may have already written a redemption for this order).
-  await redeemCouponForOrder(order.id, order.coupon_code, order.user_id, order.subtotal_paise);
+  // may have already written a redemption for this order). Redeem against the
+  // stamped eligible base so the ledger discount matches what was charged.
+  await redeemCouponForOrder(
+    order.id,
+    order.coupon_code,
+    order.user_id,
+    (order as unknown as { coupon_eligible_paise: number | null })
+      .coupon_eligible_paise ?? order.subtotal_paise,
+  );
 
   // Order-confirmation email (idempotent; only one path actually sends).
   await sendOrderConfirmation(order.id);
@@ -152,7 +179,7 @@ async function redeemCouponForOrder(
   orderId: string,
   couponCode: string | null,
   userId: string | null,
-  subtotalPaise: number | null,
+  eligiblePaise: number | null,
 ): Promise<void> {
   if (!couponCode || !userId) return;
   const service = createServiceClient();
@@ -169,8 +196,12 @@ async function redeemCouponForOrder(
     p_code: couponCode,
     p_user_id: userId,
     p_order_id: orderId,
-    p_eligible_subtotal_paise: subtotalPaise ?? 0,
+    p_eligible_subtotal_paise: eligiblePaise ?? 0,
   } as never);
+  // A UNIQUE(order_id) violation means a concurrent path already redeemed for
+  // this order (its uses_count bump rolls back) — treat as a no-op, not an
+  // error worth logging.
+  if ((redeemErr as { code?: string } | null)?.code === "23505") return;
   type RpcRow = { success: boolean; reason: string };
   const row = (Array.isArray(redeem) ? redeem[0] : redeem) as RpcRow | null;
   if (redeemErr || !row?.success) {

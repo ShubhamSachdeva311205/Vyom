@@ -59,10 +59,11 @@ export async function notifyRestock(bookId: string): Promise<number> {
     }
   }
   if (sentIds.length > 0) {
-    await service
+    const { error: stampErr } = await service
       .from("stock_notifications")
       .update({ notified_at: new Date().toISOString() })
       .in("id", sentIds);
+    if (stampErr) console.error("[restock-email] failed to stamp notified_at:", stampErr);
   }
   return sentIds.length;
 }

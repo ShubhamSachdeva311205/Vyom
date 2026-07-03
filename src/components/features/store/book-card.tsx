@@ -5,7 +5,9 @@ import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
-type Book = Tables<"books"> & { cover_image_url?: string | null };
+type Book = Omit<Tables<"books">, "audio_r2_key" | "pdf_r2_key" | "cost_paise"> & {
+  cover_image_url?: string | null;
+};
 
 const cardVariants = cva(
   "group relative overflow-hidden rounded-xl border border-border/40 bg-card",
