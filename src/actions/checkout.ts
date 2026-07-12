@@ -27,7 +27,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { findCartForOwner, getCartWithItems, resolveCartOwner } from "@/lib/cart/queries";
 import { sendOrderConfirmation } from "@/lib/email/order-confirmation";
-import { env } from "@/lib/env";
+import { env, paymentsLive } from "@/lib/env";
 import { formatINR as formatINRForPreview } from "@/lib/format";
 import { getRazorpayClient } from "@/lib/razorpay/client";
 import {
@@ -419,6 +419,10 @@ export interface CreatedOrderPayload {
 export async function createRazorpayOrder(
   formData: FormData,
 ): Promise<ActionResult<CreatedOrderPayload>> {
+  // Soft-launch gate: no order/payment can be created until payments open.
+  if (!paymentsLive) {
+    return { success: false, error: "Payments aren't open yet — launching soon." };
+  }
   const parsed = createOrderInput.safeParse({
     couponCode: formData.get("couponCode")?.toString().trim() || "",
     shippingAddress: {

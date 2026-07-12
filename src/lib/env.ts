@@ -15,6 +15,13 @@ import { z } from "zod";
 // require live keys — local dev + CI use test keys).
 const isProdDeploy = process.env.VERCEL_ENV === "production";
 
+// Soft-launch flag. When NEXT_PUBLIC_PAYMENTS_LIVE !== "true" the storefront is
+// browsable but checkout shows "Payments open soon", so a prod deploy does NOT
+// need live Razorpay keys yet. Flip this env var to "true" (with rzp_live_ keys)
+// to open real payments — the guards below then enforce them.
+const wantsLivePayments = process.env.NEXT_PUBLIC_PAYMENTS_LIVE === "true";
+const requireLiveRazorpay = isProdDeploy && wantsLivePayments;
+
 // A secret that MUST be present on a real production deploy. Stays optional
 // on local dev / CI / `pnpm build` so those don't need live creds. Fixes the
 // fail-open hole where a prod deploy missing the service-role key or webhook
@@ -25,12 +32,19 @@ const requiredOnProdDeploy = (msg: string) =>
     .optional()
     .refine((val) => !isProdDeploy || (!!val && val.length > 0), { message: msg });
 
+// Razorpay secrets are only mandatory once payments are switched live.
+const requiredWhenPaymentsLive = (msg: string) =>
+  z
+    .string()
+    .optional()
+    .refine((val) => !requireLiveRazorpay || (!!val && val.length > 0), { message: msg });
+
 const razorpayKeyId = z
   .string()
   .optional()
   .refine(
-    (val) => !isProdDeploy || !val || val.startsWith("rzp_live_"),
-    { message: "RAZORPAY_KEY_ID must start with rzp_live_ in production" },
+    (val) => !requireLiveRazorpay || (!!val && val.startsWith("rzp_live_")),
+    { message: "RAZORPAY_KEY_ID must be a live key (rzp_live_) when NEXT_PUBLIC_PAYMENTS_LIVE=true" },
   );
 
 const envSchema = z.object({
@@ -65,12 +79,14 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
 
   // ---- Razorpay (Phase 3) ----
+  // Soft-launch toggle: "true" opens real payments (and enforces live keys).
+  NEXT_PUBLIC_PAYMENTS_LIVE: z.string().optional(),
   RAZORPAY_KEY_ID: razorpayKeyId,
-  RAZORPAY_KEY_SECRET: requiredOnProdDeploy(
-    "RAZORPAY_KEY_SECRET is required in production",
+  RAZORPAY_KEY_SECRET: requiredWhenPaymentsLive(
+    "RAZORPAY_KEY_SECRET is required when payments are live",
   ),
-  RAZORPAY_WEBHOOK_SECRET: requiredOnProdDeploy(
-    "RAZORPAY_WEBHOOK_SECRET is required in production",
+  RAZORPAY_WEBHOOK_SECRET: requiredWhenPaymentsLive(
+    "RAZORPAY_WEBHOOK_SECRET is required when payments are live",
   ),
 
   // ---- Shiprocket (Phase 3.3) ----
@@ -123,3 +139,6 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export type Env = typeof env;
+
+/** True only when real payments are switched on (soft-launch gate). */
+export const paymentsLive = env.NEXT_PUBLIC_PAYMENTS_LIVE === "true";

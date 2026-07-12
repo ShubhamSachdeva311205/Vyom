@@ -10,6 +10,7 @@ import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack, Row } from "@/components/layouts/stack";
 import { getCurrentCart } from "@/lib/cart/queries";
+import { paymentsLive } from "@/lib/env";
 import { getPublicRazorpayKeyId } from "@/lib/razorpay/client";
 import { createClient } from "@/lib/supabase/server";
 import { formatINR } from "@/lib/format";
@@ -118,7 +119,26 @@ export default async function CheckoutPage() {
             </ul>
           </Card>
 
-          {razorpayKeyId ? (
+          {!paymentsLive ? (
+            <Card variant="surface" padding="lg">
+              <Stack gap={2}>
+                <p className="text-headline">Payments open soon 🚀</p>
+                <p className="text-body text-muted-foreground">
+                  We&apos;re just finishing our secure-payments setup. Your cart is
+                  saved — you&apos;ll be able to check out here very shortly. Thanks
+                  for being early!
+                </p>
+                <Row gap={2} className="pt-2 flex-wrap">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/store">Keep browsing</Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href="/contact">Questions? Contact us</Link>
+                  </Button>
+                </Row>
+              </Stack>
+            </Card>
+          ) : razorpayKeyId ? (
             <CheckoutForm
               subtotalPaise={subtotalPaise}
               razorpayKeyId={razorpayKeyId}
