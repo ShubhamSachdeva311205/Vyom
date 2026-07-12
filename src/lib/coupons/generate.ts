@@ -1,5 +1,5 @@
 import "server-only";
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 
 /**
  * Vendor coupon code generator.
@@ -9,17 +9,17 @@ import { randomBytes } from "node:crypto";
  *   - Two 4-char chunks separated by hyphens (easy to read aloud)
  *   - Alphabet excludes ambiguous glyphs: 0/O, 1/I/L
  *
- * 32 alphabet × 8 random chars = 32^8 = ~1.1 trillion combinations.
+ * 31-char alphabet × 8 random chars = 31^8 ≈ 852 billion combinations.
  * Collisions are vanishingly unlikely at our volume; the DB UNIQUE
  * constraint on coupons.code is the final guard either way.
  */
-const ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // 31 chars
 
 export function generateVendorCode(): string {
-  const bytes = randomBytes(8);
   const chars: string[] = [];
   for (let i = 0; i < 8; i++) {
-    chars.push(ALPHABET[bytes[i] % ALPHABET.length]);
+    // crypto.randomInt is uniform over [0, len) — no modulo bias.
+    chars.push(ALPHABET[randomInt(0, ALPHABET.length)]);
   }
   return `VND-${chars.slice(0, 4).join("")}-${chars.slice(4, 8).join("")}`;
 }
