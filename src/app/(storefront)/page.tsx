@@ -11,7 +11,7 @@ import { getBooks } from "@/lib/queries/books";
 
 const PILLARS = [
   {
-    title: "Books, made with care",
+    title: "Physical books",
     body: "Physical editions printed in India, packed by hand from Bangalore, shipped via Shiprocket.",
     href: "/store",
     cta: "Browse the catalog",
@@ -72,12 +72,10 @@ export default async function HomePage({
         <Container>
           <Stack gap={12}>
             <Stack gap={4}>
-              <span className="text-eyebrow">Premium study resources · Bangalore</span>
+              <span className="text-eyebrow">Study resources · Bangalore</span>
               <h2 className="text-display">Study, slowly.</h2>
               <p className="text-body-lg text-muted-foreground max-w-2xl">
-                Vyom makes carefully edited books, papers, and audio
-                companions for students preparing for the IB Diploma and
-                IGCSE. Built for curiosity, not panic.
+                Books, papers, and audio for the IB Diploma and IGCSE.
               </p>
               <Row gap={3} wrap>
                 <Button asChild>

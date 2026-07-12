@@ -21,20 +21,17 @@ export const metadata: Metadata = {
     default: "Vyom",
     template: "%s · Vyom",
   },
-  description:
-    "Premium study resources for IBDP and IGCSE — books, papers, and audio companions.",
+  description: "Hindi books, papers, and audio for IBDP and IGCSE.",
   openGraph: {
     type: "website",
     title: "Vyom",
-    description:
-      "Premium study resources for IBDP and IGCSE — books, papers, and audio companions.",
+    description: "Hindi books, papers, and audio for IBDP and IGCSE.",
     siteName: "Vyom",
   },
   twitter: {
     card: "summary_large_image",
     title: "Vyom",
-    description:
-      "Premium study resources for IBDP and IGCSE — books, papers, and audio companions.",
+    description: "Hindi books, papers, and audio for IBDP and IGCSE.",
   },
 };
 

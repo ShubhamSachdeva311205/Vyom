@@ -53,7 +53,7 @@ export function Footer() {
             <div className="grid gap-10 md:grid-cols-[1fr_auto] md:items-start md:gap-12">
               <Stack gap={6} className="max-w-2xl">
                 <h2 className="font-display text-[clamp(1.75rem,4vw,3rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-balance">
-                  Premium Hindi study materials, made with care.
+                  Hindi study material for IBDP and IGCSE.
                 </h2>
                 <Link
                   href="/store"

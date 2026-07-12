@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export const alt = "Vyom — premium study resources for IBDP and IGCSE";
+export const alt = "Vyom — Hindi study material for IBDP and IGCSE";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -67,8 +67,8 @@ export default function OpenGraphImage() {
               lineHeight: 1.35,
             }}
           >
-            Premium study resources for the IB Diploma and Cambridge IGCSE.
-            Books, papers, and audio companions — built in Bangalore.
+            Hindi books, papers, and audio for the IB Diploma and Cambridge
+            IGCSE. Built in Bangalore.
           </div>
         </div>
 
