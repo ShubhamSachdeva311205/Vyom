@@ -91,4 +91,5 @@ insert into public.books (
     '978-93-5813-838-2',
     'igcse', 'Hindi', 'Self (Seema Sachdeva)',
     199900, true, true, false, true, 50
-  );
+  )
+on conflict (slug) do nothing;
