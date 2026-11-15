@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Menu, Moon, ShoppingCart, Sun, User, X } from "lucide-react";
 
@@ -51,7 +52,11 @@ export function HeroReveal({
   const [menuOpen, setMenuOpen] = useState(false);
   const [dark, setDark] = useState(false); // demo-only theme icon toggle
 
-  const links = ["Store", "Community", "About Us"];
+  const links = [
+    { href: "/store", label: "Store" },
+    { href: "/community", label: "Community" },
+    { href: "#about", label: "About Us" },
+  ];
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -165,22 +170,22 @@ export function HeroReveal({
 
           {/* Nav (#91): logo left · links · cart/theme/profile right · burger on mobile */}
           <nav className="pointer-events-auto absolute inset-x-0 top-0 z-30 flex items-center justify-between px-5 py-4 sm:px-8">
-            <a href="#" aria-label="Vyom — home" className={`${logoClass ?? ""} text-3xl leading-none text-neutral-900`}>
+            <Link href="/" aria-label="Vyom — home" className={`${logoClass ?? ""} text-3xl leading-none text-neutral-900`}>
               व्योम
-            </a>
+            </Link>
 
             <div className="hidden items-center gap-7 md:flex">
               {links.map((l) => (
-                <a key={l} href="#" className="text-sm text-neutral-700 transition-colors hover:text-neutral-950">
-                  {l}
-                </a>
+                <Link key={l.href} href={l.href} className="text-sm text-neutral-700 transition-colors hover:text-neutral-950">
+                  {l.label}
+                </Link>
               ))}
             </div>
 
             <div className="flex items-center gap-1.5">
-              <button aria-label="Cart" className="rounded-full p-2 text-neutral-700 hover:bg-black/5">
+              <Link href="/cart" aria-label="Cart" className="rounded-full p-2 text-neutral-700 hover:bg-black/5">
                 <ShoppingCart className="size-5" />
-              </button>
+              </Link>
               <button
                 aria-label="Toggle theme"
                 onClick={() => setDark((d) => !d)}
@@ -188,9 +193,9 @@ export function HeroReveal({
               >
                 {dark ? <Moon className="size-5" /> : <Sun className="size-5" />}
               </button>
-              <button aria-label="Profile" className="rounded-full p-2 text-neutral-700 hover:bg-black/5">
+              <Link href="/sign-in" aria-label="Profile" className="rounded-full p-2 text-neutral-700 hover:bg-black/5">
                 <User className="size-5" />
-              </button>
+              </Link>
               <button
                 aria-label="Menu"
                 onClick={() => setMenuOpen((o) => !o)}
@@ -205,14 +210,14 @@ export function HeroReveal({
           {menuOpen ? (
             <div className="pointer-events-auto absolute inset-x-4 top-16 z-30 rounded-xl border border-neutral-200 bg-white/95 p-2 shadow-lg backdrop-blur md:hidden">
               {links.map((l) => (
-                <a
-                  key={l}
-                  href="#"
+                <Link
+                  key={l.href}
+                  href={l.href}
                   onClick={() => setMenuOpen(false)}
                   className="block rounded-lg px-3 py-2.5 text-sm text-neutral-800 hover:bg-black/5"
                 >
-                  {l}
-                </a>
+                  {l.label}
+                </Link>
               ))}
             </div>
           ) : null}
@@ -230,17 +235,12 @@ export function HeroReveal({
       </section>
 
       {/* About section you reach after the reveal */}
-      <section className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-6 py-24">
+      <section id="about" className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-6 py-24">
         <span className="text-xs uppercase tracking-widest text-neutral-400">About</span>
         <h2 className="text-3xl font-semibold">Stories worth colouring in.</h2>
         <p className="text-neutral-600">
-          Vyom makes premium IBDP &amp; IGCSE Hindi study materials — written with care, brought to
-          life with colour. This is a UI demo of the landing reveal; the real content, navigation,
-          and store come later.
-        </p>
-        <p className="text-sm text-neutral-400">
-          (Placeholder art is a watermarked export — final illustration + its find-edges outline
-          drop straight in.)
+          Vyom makes premium IBDP &amp; IGCSE Hindi study materials — written with care by Seema
+          Sachdeva, brought to life with colour.
         </p>
       </section>
     </main>

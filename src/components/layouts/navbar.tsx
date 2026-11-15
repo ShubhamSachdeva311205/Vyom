@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingCart, User as UserIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { getCurrentCartItemCount } from "@/lib/cart/queries";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { Mascot } from "@/components/ui/mascot";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Wordmark } from "@/components/ui/wordmark";
 import { UserMenu } from "@/components/ui/user-menu";
@@ -14,19 +13,18 @@ import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/store", label: "Store" },
-  { href: "/ibdp", label: "IBDP" },
-  { href: "/igcse", label: "IGCSE" },
   { href: "/community", label: "Community" },
+  { href: "/#about", label: "About Us" },
 ] as const;
 
 function LogoLockup() {
   return (
     <Link
       href="/"
-      className="inline-flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-accent/50 transition-colors"
+      aria-label="Vyom — home"
+      className="inline-flex items-center px-1 py-1 rounded-md text-foreground hover:opacity-80 transition-opacity"
     >
-      <Mascot name="wisp" size="xs" hideCoupon />
-      <Wordmark className="text-lg" />
+      <Wordmark className="text-3xl leading-none" />
     </Link>
   );
 }
@@ -62,18 +60,18 @@ export async function Navbar({ className }: NavbarProps) {
     >
       {/* Full-width navbar with tight edge-hugging padding so items
           sit visibly on the viewport edges. */}
-      <div className="w-full px-3 sm:px-4">
+      <div className="w-full px-5 sm:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <LogoLockup />
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-7">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "px-3 py-2 rounded-md text-sm text-muted-foreground",
-                  "hover:text-foreground hover:bg-accent/50 transition-colors duration-150",
+                  "text-sm text-muted-foreground",
+                  "hover:text-foreground transition-colors duration-150",
                 )}
               >
                 {link.label}
@@ -81,7 +79,7 @@ export async function Navbar({ className }: NavbarProps) {
             ))}
           </nav>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <Button
               asChild
               variant="ghost"
@@ -92,7 +90,7 @@ export async function Navbar({ className }: NavbarProps) {
               className="relative"
             >
               <Link href="/cart">
-                <ShoppingBag />
+                <ShoppingCart className="size-5" />
                 {cartItemCount > 0 ? (
                   <span
                     className={cn(
@@ -113,8 +111,15 @@ export async function Navbar({ className }: NavbarProps) {
             {user ? (
               <UserMenu user={user as User} isAdmin={admin} />
             ) : (
-              <Button asChild variant="ghost" size="sm" shape="square" className="hidden sm:inline-flex">
-                <Link href="/sign-in">Sign in</Link>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                aria-label="Profile — Sign in"
+              >
+                <Link href="/sign-in">
+                  <UserIcon className="size-5" />
+                </Link>
               </Button>
             )}
             <MobileNavMenu links={NAV_LINKS} signedIn={Boolean(user)} />

@@ -19,8 +19,8 @@ export const metadata: Metadata = {
 export default function HeroDemoPage() {
   return (
     <HeroReveal
-      colorSrc="/demo/hero-color.png"
-      outlineSrc="/demo/hero-outline.png"
+      colorSrc="/demo/hero-color.webp"
+      outlineSrc="/demo/hero-outline.webp"
       logoClass={eczar.className}
     />
   );

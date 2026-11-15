@@ -2108,3 +2108,17 @@ Per user: drop the `Co-Authored-By: Claude …` trailer from commits
 already attribute to Shubham via the local git config; the trailer
 just added noise. CLAUDE.md §14 updated; rule saved to memory at
 `memory/feedback_no_co_authored_by.md`.
+
+
+---
+
+## Storefront Hero Reveal & Navigation Revamp (Issue #91)
+
+**Status:** Shipped to production  
+**Date:** 2026-11-15
+
+### Steps performed
+
+1. **Hand-drawn hero artwork (`public/demo/hero-outline.webp`, `public/demo/hero-color.webp`)** — Processed user-supplied 2360×1640 hand-drawn meadow outline (`FrontpageOutline.PNG`) and colour artwork (`Untitled - 12 November 2026 19.33.JPG`) via `sharp` into optimised WebP and PNG assets in `public/demo/`.
+2. **Storefront `<HeroReveal />` (`src/components/features/store/hero-reveal.tsx` & `src/app/(storefront)/page.tsx`)** — Promoted the cursor-tracked + scroll-expanding radial sketch-to-colour reveal from `/demo/hero` to the main homepage (`/`), followed by the `#about` section (*"Stories worth colouring in"*), Three Pillars, and `<BookwormReading />`.
+3. **Top navigation cleanup (`src/components/layouts/navbar.tsx` & `src/components/layouts/footer.tsx`)** — Removed top-level `IBDP` and `IGCSE` links from `Navbar` (kept in `/store` filters and footer), updated top nav to `Store`, `Community`, and `About Us` (`/#about`), set the left brand lockup to the Devanagari `व्योम` `<Wordmark />`, and aligned right-side controls (`Cart`, `ThemeToggle`, `Profile`).

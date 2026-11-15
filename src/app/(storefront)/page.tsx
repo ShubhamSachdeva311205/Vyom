@@ -1,26 +1,25 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BookwormReading } from "@/components/features/store/bookworm-reading";
-import { ScrollRevealHero } from "@/components/features/store/scroll-reveal-hero";
+import { HeroReveal } from "@/components/features/store/hero-reveal";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Row, Stack } from "@/components/layouts/stack";
-import { getBooks } from "@/lib/queries/books";
 
 const PILLARS = [
   {
     title: "Physical books",
-    body: "Physical editions printed in India, packed by hand from Bangalore, shipped via Shiprocket.",
+    body: "Physical editions printed in India, packed by hand from Bangalore, shipped across the country.",
     href: "/store",
     cta: "Browse the catalog",
   },
   {
     title: "Free support material",
     body: "Watermarked PDFs and streaming audio for IBDP and IGCSE — bundled with the physical book, never sold separately.",
-    href: "/ibdp",
-    cta: "See the curricula",
+    href: "/store",
+    cta: "Explore curricula",
   },
   {
     title: "A small community",
@@ -35,47 +34,37 @@ export default async function HomePage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const [books, params] = await Promise.all([getBooks(), searchParams]);
+  const params = await searchParams;
   const isNotAdmin = params.auth_error === "not_admin";
-
-  // Centre is IGCSE Paper 1 — flagship per user. Other 6 fan out
-  // around it (3 left, 3 right).
-  const centre = books.find((b) => b.slug === "igcse-hindi-paper-1");
-  const others = books.filter((b) => b.slug !== "igcse-hindi-paper-1");
-  const left = others.slice(0, 3);
-  const right = others.slice(3, 6);
 
   return (
     <>
       {isNotAdmin ? (
-        <div role="alert" className="bg-destructive/10 text-destructive text-sm text-center px-4 py-3">
+        <div
+          role="alert"
+          className="relative z-40 bg-destructive/10 text-destructive text-sm text-center px-4 py-3"
+        >
           You don&rsquo;t have admin access. Sign in with an authorised account.
         </div>
       ) : null}
 
-      {/* Scroll-reveal hero — 200vh of scroll real estate with the books
-          sticky in view. Stages: centre solo → side books fan out →
-          mascots arrive (student hanging, teacher sitting). */}
-      {centre ? (
-        <ScrollRevealHero center={centre} left={left} right={right} />
-      ) : (
-        <Section spacing="default">
-          <Container>
-            <p className="text-caption">
-              Catalogue isn&rsquo;t loaded. Run <code>supabase db reset</code> to seed.
-            </p>
-          </Container>
-        </Section>
-      )}
+      {/* Full-bleed hand-drawn sketch → colour reveal (#91) */}
+      <HeroReveal
+        colorSrc="/demo/hero-color.webp"
+        outlineSrc="/demo/hero-outline.webp"
+      />
 
-      <Section spacing="loose">
+      {/* About section reached directly after the colour reveal */}
+      <Section id="about" spacing="loose" className="scroll-mt-16">
         <Container>
           <Stack gap={12}>
-            <Stack gap={4}>
-              <span className="text-eyebrow">Study resources · Bangalore</span>
-              <h2 className="text-display">Study, slowly.</h2>
-              <p className="text-body-lg text-muted-foreground max-w-2xl">
-                Books, papers, and audio for the IB Diploma and IGCSE.
+            <Stack gap={4} className="max-w-2xl">
+              <span className="text-eyebrow">About · Study resources · Bangalore</span>
+              <h1 className="text-display">Stories worth colouring in.</h1>
+              <p className="text-body-lg text-muted-foreground">
+                Vyom makes premium IBDP &amp; IGCSE Hindi study materials — written
+                with care by Seema Sachdeva and brought to life with colour. Every
+                physical book comes bundled with watermarked PDFs and streaming audio.
               </p>
               <Row gap={3} wrap>
                 <Button asChild>

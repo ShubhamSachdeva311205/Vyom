@@ -29,6 +29,7 @@ const FOOTER_COLUMNS = [
   {
     heading: "Help",
     links: [
+      { href: "/#about", label: "About Us" },
       { href: "/contact", label: "Contact" },
       { href: "/legal/terms", label: "Terms" },
       { href: "/legal/returns", label: "No-returns" },
@@ -84,7 +85,7 @@ export function Footer() {
                   <Stack gap={2} align="start">
                     {col.links.map((link) => (
                       <Link
-                        key={link.href}
+                        key={link.label}
                         href={link.href}
                         className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >

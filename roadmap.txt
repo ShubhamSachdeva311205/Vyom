@@ -380,3 +380,9 @@ Cross-cutting hardening pass before launch. Audit findings dated 2026-05-27 in B
     [x] P1: Security headers absent — CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy added via headers() in next.config.ts. Issue #114.
 
     [x] P1: No rate limiting — in-process token bucket per IP added on sign-in/sign-up/OTP/forgot-password/admin-magic-link (src/lib/auth/rate-limit.ts). Cloudflare WAF still the Phase 9 edge layer. Issue #110.
+
+
+PHASE 8.8: UI Revamp & Hand-Drawn Hero Reveal (Issue #91)  [updated 2026-11-15]
+
+    [x] Hand-drawn sketch-to-colour hero reveal on `/` and `/demo/hero` using custom 2360x1640 outline and colour illustrations (`public/demo/hero-outline.webp`, `public/demo/hero-color.webp`).
+    [x] Top navigation simplified per #91: `व्योम` Devanagari wordmark left, `Store` / `Community` / `About Us` centre, `Cart` / `ThemeToggle` / `Profile` right (`IBDP` and `IGCSE` removed from top bar).
