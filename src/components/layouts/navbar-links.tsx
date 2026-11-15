@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type MouseEvent } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 
 export const NAV_LINKS = [
@@ -15,19 +14,24 @@ export const NAV_LINKS = [
 type NavKey = (typeof NAV_LINKS)[number]["key"];
 
 /**
- * Center navigation pill with a fluid sliding bubble indicator showing
- * which section/page the user is currently viewing (`Store`, `Community`,
- * or `About Us`).
+ * Center navigation pill with a fluid horizontal sliding bubble indicator
+ * showing which section/page the user is currently viewing (`Store`,
+ * `Community`, or `About Us`).
  *
- * - On `/`: scrolling down past the hand-drawn hero into `#store` lights up
- *   the `Store` bubble automatically; clicking `Store` smoothly scrolls
- *   down to `#store` on the same page with zero network roundtrip.
- * - On `/store`, `/community`, `/contact`: lights up the matching bubble.
+ * Uses container-relative `offsetLeft` / `offsetWidth` + `inset-y-1` on a
+ * DOM ref so window scroll resets during route transitions never cause
+ * vertical drift or extra React re-renders.
  */
 export function NavbarLinks() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const [homeInStore, setHomeInStore] = useState(false);
+  const bubbleRef = useRef<HTMLSpanElement>(null);
+  const itemRefs = useRef<Record<NavKey, HTMLAnchorElement | null>>({
+    store: null,
+    community: null,
+    about: null,
+  });
 
   useEffect(() => {
     if (!isHome) return;
@@ -59,6 +63,20 @@ export function NavbarLinks() {
     activeKey = "about";
   }
 
+  useLayoutEffect(() => {
+    const pill = bubbleRef.current;
+    if (!pill) return;
+    if (!activeKey) {
+      pill.style.opacity = "0";
+      return;
+    }
+    const el = itemRefs.current[activeKey];
+    if (!el) return;
+    pill.style.left = `${el.offsetLeft}px`;
+    pill.style.width = `${el.offsetWidth}px`;
+    pill.style.opacity = "1";
+  }, [activeKey]);
+
   function handleStoreClick(e: MouseEvent<HTMLAnchorElement>) {
     if (!isHome) return;
     const storeEl = document.getElementById("store");
@@ -74,11 +92,20 @@ export function NavbarLinks() {
       aria-label="Primary"
       className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2 rounded-full border border-neutral-200/80 dark:border-white/10 bg-white/80 dark:bg-neutral-900/80 p-1 shadow-xs backdrop-blur-md"
     >
+      <span
+        ref={bubbleRef}
+        aria-hidden="true"
+        style={{ opacity: 0 }}
+        className="pointer-events-none absolute inset-y-1 z-0 rounded-full bg-neutral-900 dark:bg-white shadow-xs transition-[left,width,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      />
       {NAV_LINKS.map((link) => {
         const isActive = activeKey === link.key;
         return (
           <Link
             key={link.key}
+            ref={(node) => {
+              itemRefs.current[link.key] = node;
+            }}
             href={link.href}
             prefetch={true}
             onClick={link.key === "store" ? handleStoreClick : undefined}
@@ -90,16 +117,6 @@ export function NavbarLinks() {
                 : "text-neutral-700 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white",
             )}
           >
-            {isActive ? (
-              <motion.span
-                layoutId="vyom-nav-bubble"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                className="
-                  absolute inset-0 -z-10 rounded-full
-                  bg-neutral-900 dark:bg-white shadow-xs
-                "
-              />
-            ) : null}
             {link.label}
           </Link>
         );
