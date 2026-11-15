@@ -388,3 +388,4 @@ PHASE 8.8: UI Revamp & Hand-Drawn Hero Reveal (Issue #91)  [updated 2026-11-15]
     [x] Top navigation simplified per #91: `व्योम` Devanagari wordmark left, `Store` / `Community` / `About Us` centre, `Cart` / `ThemeToggle` / `Profile` right (`IBDP` and `IGCSE` removed from top bar).
     [x] Extended hero canvas to 16:9 (2916x1640), made top nav completely barless (floating text + 3 icons), removed homepage mascot/pillars copy, and placed Store catalog directly below the hero reveal.
     [x] Verified with Playwright & fixed navbar legibility on white hero: switched default theme to light (`storageKey="vyom-theme"`), enforced dark ink (`#171717`) while over the hero via `NavbarHeader`, and added frosted pill to scroll hint.
+    [x] Installed `design-taste-frontend` (`Leonxlnx/taste-skill`), `gsap`, and `lenis`; wired `SmoothScrollProvider`, GSAP `quickTo` hero spotlight, React Bits `<BlurText />`, and `design-taste-frontend` card/link micro-interactions.

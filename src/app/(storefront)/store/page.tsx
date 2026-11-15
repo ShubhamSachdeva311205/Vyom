@@ -2,6 +2,7 @@ import { StoreListing } from "@/components/features/store/store-listing";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack } from "@/components/layouts/stack";
+import { BlurText } from "@/components/ui/blur-text";
 import { getBooks } from "@/lib/queries/books";
 
 export const metadata = {
@@ -18,7 +19,7 @@ export default async function StorePage() {
         <Stack gap={8}>
           <Stack gap={3}>
             <span className="text-eyebrow">Catalog</span>
-            <h1 className="text-display">All titles.</h1>
+            <BlurText text="All titles." as="h1" className="text-display" />
             <p className="text-body-lg text-muted-foreground max-w-2xl">
               Seven editions across IBDP Hindi B and IGCSE Hindi as a
               Second Language. Audio + answer keys ship free with the

@@ -3,6 +3,7 @@ import { StoreListing } from "@/components/features/store/store-listing";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
 import { Stack } from "@/components/layouts/stack";
+import { BlurText } from "@/components/ui/blur-text";
 import { getBooks } from "@/lib/queries/books";
 
 export default async function HomePage({
@@ -36,7 +37,7 @@ export default async function HomePage({
           <Stack gap={8}>
             <Stack gap={3}>
               <span className="text-eyebrow">Catalog</span>
-              <h1 className="text-display">Store</h1>
+              <BlurText text="Store" as="h1" className="text-display" />
             </Stack>
 
             <StoreListing books={books} />

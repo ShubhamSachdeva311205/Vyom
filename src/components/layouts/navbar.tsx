@@ -61,7 +61,7 @@ export async function Navbar({ className }: NavbarProps) {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium tracking-tight text-neutral-800 dark:text-foreground/90 hover:text-neutral-950 dark:hover:text-foreground transition-colors duration-150"
+              className="relative py-0.5 text-sm font-medium tracking-tight text-neutral-800 dark:text-foreground/90 hover:text-neutral-950 dark:hover:text-foreground transition-colors duration-150 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 hover:after:scale-x-100"
             >
               {link.label}
             </Link>

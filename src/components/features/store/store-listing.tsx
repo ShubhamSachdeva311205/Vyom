@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Row, Stack } from "@/components/layouts/stack";
@@ -11,6 +13,8 @@ import { ViewSampleButton } from "@/components/features/store/view-sample-button
 import { formatINR } from "@/lib/format";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
+
+gsap.registerPlugin(ScrollTrigger);
 
 type Book = Omit<Tables<"books">, "audio_r2_key" | "pdf_r2_key" | "cost_paise"> & {
   hasSample?: boolean;
@@ -31,16 +35,46 @@ interface StoreListingProps {
 /**
  * StoreListing — unified /store grid per FFR §A5.
  * Curriculum filter chips → All / IBDP / IGCSE. Grid of cover cards
- * with cover + title + curriculum tag + price + discount-elig badge +
- * Order CTA (currently disabled — checkout lands in Phase 3).
+ * with GSAP staggered scroll entrance and restrained hover micro-interactions.
  */
 export function StoreListing({ books }: StoreListingProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const visible = useMemo(() => {
     if (filter === "all") return books;
     return books.filter((b) => b.curriculum === filter);
   }, [books, filter]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const cards = grid.querySelectorAll<HTMLElement>("[data-store-card]");
+    if (reduce || cards.length === 0) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        cards,
+        { opacity: 0, y: 18 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.55,
+          stagger: 0.06,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: grid,
+            start: "top 88%",
+            once: true,
+          },
+        },
+      );
+    }, grid);
+
+    return () => ctx.revert();
+  }, [filter, visible.length]);
 
   return (
     <Stack gap={6}>
@@ -52,7 +86,7 @@ export function StoreListing({ books }: StoreListingProps) {
             aria-selected={filter === f.key}
             onClick={() => setFilter(f.key)}
             className={cn(
-              "rounded-full px-4 py-1.5 text-mono-tag transition-colors duration-150",
+              "rounded-full px-4 py-1.5 text-mono-tag transition-all duration-150 active:scale-[0.98]",
               "border",
               filter === f.key
                 ? "border-foreground bg-foreground text-background"
@@ -64,7 +98,10 @@ export function StoreListing({ books }: StoreListingProps) {
         ))}
       </Row>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+      >
         {visible.map((book) => (
           <StoreBookCard key={book.id} book={book} />
         ))}
@@ -78,18 +115,23 @@ function StoreBookCard({ book }: { book: Book }) {
     (book as { cover_image_url?: string | null }).cover_image_url ??
     `/book-covers/${book.slug}.webp`;
   return (
-    <Card variant="surface" padding="lg">
+    <Card
+      data-store-card
+      variant="surface"
+      padding="lg"
+      className="group transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md"
+    >
       <Stack gap={4}>
         <Link
           href={`/store/${book.slug}`}
-          className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-muted group"
+          className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-muted"
         >
           <Image
             src={coverSrc}
             alt={book.title}
             fill
             sizes="(min-width: 1024px) 280px, (min-width: 640px) 320px, 100vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.025]"
           />
         </Link>
         <Stack gap={2}>

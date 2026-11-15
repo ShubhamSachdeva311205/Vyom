@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
+import gsap from "gsap";
 
 // Read `(pointer: fine)` without a set-state-in-effect (desktop vs touch).
 function usePointerFine(): boolean {
@@ -23,10 +24,8 @@ export interface HeroRevealProps {
 /**
  * Storefront Hero "sketch → colour" reveal (#91).
  *
- * Two stacked full-bleed hand-drawn illustrations: the outline sketch as the
- * base, and the coloured artwork on top masked by a radial gradient. Scrolling
- * grows the mask radius so colour paints in over the sketch before transitioning
- * into the About section and storefront below.
+ * Powered by GSAP's unified ticker + `gsap.quickTo` spring-like cursor
+ * interpolation (synced with Lenis smooth scroll).
  *  - Desktop (fine pointer): reveal centres on the cursor with a soft eased trail.
  *  - Touch / mobile: reveal fans out from the centre of the artwork as you scroll.
  *  - prefers-reduced-motion: full colour shown immediately.
@@ -40,10 +39,6 @@ export function HeroReveal({
   const hintRef = useRef<HTMLDivElement>(null);
   const trailRef = useRef<HTMLDivElement>(null);
 
-  // Cursor + eased trail positions, in % of the hero box
-  const cursor = useRef({ x: 50, y: 50 });
-  const trail = useRef({ x: 50, y: 50 });
-  const progress = useRef(0);
   const finePointer = usePointerFine();
 
   useEffect(() => {
@@ -58,34 +53,27 @@ export function HeroReveal({
       return;
     }
 
-    function onScroll() {
-      // Fully revealed after ~1.1 viewport-heights of scrolling.
-      progress.current = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * 1.1)));
-    }
+    const pos = { x: 50, y: 50 };
+    const xTo = gsap.quickTo(pos, "x", { duration: 0.45, ease: "power3.out" });
+    const yTo = gsap.quickTo(pos, "y", { duration: 0.45, ease: "power3.out" });
 
     function onMove(e: MouseEvent) {
       const el = heroRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      cursor.current = {
-        x: ((e.clientX - r.left) / r.width) * 100,
-        y: ((e.clientY - r.top) / r.height) * 100,
-      };
+      xTo(((e.clientX - r.left) / r.width) * 100);
+      yTo(((e.clientY - r.top) / r.height) * 100);
     }
 
-    let raf = 0;
-    const tick = () => {
-      // Centre: cursor on desktop, image centre on touch.
-      const target = fine ? cursor.current : { x: 50, y: 50 };
-      // Ease the trail toward the cursor for a soft lag.
-      trail.current.x += (target.x - trail.current.x) * 0.12;
-      trail.current.y += (target.y - trail.current.y) * 0.12;
-
-      const cx = fine ? trail.current.x : 50;
-      const cy = fine ? trail.current.y : 50;
-      // Radius grows from a spotlight to past the viewport diagonal.
+    const updateMask = () => {
+      const progress = Math.min(
+        1,
+        Math.max(0, window.scrollY / (window.innerHeight * 1.1)),
+      );
+      const cx = fine ? pos.x : 50;
+      const cy = fine ? pos.y : 50;
       const maxR = Math.hypot(window.innerWidth, window.innerHeight) * 1.15;
-      const eased = Math.pow(progress.current, 1.65);
+      const eased = Math.pow(progress, 1.65);
       const r = 65 + eased * maxR;
       const mask = `radial-gradient(circle ${r}px at ${cx}% ${cy}%, #000 0%, #000 68%, transparent 100%)`;
 
@@ -94,23 +82,19 @@ export function HeroReveal({
         colorRef.current.style.maskImage = mask;
       }
       if (trailRef.current && fine) {
-        trailRef.current.style.left = `${trail.current.x}%`;
-        trailRef.current.style.top = `${trail.current.y}%`;
-        trailRef.current.style.opacity = progress.current < 0.96 ? "1" : "0";
+        trailRef.current.style.left = `${cx}%`;
+        trailRef.current.style.top = `${cy}%`;
+        trailRef.current.style.opacity = progress < 0.96 ? "1" : "0";
       }
       if (hintRef.current) {
-        hintRef.current.style.opacity = progress.current < 0.85 ? "1" : "0";
+        hintRef.current.style.opacity = progress < 0.85 ? "1" : "0";
       }
-      raf = requestAnimationFrame(tick);
     };
 
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("mousemove", onMove);
-    raf = requestAnimationFrame(tick);
+    gsap.ticker.add(updateMask);
+    window.addEventListener("mousemove", onMove, { passive: true });
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
+      gsap.ticker.remove(updateMask);
       window.removeEventListener("mousemove", onMove);
     };
   }, [finePointer]);
