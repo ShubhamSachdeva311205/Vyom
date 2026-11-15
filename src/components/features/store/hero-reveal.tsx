@@ -128,7 +128,7 @@ export function HeroReveal({
           src={outlineSrc}
           alt="Hand-drawn meadow sketch for Vyom"
           fetchPriority="high"
-          className="absolute inset-0 h-full w-full select-none object-cover object-center"
+          className="absolute inset-0 h-full w-full select-none object-cover object-bottom"
           draggable={false}
         />
 
@@ -149,7 +149,7 @@ export function HeroReveal({
             alt=""
             aria-hidden="true"
             fetchPriority="high"
-            className="h-full w-full select-none object-cover object-center"
+            className="h-full w-full select-none object-cover object-bottom"
             draggable={false}
           />
         </div>
@@ -171,20 +171,18 @@ export function HeroReveal({
           />
         ) : null}
 
-        {/* Scroll hint pill */}
+        {/* Scroll hint */}
         <div
           ref={hintRef}
-          className="pointer-events-none absolute bottom-7 left-1/2 z-20 -translate-x-1/2 text-center transition-opacity duration-300"
+          className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 text-center transition-opacity duration-300"
         >
-          <div className="rounded-full border border-neutral-200/80 bg-white/80 px-4 py-1.5 shadow-sm backdrop-blur-sm">
-            <p className="text-xs sm:text-sm font-medium text-neutral-700 whitespace-nowrap">
-              {finePointer
-                ? "Move your cursor · scroll to bring it to life"
-                : "Scroll to bring it to life"}
-            </p>
-          </div>
-          <div className="mx-auto mt-2 h-8 w-5 rounded-full border border-neutral-400/80 bg-white/60 backdrop-blur-sm">
-            <div className="mx-auto mt-1.5 h-1.5 w-1 animate-bounce rounded-full bg-neutral-600" />
+          <p className="text-sm text-neutral-500">
+            {finePointer
+              ? "Move your cursor · scroll to bring it to life"
+              : "Scroll to bring it to life"}
+          </p>
+          <div className="mx-auto mt-2 h-8 w-5 rounded-full border border-neutral-300">
+            <div className="mx-auto mt-1.5 h-1.5 w-1 animate-bounce rounded-full bg-neutral-400" />
           </div>
         </div>
       </div>
