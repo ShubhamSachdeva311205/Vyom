@@ -1,10 +1,9 @@
 import { CommunitySubmitFab } from "@/components/features/community/community-submit-fab";
 import { SubmissionCard } from "@/components/features/community/submission-card";
 import { Card } from "@/components/ui/card";
-import { Mascot } from "@/components/ui/mascot";
 import { Container } from "@/components/layouts/container";
 import { Section } from "@/components/layouts/section";
-import { Row, Stack } from "@/components/layouts/stack";
+import { Stack } from "@/components/layouts/stack";
 import { getApprovedSubmissions } from "@/lib/queries/community";
 
 export const metadata = {
@@ -32,18 +31,15 @@ export default async function CommunityPage() {
 
           {posts.length === 0 ? (
             <Card variant="flat" padding="lg">
-              <Row gap={4} align="center" justify="between" className="flex-wrap">
-                <Stack gap={1}>
-                  <h3 className="text-title">Nothing published yet</h3>
-                  <p className="text-body text-muted-foreground max-w-md">
-                    The feed is waiting for its first piece. Tap the{" "}
-                    <span className="font-medium text-foreground">+</span> button
-                    to share a poem, a story, or a short drama — once it&rsquo;s
-                    approved it&rsquo;ll appear right here.
-                  </p>
-                </Stack>
-                <Mascot name="wisp" size="md" hideCoupon />
-              </Row>
+              <Stack gap={1}>
+                <h3 className="text-title">Nothing published yet</h3>
+                <p className="text-body text-muted-foreground max-w-md">
+                  The feed is waiting for its first piece. Tap the{" "}
+                  <span className="font-medium text-foreground">+</span> button
+                  to share a poem, a story, or a short drama — once it&rsquo;s
+                  approved it&rsquo;ll appear right here.
+                </p>
+              </Stack>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -11,7 +11,7 @@ import type { Book } from "@/lib/queries/books";
  */
 export function StoreCatalogSection({ books }: { books: Book[] }) {
   return (
-    <Section id="store" spacing="default" className="scroll-mt-16">
+    <Section id="store" spacing="default" className="bg-background pt-20 sm:pt-24">
       <Container>
         <Stack gap={8}>
           <Stack gap={3}>
