@@ -9,7 +9,8 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="dark"
+      defaultTheme="light"
+      storageKey="vyom-theme"
       enableSystem={false}
       disableTransitionOnChange
       {...props}

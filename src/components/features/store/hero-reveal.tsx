@@ -174,15 +174,15 @@ export function HeroReveal({
         {/* Scroll hint */}
         <div
           ref={hintRef}
-          className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 text-center transition-opacity duration-300"
+          className="pointer-events-none absolute bottom-7 left-1/2 z-20 -translate-x-1/2 text-center transition-opacity duration-300"
         >
-          <p className="text-sm text-neutral-500">
+          <p className="rounded-full bg-white/85 px-4 py-1 text-sm font-medium text-neutral-800 shadow-xs backdrop-blur-sm whitespace-nowrap">
             {finePointer
               ? "Move your cursor · scroll to bring it to life"
               : "Scroll to bring it to life"}
           </p>
-          <div className="mx-auto mt-2 h-8 w-5 rounded-full border border-neutral-300">
-            <div className="mx-auto mt-1.5 h-1.5 w-1 animate-bounce rounded-full bg-neutral-400" />
+          <div className="mx-auto mt-2 h-8 w-5 rounded-full border border-neutral-400 bg-white/75 backdrop-blur-sm">
+            <div className="mx-auto mt-1.5 h-1.5 w-1 animate-bounce rounded-full bg-neutral-700" />
           </div>
         </div>
       </div>

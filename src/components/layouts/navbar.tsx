@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Wordmark } from "@/components/ui/wordmark";
 import { UserMenu } from "@/components/ui/user-menu";
 import { MobileNavMenu } from "@/components/layouts/mobile-nav-menu";
+import { NavbarHeader } from "@/components/layouts/navbar-header";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -22,7 +23,7 @@ function LogoLockup() {
     <Link
       href="/"
       aria-label="Vyom — home"
-      className="inline-flex items-center py-1 text-foreground hover:opacity-75 transition-opacity"
+      className="inline-flex items-center py-1 text-neutral-900 dark:text-foreground hover:opacity-75 transition-opacity"
     >
       <Wordmark className="text-3xl leading-none" />
     </Link>
@@ -51,12 +52,7 @@ export async function Navbar({ className }: NavbarProps) {
   const admin = await isAdminEmail(user?.email);
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-30 w-full bg-transparent",
-        className,
-      )}
-    >
+    <NavbarHeader className={className}>
       <div className="relative flex h-16 w-full items-center justify-between px-5 sm:px-8">
         <LogoLockup />
 
@@ -65,14 +61,14 @@ export async function Navbar({ className }: NavbarProps) {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-normal tracking-tight text-foreground/80 hover:text-foreground transition-colors duration-150"
+              className="text-sm font-medium tracking-tight text-neutral-800 dark:text-foreground/90 hover:text-neutral-950 dark:hover:text-foreground transition-colors duration-150"
             >
               {link.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 [&_svg]:!size-5">
           <Button
             asChild
             variant="ghost"
@@ -80,7 +76,7 @@ export async function Navbar({ className }: NavbarProps) {
             aria-label={
               cartItemCount > 0 ? `Cart, ${cartItemCount} items` : "Cart"
             }
-            className="relative hover:bg-black/5 dark:hover:bg-white/10"
+            className="relative text-neutral-800 dark:text-foreground hover:bg-black/5 dark:hover:bg-white/10"
           >
             <Link href="/cart">
               <ShoppingCart className="size-5" />
@@ -100,7 +96,7 @@ export async function Navbar({ className }: NavbarProps) {
               ) : null}
             </Link>
           </Button>
-          <ThemeToggle />
+          <ThemeToggle className="text-neutral-800 dark:text-foreground hover:bg-black/5 dark:hover:bg-white/10" />
           {user ? (
             <UserMenu user={user as User} isAdmin={admin} />
           ) : (
@@ -109,7 +105,7 @@ export async function Navbar({ className }: NavbarProps) {
               variant="ghost"
               size="icon"
               aria-label="Profile — Sign in"
-              className="hover:bg-black/5 dark:hover:bg-white/10"
+              className="text-neutral-800 dark:text-foreground hover:bg-black/5 dark:hover:bg-white/10"
             >
               <Link href="/sign-in">
                 <UserIcon className="size-5" />
@@ -119,6 +115,6 @@ export async function Navbar({ className }: NavbarProps) {
           <MobileNavMenu links={NAV_LINKS} signedIn={Boolean(user)} />
         </div>
       </div>
-    </header>
+    </NavbarHeader>
   );
 }
