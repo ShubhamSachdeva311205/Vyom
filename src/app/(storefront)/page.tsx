@@ -1,9 +1,5 @@
 import { HeroReveal } from "@/components/features/store/hero-reveal";
-import { StoreListing } from "@/components/features/store/store-listing";
-import { Container } from "@/components/layouts/container";
-import { Section } from "@/components/layouts/section";
-import { Stack } from "@/components/layouts/stack";
-import { BlurText } from "@/components/ui/blur-text";
+import { StoreCatalogSection } from "@/components/features/store/store-catalog-section";
 import { getBooks } from "@/lib/queries/books";
 
 export default async function HomePage({
@@ -31,19 +27,8 @@ export default async function HomePage({
         outlineSrc="/demo/hero-outline.webp"
       />
 
-      {/* Scrolling past the hero opens the Store directly */}
-      <Section id="store" spacing="default" className="scroll-mt-16">
-        <Container>
-          <Stack gap={8}>
-            <Stack gap={3}>
-              <span className="text-eyebrow">Catalog</span>
-              <BlurText text="Store" as="h1" className="text-display" />
-            </Stack>
-
-            <StoreListing books={books} />
-          </Stack>
-        </Container>
-      </Section>
+      {/* Scrolling past the hero opens the exact same Store catalog as clicking Store */}
+      <StoreCatalogSection books={books} />
     </>
   );
 }

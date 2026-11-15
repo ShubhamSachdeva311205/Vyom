@@ -1,8 +1,4 @@
-import { StoreListing } from "@/components/features/store/store-listing";
-import { Container } from "@/components/layouts/container";
-import { Section } from "@/components/layouts/section";
-import { Stack } from "@/components/layouts/stack";
-import { BlurText } from "@/components/ui/blur-text";
+import { StoreCatalogSection } from "@/components/features/store/store-catalog-section";
 import { getBooks } from "@/lib/queries/books";
 
 export const metadata = {
@@ -12,24 +8,5 @@ export const metadata = {
 
 export default async function StorePage() {
   const books = await getBooks();
-
-  return (
-    <Section spacing="default">
-      <Container>
-        <Stack gap={8}>
-          <Stack gap={3}>
-            <span className="text-eyebrow">Catalog</span>
-            <BlurText text="All titles." as="h1" className="text-display" />
-            <p className="text-body-lg text-muted-foreground max-w-2xl">
-              Seven editions across IBDP Hindi B and IGCSE Hindi as a
-              Second Language. Audio + answer keys ship free with the
-              physical book — never sold separately.
-            </p>
-          </Stack>
-
-          <StoreListing books={books} />
-        </Stack>
-      </Container>
-    </Section>
-  );
+  return <StoreCatalogSection books={books} />;
 }

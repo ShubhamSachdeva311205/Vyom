@@ -5,6 +5,16 @@ import { env } from "@/lib/env";
 import type { Database } from "./types";
 
 /**
+ * Check whether the current incoming request carries any `sb-*` Supabase
+ * auth cookie. Lets Server Components skip a remote `supabase.auth.getUser()`
+ * roundtrip for anonymous visitors.
+ */
+export async function hasSupabaseAuthCookie(): Promise<boolean> {
+  const cookieStore = await cookies();
+  return cookieStore.getAll().some((c) => c.name.startsWith("sb-"));
+}
+
+/**
  * Server Supabase client. Use inside Server Components, Server Actions,
  * Route Handlers, and middleware. Reads + writes auth cookies via the
  * Next.js `cookies()` API so the session stays consistent across the
@@ -31,6 +41,28 @@ export async function createClient() {
             // cookies. That's fine if a middleware is refreshing the
             // session (Phase 2.5) — the cookies update on response.
           }
+        },
+      },
+    },
+  );
+}
+
+/**
+ * Cookie-free public anon Supabase client. Safe to use inside `unstable_cache`
+ * for public read-only queries (books catalog, approved community submissions)
+ * where RLS `anon` policies apply.
+ */
+export function createAnonPublicClient() {
+  return createServerClient<Database>(
+    env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+    {
+      cookies: {
+        getAll() {
+          return [];
+        },
+        setAll() {
+          /* no-op */
         },
       },
     },

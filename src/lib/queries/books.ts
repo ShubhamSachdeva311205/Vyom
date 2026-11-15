@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createAnonPublicClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
 // Storefront reads must NEVER pull the sensitive columns (audio_r2_key,
@@ -14,69 +15,59 @@ export type Book = Omit<
   "audio_r2_key" | "pdf_r2_key" | "cost_paise"
 > & { hasSample?: boolean };
 
-/** Returns the set of book ids that have at least one sample. */
-async function getSampleBookIds(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<Set<string>> {
-  const { data } = await supabase.from("book_samples").select("book_id");
-  return new Set((data ?? []).map((r) => r.book_id as string));
-}
+const fetchAllPublishedBooksCached = unstable_cache(
+  async (): Promise<Book[]> => {
+    const supabase = createAnonPublicClient();
+
+    const [booksRes, samplesRes] = await Promise.all([
+      supabase
+        .from("books")
+        .select(SAFE_BOOK_COLUMNS)
+        .eq("is_active", true)
+        .is("deleted_at" as never, null)
+        .order("curriculum", { ascending: true })
+        .order("slug", { ascending: true }),
+      supabase.from("book_samples").select("book_id"),
+    ]);
+
+    if (booksRes.error) {
+      console.error("[books] fetch failed:", booksRes.error.message);
+      return [];
+    }
+
+    const sampleIds = new Set(
+      (samplesRes.data ?? []).map((r) => r.book_id as string),
+    );
+    return (booksRes.data ?? []).map((b) => ({
+      ...b,
+      hasSample: sampleIds.has(b.id),
+    }));
+  },
+  ["storefront-books-all"],
+  { revalidate: 60, tags: ["books"] },
+);
 
 /**
  * Fetch published books. Optionally filter by curriculum.
- *
- * Server-side only — call from Server Components / Server Actions.
- * RLS automatically filters to is_active = true for anonymous reads.
+ * Cached across requests via `unstable_cache` (60s TTL + "books" tag)
+ * and fetches `books` + `book_samples` in parallel.
  */
-export async function getBooks(opts: {
-  curriculum?: "ibdp" | "igcse";
-} = {}): Promise<Book[]> {
-  const supabase = await createClient();
-
-  let query = supabase
-    .from("books")
-    .select(SAFE_BOOK_COLUMNS)
-    .eq("is_active", true)
-    // Soft-deleted books (admin removed via Phase 5.3 CRUD) stay in
-    // the table for order-history reference but never re-appear on
-    // the storefront.
-    .is("deleted_at" as never, null)
-    .order("curriculum", { ascending: true })
-    .order("slug", { ascending: true });
-
+export async function getBooks(
+  opts: {
+    curriculum?: "ibdp" | "igcse";
+  } = {},
+): Promise<Book[]> {
+  const all = await fetchAllPublishedBooksCached();
   if (opts.curriculum) {
-    query = query.eq("curriculum", opts.curriculum);
+    return all.filter((b) => b.curriculum === opts.curriculum);
   }
-
-  const { data, error } = await query;
-  if (error) {
-    console.error("[books] fetch failed:", error.message);
-    return [];
-  }
-  const sampleIds = await getSampleBookIds(supabase);
-  return (data ?? []).map((b) => ({ ...b, hasSample: sampleIds.has(b.id) }));
+  return all;
 }
 
 /** Get one book by slug. Returns null if not found. */
 export async function getBookBySlug(slug: string): Promise<Book | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("books")
-    .select(SAFE_BOOK_COLUMNS)
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .is("deleted_at" as never, null)
-    .maybeSingle();
-  if (error || !data) {
-    if (error) console.error("[books] getBookBySlug failed:", error.message);
-    return null;
-  }
-  // Does this book have any samples? (drives the "View sample" button)
-  const { count } = await supabase
-    .from("book_samples")
-    .select("id", { count: "exact", head: true })
-    .eq("book_id", data.id);
-  return { ...data, hasSample: (count ?? 0) > 0 };
+  const all = await fetchAllPublishedBooksCached();
+  return all.find((b) => b.slug === slug) ?? null;
 }
 
 export { formatINR } from "@/lib/format";

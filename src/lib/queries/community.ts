@@ -1,5 +1,6 @@
+import { unstable_cache } from "next/cache";
 import type { MediaItem } from "@/lib/community/constants";
-import { createClient } from "@/lib/supabase/server";
+import { createAnonPublicClient } from "@/lib/supabase/server";
 
 export interface ApprovedSubmission {
   id: string;
@@ -12,26 +13,29 @@ export interface ApprovedSubmission {
 }
 
 /**
- * Public Creative Corner feed — approved submissions only. RLS
- * (content_submissions_public_select_approved) enforces the filter even
- * though we also pass .eq("status","approved"); submitter_email is never
- * selected so it can't leak into the public feed.
+ * Public Creative Corner feed — approved submissions only.
+ * Cached via `unstable_cache` (60s revalidate) so navigating to /community
+ * is near-instant without waiting for a cold database roundtrip.
  */
-export async function getApprovedSubmissions(): Promise<ApprovedSubmission[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("content_submissions")
-    .select("id, submitter_name, kind, title, body, media, created_at")
-    .eq("status", "approved")
-    .order("created_at", { ascending: false })
-    .limit(50);
-  return (data ?? []).map((r) => ({
-    id: r.id,
-    name: r.submitter_name,
-    kind: r.kind,
-    title: r.title,
-    body: r.body,
-    media: (r.media as MediaItem[] | null) ?? [],
-    createdAt: r.created_at,
-  }));
-}
+export const getApprovedSubmissions = unstable_cache(
+  async (): Promise<ApprovedSubmission[]> => {
+    const supabase = createAnonPublicClient();
+    const { data } = await supabase
+      .from("content_submissions")
+      .select("id, submitter_name, kind, title, body, media, created_at")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return (data ?? []).map((r) => ({
+      id: r.id,
+      name: r.submitter_name,
+      kind: r.kind,
+      title: r.title,
+      body: r.body,
+      media: (r.media as MediaItem[] | null) ?? [],
+      createdAt: r.created_at,
+    }));
+  },
+  ["community-approved-submissions"],
+  { revalidate: 60, tags: ["community"] },
+);

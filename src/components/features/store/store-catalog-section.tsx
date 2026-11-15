@@ -1,0 +1,32 @@
+import { StoreListing } from "@/components/features/store/store-listing";
+import { Container } from "@/components/layouts/container";
+import { Section } from "@/components/layouts/section";
+import { Stack } from "@/components/layouts/stack";
+import { BlurText } from "@/components/ui/blur-text";
+import type { Book } from "@/lib/queries/books";
+
+/**
+ * Shared Store catalog section rendered identically when scrolling down
+ * on `/` and when navigating directly to `/store`.
+ */
+export function StoreCatalogSection({ books }: { books: Book[] }) {
+  return (
+    <Section id="store" spacing="default" className="scroll-mt-16">
+      <Container>
+        <Stack gap={8}>
+          <Stack gap={3}>
+            <span className="text-eyebrow">Catalog</span>
+            <BlurText text="Store" as="h1" className="text-display" />
+            <p className="text-body-lg text-muted-foreground max-w-2xl">
+              IBDP Hindi B and IGCSE Hindi as a Second Language. Audio +
+              answer keys ship free with the physical book — never sold
+              separately.
+            </p>
+          </Stack>
+
+          <StoreListing books={books} />
+        </Stack>
+      </Container>
+    </Section>
+  );
+}

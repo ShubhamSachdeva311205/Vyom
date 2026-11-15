@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils";
 /**
  * Client wrapper for the barless storefront Navbar.
  * While over the white/pastel hand-drawn hero on `/`, forces dark ink
- * (`#171717`) even if the user toggles dark mode, so the floating text
- * and icons never turn white-on-white over the sketch.
+ * (`#171717`) on the left wordmark and right icon controls (`[data-nav-edge]`)
+ * even if the user toggles dark mode, without overriding the active bubble
+ * inside the centre pill.
  */
 export function NavbarHeader({
   className,
@@ -24,7 +25,6 @@ export function NavbarHeader({
   useEffect(() => {
     if (!isHome) return;
     const onScroll = () => {
-      // Hero section is 240vh tall (-mt-16), so it scrolls off between 1.4vh and 2.4vh.
       setPastHero(window.scrollY > window.innerHeight * 2.15);
     };
     onScroll();
@@ -40,7 +40,7 @@ export function NavbarHeader({
       className={cn(
         "sticky top-0 z-30 w-full bg-transparent transition-colors duration-200",
         forceDarkInk
-          ? "text-neutral-900 [&_a]:!text-neutral-900 [&_button]:!text-neutral-900 [&_svg]:!text-neutral-900"
+          ? "[&_[data-nav-edge]]:!text-neutral-900 [&_[data-nav-edge]_a]:!text-neutral-900 [&_[data-nav-edge]_button]:!text-neutral-900 [&_[data-nav-edge]_svg]:!text-neutral-900"
           : "text-foreground",
         className,
       )}

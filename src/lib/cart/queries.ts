@@ -136,19 +136,40 @@ export async function getCurrentCart(): Promise<CartWithItems | null> {
   return getCartWithItems(cart.id);
 }
 
-/** Cheap count for the navbar badge. Avoids hydrating books. */
-export async function getCurrentCartItemCount(): Promise<number> {
-  const owner = await resolveCartOwner();
+/**
+ * Cheap count for the navbar badge. Avoids hydrating books and combines
+ * the cart + cart_items lookup into a single query. Accepts an optional
+ * pre-fetched `user` so Navbar never calls `supabase.auth.getUser()` twice.
+ */
+export async function getCurrentCartItemCount(
+  prefetchedUser?: { id: string } | null,
+): Promise<number> {
+  let owner: CartOwner | null = null;
+  if (prefetchedUser !== undefined) {
+    if (prefetchedUser) {
+      owner = { kind: "user", userId: prefetchedUser.id };
+    } else {
+      const anon = await readAnonymousSessionId();
+      if (anon) owner = { kind: "anon", sessionId: anon };
+    }
+  } else {
+    owner = await resolveCartOwner();
+  }
+
   if (!owner) return 0;
-  const cart = await findCartForOwner(owner);
-  if (!cart) return 0;
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase
-    .from("cart_items")
-    .select("quantity")
-    .eq("cart_id", cart.id);
+  const baseQuery = supabase
+    .from("carts")
+    .select("id, cart_items(quantity)")
+    .limit(1);
+
+  const { data, error } =
+    owner.kind === "user"
+      ? await baseQuery.eq("user_id", owner.userId).maybeSingle()
+      : await baseQuery.eq("anonymous_session_id", owner.sessionId).maybeSingle();
 
   if (error || !data) return 0;
-  return data.reduce((sum, row) => sum + row.quantity, 0);
+  const items = (data as { cart_items?: { quantity: number }[] }).cart_items ?? [];
+  return items.reduce((sum, row) => sum + row.quantity, 0);
 }

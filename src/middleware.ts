@@ -12,11 +12,23 @@ import type { Database } from "@/lib/supabase/types";
  *   Signed-in:     /dashboard/*, /checkout
  *   Admin only:    /admin/* (except /admin/sign-in)
  *
- * Run on every request (see matcher at the bottom) so the session JWT
- * stays fresh — without this, expired tokens linger and Server
- * Components see a stale user.
+ * Fast-path: if the visitor has no Supabase auth cookie (`sb-*`) and is
+ * requesting a public route, skip the remote `auth.getUser()` roundtrip.
  */
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const isAdminRoute = pathname.startsWith("/admin") && pathname !== "/admin/sign-in";
+  const isCustomerProtected =
+    pathname.startsWith("/dashboard") || pathname === "/checkout";
+
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-"));
+
+  if (!hasAuthCookie && !isAdminRoute && !isCustomerProtected) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -38,15 +50,10 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // Refresh + revalidate the JWT against the auth server.
+  // Refresh + revalidate the JWT against the auth server only when a session cookie exists
   const {
     data: { user },
-  } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
-  const isAdminRoute = pathname.startsWith("/admin") && pathname !== "/admin/sign-in";
-  const isCustomerProtected =
-    pathname.startsWith("/dashboard") || pathname === "/checkout";
+  } = hasAuthCookie ? await supabase.auth.getUser() : { data: { user: null } };
 
   // Admin routes — require auth + allowlist.
   if (isAdminRoute) {
@@ -77,14 +84,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Run on every path EXCEPT:
-     *   - _next/static and _next/image (Next internals)
-     *   - favicon.ico, robots.txt, sitemap.xml (static metadata)
-     *   - file extensions (images, css, etc.)
-     * The auth cookie refresh needs to run on real navigations and
-     * Server Action posts; static assets don't need it.
-     */
     "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -3,30 +3,27 @@ import { ShoppingCart, User as UserIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { getCurrentCartItemCount } from "@/lib/cart/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, hasSupabaseAuthCookie } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Wordmark } from "@/components/ui/wordmark";
 import { UserMenu } from "@/components/ui/user-menu";
 import { MobileNavMenu } from "@/components/layouts/mobile-nav-menu";
 import { NavbarHeader } from "@/components/layouts/navbar-header";
+import { NavbarLinks, NAV_LINKS } from "@/components/layouts/navbar-links";
 import { cn } from "@/lib/utils";
-
-const NAV_LINKS = [
-  { href: "/store", label: "Store" },
-  { href: "/community", label: "Community" },
-  { href: "/contact", label: "About Us" },
-] as const;
 
 function LogoLockup() {
   return (
-    <Link
-      href="/"
-      aria-label="Vyom — home"
-      className="inline-flex items-center py-1 text-neutral-900 dark:text-foreground hover:opacity-75 transition-opacity"
-    >
-      <Wordmark className="text-3xl leading-none" />
-    </Link>
+    <div data-nav-edge>
+      <Link
+        href="/"
+        aria-label="Vyom — home"
+        className="inline-flex items-center py-1 text-neutral-900 dark:text-foreground hover:opacity-75 transition-opacity"
+      >
+        <Wordmark className="text-3xl leading-none" />
+      </Link>
+    </div>
   );
 }
 
@@ -35,40 +32,33 @@ interface NavbarProps {
 }
 
 /**
- * Floating minimal storefront navigation — no background bar or border.
+ * Floating minimal storefront navigation — no full-width background bar.
  * Left: Devanagari व्योम wordmark.
- * Centre: Apple-style text links (Store, Community, About Us).
+ * Centre: Apple-style pill with sliding active bubble (Store, Community, About Us).
  * Right: 3 icon symbols (Cart, Theme, Profile) + mobile drawer trigger.
  */
 export async function Navbar({ className }: NavbarProps) {
-  const supabase = await createClient();
-  const [
-    {
-      data: { user },
-    },
-    cartItemCount,
-  ] = await Promise.all([supabase.auth.getUser(), getCurrentCartItemCount()]);
+  const hasAuth = await hasSupabaseAuthCookie();
+  let user: User | null = null;
+  if (hasAuth) {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  }
 
-  const admin = await isAdminEmail(user?.email);
+  const [cartItemCount, admin] = await Promise.all([
+    getCurrentCartItemCount(user),
+    user?.email ? isAdminEmail(user.email) : Promise.resolve(false),
+  ]);
 
   return (
     <NavbarHeader className={className}>
       <div className="relative flex h-16 w-full items-center justify-between px-5 sm:px-8">
         <LogoLockup />
 
-        <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="relative py-0.5 text-sm font-medium tracking-tight text-neutral-800 dark:text-foreground/90 hover:text-neutral-950 dark:hover:text-foreground transition-colors duration-150 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 hover:after:scale-x-100"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <NavbarLinks />
 
-        <div className="flex items-center gap-1.5 [&_svg]:!size-5">
+        <div data-nav-edge className="flex items-center gap-1.5 [&_svg]:!size-5">
           <Button
             asChild
             variant="ghost"
